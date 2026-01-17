@@ -138,7 +138,14 @@ const PatientFormModern: React.FC<PatientFormModernProps> = ({ patient, open, on
       form.resetFields();
       onSave();
     } catch (error: any) {
-      message.error(error.response?.data?.error || 'حدث خطأ أثناء حفظ بيانات المريض');
+      console.error('Error saving patient:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'حدث خطأ أثناء حفظ بيانات المريض';
+      message.error(errorMessage);
+      
+      // Log full error for debugging
+      if (error.response) {
+        console.error('Response error:', error.response.data);
+      }
     } finally {
       setLoading(false);
     }
