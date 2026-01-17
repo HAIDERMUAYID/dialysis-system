@@ -583,4 +583,93 @@ router.post('/visits/:id/force-close', authenticateToken, requireRole('admin'), 
   }
 });
 
+// Get database tables information (admin only)
+router.get('/database/tables', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    if (db.prisma) {
+      // Get all tables from PostgreSQL
+      const tables = await db.prisma.$queryRaw`
+        SELECT 
+          table_name,
+          (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
+        FROM information_schema.tables t
+        WHERE table_schema = 'public' 
+        AND table_type = 'BASE TABLE'
+        ORDER BY table_name
+      `;
+
+      // Get row counts for each table
+      const tablesWithCounts = await Promise.all(
+        tables.map(async (table) => {
+          try {
+            const tableName = table.table_name;
+            // Escape table name for safety
+            const result = await db.prisma.$queryRawUnsafe(
+              `SELECT COUNT(*) as count FROM "${tableName}"`
+            );
+            const count = result[0]?.count || 0;
+            return {
+              name: tableName,
+              columns: parseInt(table.column_count) || 0,
+              rows: parseInt(count) || 0
+            };
+          } catch (error) {
+            return {
+              name: table.table_name,
+              columns: parseInt(table.column_count) || 0,
+              rows: -1,
+              error: error.message
+            };
+          }
+        })
+      );
+
+      res.json({
+        success: true,
+        database_type: 'PostgreSQL',
+        total_tables: tablesWithCounts.length,
+        tables: tablesWithCounts
+      });
+    } else {
+      // SQLite fallback
+      const { allQuery } = require('../database/db');
+      const tables = await allQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+      );
+
+      const tablesWithCounts = await Promise.all(
+        tables.map(async (table) => {
+          try {
+            const result = await allQuery(`SELECT COUNT(*) as count FROM ${table.name}`);
+            return {
+              name: table.name,
+              rows: result[0]?.count || 0
+            };
+          } catch (error) {
+            return {
+              name: table.name,
+              rows: -1,
+              error: error.message
+            };
+          }
+        })
+      );
+
+      res.json({
+        success: true,
+        database_type: 'SQLite',
+        total_tables: tablesWithCounts.length,
+        tables: tablesWithCounts
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching database tables:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'حدث خطأ أثناء جلب معلومات الجداول',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
