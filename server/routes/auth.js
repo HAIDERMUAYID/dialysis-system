@@ -18,6 +18,15 @@ router.post('/login', async (req, res) => {
 
     let user;
     try {
+      // Ensure database connection is active (for Prisma)
+      if (db.ensureConnection) {
+        const isConnected = await db.ensureConnection();
+        if (!isConnected) {
+          console.error('Database connection is not available');
+          return res.status(503).json({ error: 'قاعدة البيانات غير متاحة حالياً. يرجى المحاولة مرة أخرى' });
+        }
+      }
+      
       // Use Prisma if available, otherwise fallback to SQL
       if (db.prisma) {
         user = await db.prisma.user.findUnique({
@@ -33,7 +42,24 @@ router.post('/login', async (req, res) => {
       }
     } catch (dbError) {
       console.error('Database query error:', dbError);
-      return res.status(500).json({ error: 'خطأ في قاعدة البيانات. تأكد من تشغيل الخادم بشكل صحيح' });
+      console.error('Database error details:', {
+        message: dbError.message,
+        code: dbError.code,
+        meta: dbError.meta
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = 'خطأ في قاعدة البيانات. تأكد من تشغيل الخادم بشكل صحيح';
+      
+      if (dbError.message && dbError.message.includes('does not exist')) {
+        errorMessage = 'قاعدة البيانات غير مهيأة. يرجى تشغيل migrations: npx prisma migrate deploy';
+      } else if (dbError.message && dbError.message.includes('connection')) {
+        errorMessage = 'لا يمكن الاتصال بقاعدة البيانات. تحقق من DATABASE_URL في Render';
+      } else if (dbError.code === 'P2002') {
+        errorMessage = 'خطأ في قاعدة البيانات: بيانات مكررة';
+      }
+      
+      return res.status(500).json({ error: errorMessage });
     }
 
     if (!user) {
