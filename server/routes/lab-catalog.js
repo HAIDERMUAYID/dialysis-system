@@ -144,6 +144,14 @@ router.post('/catalog', authenticateToken, requireRole('admin', 'lab_manager'), 
       return res.status(400).json({ error: 'اسم التحليل ووحدة القياس مطلوبان' });
     }
 
+    // Convert numeric values to strings (Prisma expects String for normalRangeMin/Max)
+    const normalRangeMinStr = normal_range_min !== null && normal_range_min !== undefined 
+      ? String(normal_range_min) 
+      : null;
+    const normalRangeMaxStr = normal_range_max !== null && normal_range_max !== undefined 
+      ? String(normal_range_max) 
+      : null;
+
     // Check if test already exists
     let existing;
     if (db.prisma) {
@@ -166,8 +174,8 @@ router.post('/catalog', authenticateToken, requireRole('admin', 'lab_manager'), 
           testName: test_name,
           testNameAr: test_name_ar || null,
           unit,
-          normalRangeMin: normal_range_min || null,
-          normalRangeMax: normal_range_max || null,
+          normalRangeMin: normalRangeMinStr,
+          normalRangeMax: normalRangeMaxStr,
           normalRangeText: normal_range_text || null,
           description: description || null,
           createdBy: req.user.id
@@ -185,7 +193,7 @@ router.post('/catalog', authenticateToken, requireRole('admin', 'lab_manager'), 
         `INSERT INTO lab_tests_catalog 
          (test_name, test_name_ar, unit, normal_range_min, normal_range_max, normal_range_text, description, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [test_name, test_name_ar || null, unit, normal_range_min || null, normal_range_max || null, normal_range_text || null, description || null, req.user.id]
+        [test_name, test_name_ar || null, unit, normalRangeMinStr, normalRangeMaxStr, normal_range_text || null, description || null, req.user.id]
       );
       newTest = await getQuery(
         `SELECT lt.*, u.name as created_by_name
@@ -229,6 +237,14 @@ router.put('/catalog/:id', authenticateToken, requireRole('admin', 'lab_manager'
     const testId = parseInt(req.params.id);
     const { test_name, test_name_ar, unit, normal_range_min, normal_range_max, normal_range_text, description, is_active } = req.body;
 
+    // Convert numeric values to strings (Prisma expects String for normalRangeMin/Max)
+    const normalRangeMinStr = normal_range_min !== null && normal_range_min !== undefined 
+      ? String(normal_range_min) 
+      : undefined;
+    const normalRangeMaxStr = normal_range_max !== null && normal_range_max !== undefined 
+      ? String(normal_range_max) 
+      : undefined;
+
     let test;
     if (db.prisma) {
       test = await db.prisma.labTestCatalog.findUnique({
@@ -271,8 +287,8 @@ router.put('/catalog/:id', authenticateToken, requireRole('admin', 'lab_manager'
           testName: test_name || test.testName,
           testNameAr: test_name_ar !== undefined ? test_name_ar : test.testNameAr,
           unit: unit || test.unit,
-          normalRangeMin: normal_range_min !== undefined ? normal_range_min : test.normalRangeMin,
-          normalRangeMax: normal_range_max !== undefined ? normal_range_max : test.normalRangeMax,
+          normalRangeMin: normalRangeMinStr !== undefined ? normalRangeMinStr : test.normalRangeMin,
+          normalRangeMax: normalRangeMaxStr !== undefined ? normalRangeMaxStr : test.normalRangeMax,
           normalRangeText: normal_range_text !== undefined ? normal_range_text : test.normalRangeText,
           description: description !== undefined ? description : test.description,
           isActive: is_active !== undefined ? (is_active === true || is_active === '1' ? 1 : 0) : test.isActive
@@ -298,7 +314,7 @@ router.put('/catalog/:id', authenticateToken, requireRole('admin', 'lab_manager'
              is_active = COALESCE(?, is_active),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [test_name, test_name_ar, unit, normal_range_min, normal_range_max, normal_range_text, description, is_active, req.params.id]
+        [test_name, test_name_ar, unit, normalRangeMinStr, normalRangeMaxStr, normal_range_text, description, is_active, req.params.id]
       );
 
       updatedTest = await getQuery(
