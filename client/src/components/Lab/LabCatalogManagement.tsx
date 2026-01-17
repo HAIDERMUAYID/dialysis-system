@@ -106,7 +106,14 @@ const LabCatalogManagement: React.FC = () => {
       form.resetFields();
       fetchTests();
     } catch (error: any) {
-      message.error(error.response?.data?.error || 'حدث خطأ أثناء الحفظ');
+      console.error('Error saving lab test:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'حدث خطأ أثناء الحفظ';
+      message.error(errorMessage);
+      
+      // Log full error for debugging
+      if (error.response) {
+        console.error('Response error:', error.response.data);
+      }
     }
   };
 

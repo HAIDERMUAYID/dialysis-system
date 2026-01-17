@@ -133,6 +133,11 @@ router.get('/catalog/:id', authenticateToken, async (req, res) => {
 // Add new lab test to catalog (Lab Manager/Admin only)
 router.post('/catalog', authenticateToken, requireRole('admin', 'lab_manager'), async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'غير مصرح: يجب تسجيل الدخول أولاً' });
+    }
+
     const { test_name, test_name_ar, unit, normal_range_min, normal_range_max, normal_range_text, description } = req.body;
 
     if (!test_name || !unit) {
@@ -194,7 +199,27 @@ router.post('/catalog', authenticateToken, requireRole('admin', 'lab_manager'), 
     res.status(201).json(newTest);
   } catch (error) {
     console.error('Error adding lab test to catalog:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إضافة التحليل للكتالوج' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'حدث خطأ أثناء إضافة التحليل للكتالوج';
+    if (error.code === 'P2002') {
+      // Unique constraint violation
+      const field = error.meta?.target?.[0] || 'حقل';
+      errorMessage = `قيمة ${field} موجودة مسبقاً في قاعدة البيانات`;
+    } else if (error.code === 'P2003') {
+      // Foreign key constraint violation
+      errorMessage = 'خطأ في البيانات المرسلة: قيمة غير صحيحة';
+    } else if (error.message) {
+      errorMessage = `خطأ: ${error.message}`;
+    }
+    
+    res.status(500).json({ error: errorMessage, details: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
