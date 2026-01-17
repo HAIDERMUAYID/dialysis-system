@@ -73,11 +73,37 @@ const LoginModern: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(values.username, values.password);
-      navigate('/');
+      const user = await login(values.username, values.password);
+      
+      // Get dashboard route based on user role
+      const getDashboardRoute = (role: string): string => {
+        switch (role) {
+          case 'admin':
+            return '/admin';
+          case 'inquiry':
+            return '/inquiry';
+          case 'lab':
+          case 'lab_manager':
+            return '/lab';
+          case 'pharmacist':
+          case 'pharmacy_manager':
+            return '/pharmacist';
+          case 'doctor':
+            return '/doctor';
+          default:
+            return '/login';
+        }
+      };
+
+      // Navigate to appropriate dashboard based on user role
+      if (user && user.role) {
+        navigate(getDashboardRoute(user.role), { replace: true });
+      } else {
+        // Fallback: navigate to root, which will redirect based on user state
+        navigate('/', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول. تحقق من بيانات الاعتماد');
-    } finally {
       setLoading(false);
     }
   };

@@ -50,6 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     try {
       console.log('Attempting to login with username:', username);
+      console.log('API Base URL:', axios.defaults.baseURL);
+      
       const response = await axios.post('/api/auth/login', { username, password });
       console.log('Login response:', response.status);
       const { token, user } = response.data;
@@ -59,12 +61,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setUser(user);
+      return user; // Return user object for navigation
     } catch (error: any) {
       console.error('Login error:', error);
       console.error('Error response:', error.response);
+      console.error('Error config:', error.config);
       
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        throw new Error('لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 5000');
+      // Network errors
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error') || error.message?.includes('ERR_NETWORK')) {
+        const apiUrl = axios.defaults.baseURL || 'غير محدد';
+        throw new Error(`لا يمكن الاتصال بالخادم (${apiUrl}). تأكد من أن الخادم يعمل بشكل صحيح وأن REACT_APP_API_URL مضبوط بشكل صحيح في Render.`);
+      }
+      
+      // CORS errors
+      if (error.message?.includes('CORS') || error.code === 'ERR_CORS') {
+        throw new Error('خطأ في CORS. تأكد من أن CLIENT_URL مضبوط بشكل صحيح في Backend على Render.');
+      }
+      
+      // Timeout errors
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        throw new Error('انتهت مهلة الاتصال. الخادم قد يكون نائماً (Free Plan). انتظر 30-60 ثانية وحاول مرة أخرى.');
       }
       
       if (error.response) {
@@ -75,15 +91,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (status === 403) {
           throw new Error('تم رفض الطلب. تأكد من أن الخادم يعمل بشكل صحيح وقاعدة البيانات مهيأة');
         } else if (status === 401) {
-          throw new Error(errorMessage);
+          throw new Error(errorMessage || 'اسم المستخدم أو كلمة المرور غير صحيحة');
         } else if (status === 500) {
-          throw new Error(errorMessage || 'خطأ في الخادم. تحقق من سجلات الخادم');
+          throw new Error(errorMessage || 'خطأ في الخادم. تحقق من سجلات الخادم في Render');
+        } else if (status === 404) {
+          throw new Error('نقطة النهاية غير موجودة. تأكد من أن Backend يعمل على: ' + (axios.defaults.baseURL || 'غير محدد'));
         } else {
           throw new Error(`${errorMessage} (Status: ${status})`);
         }
       }
       
-      throw new Error(error.message || 'فشل تسجيل الدخول');
+      throw new Error(error.message || 'فشل تسجيل الدخول. تحقق من اتصال الإنترنت وإعدادات Render');
     }
   };
 

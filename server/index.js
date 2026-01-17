@@ -31,8 +31,23 @@ app.use(helmet({
 app.use(compression());
 
 // CORS configuration
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:3000",
+  "https://hospital-frontend-wrxu.onrender.com",
+  "https://hospital-frontend.onrender.com"
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -49,6 +64,22 @@ app.use((req, res, next) => {
     userAgent: req.get('user-agent')
   });
   next();
+});
+
+// Root endpoint - API information
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Al-Hakim Hospital Management System API',
+    version: '2.0.0',
+    status: 'running',
+    message: 'API is running. Use /api/health for health check.',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      info: '/api/info'
+    },
+    documentation: 'This is the Backend API. Frontend should be at: ' + (process.env.CLIENT_URL || 'https://hospital-frontend-wrxu.onrender.com')
+  });
 });
 
 // Health check endpoint
@@ -162,12 +193,28 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Serve static files from React app in production (before 404 handler)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.get('*', (req, res, next) => {
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(__dirname, '../client/build/index.html'));
+    } else {
+      next(); // Continue to 404 handler for API routes
+    }
+  });
+}
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: 'الطريق غير موجود',
     path: req.path,
-    method: req.method
+    method: req.method,
+    message: req.path.startsWith('/api') 
+      ? 'API endpoint not found. Check /api/info for available endpoints.'
+      : 'Path not found.'
   });
 });
 
@@ -176,14 +223,6 @@ db.init()
   .then(() => {
     console.log('Database initialized successfully');
     dbInitialized = true;
-    
-    // Serve static files from React app in production
-    if (process.env.NODE_ENV === 'production') {
-      app.use(express.static(path.join(__dirname, '../client/build')));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/build/index.html'));
-      });
-    }
 
     // Start server only after database is initialized
     const server = app.listen(PORT, () => {

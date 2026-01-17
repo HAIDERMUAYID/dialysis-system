@@ -39,18 +39,45 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRoles: string[]
 };
 
 const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Helper function to get dashboard route based on role
+  const getDashboardRoute = (role: string | undefined): string => {
+    if (!role) return '/login';
+    switch (role) {
+      case 'admin':
+        return '/admin';
+      case 'inquiry':
+        return '/inquiry';
+      case 'lab':
+      case 'lab_manager':
+        return '/lab';
+      case 'pharmacist':
+      case 'pharmacy_manager':
+        return '/pharmacist';
+      case 'doctor':
+        return '/doctor';
+      default:
+        return '/login';
+    }
+  };
 
   return (
     <Routes>
+      {/* Root route - redirect to appropriate dashboard */}
+      <Route path="/" element={
+        loading ? (
+          <div className="loading">جاري التحميل...</div>
+        ) : user ? (
+          <Navigate to={getDashboardRoute(user.role)} replace />
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+      
       <Route path="/login" element={
         user ? (
-          user.role === 'admin' ? <Navigate to="/admin" /> :
-          user.role === 'inquiry' ? <Navigate to="/inquiry" /> :
-          user.role === 'lab' || user.role === 'lab_manager' ? <Navigate to="/lab" /> :
-          user.role === 'pharmacist' || user.role === 'pharmacy_manager' ? <Navigate to="/pharmacist" /> :
-          user.role === 'doctor' ? <Navigate to="/doctor" /> :
-          <Navigate to="/login" />
+          <Navigate to={getDashboardRoute(user.role)} replace />
         ) : <Login />
       } />
       

@@ -145,9 +145,9 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px 16px;
+  padding: 30px 20px;
   animation: fadeInScale 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -163,24 +163,27 @@
 }
 
 .login-row {
-  min-height: 500px;
+  min-height: 600px;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
-  border-radius: 24px;
+  border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
 }
 
 /* ===== Left Panel - Branding ===== */
 .login-left-panel {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 58, 138, 0.15) 100%);
-  padding: 40px 35px;
+  padding: 60px 50px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  min-height: 600px;
 }
 
 .login-left-panel::before {
@@ -206,9 +209,9 @@
 /* Logo */
 .login-logo-container {
   position: relative;
-  width: 110px;
-  height: 110px;
-  margin: 0 auto 20px;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,8 +271,9 @@
 /* Ministry Info */
 .ministry-info {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
   color: white;
+  padding: 0 20px;
 }
 
 .ministry-title {
@@ -449,11 +453,12 @@
 .login-right-panel {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(30px);
-  padding: 40px 35px;
+  padding: 60px 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  min-height: 600px;
 }
 
 .login-right-panel::before {
@@ -468,7 +473,7 @@
 
 .login-form-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   animation: slideInRight 0.8s ease-out;
 }
 

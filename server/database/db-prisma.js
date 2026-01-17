@@ -101,6 +101,32 @@ const init = async () => {
     await prisma.$connect();
     console.log('Connected to database via Prisma');
     
+    // Check if migrations need to be run (only in production)
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        // Try to query a table to see if migrations have been run
+        await prisma.$queryRaw`SELECT 1 FROM information_schema.tables WHERE table_name = 'roles' LIMIT 1`;
+        console.log('Database tables exist, migrations already applied');
+      } catch (migrationCheckError) {
+        // If tables don't exist, try to run migrations
+        console.log('Database tables not found, attempting to run migrations...');
+        try {
+          const { exec } = require('child_process');
+          const { promisify } = require('util');
+          const execAsync = promisify(exec);
+          
+          await execAsync('npx prisma migrate deploy', {
+            cwd: process.cwd(),
+            env: process.env
+          });
+          console.log('Database migrations applied successfully');
+        } catch (migrateError) {
+          console.warn('Could not run migrations automatically:', migrateError.message);
+          console.warn('Please run: npx prisma migrate deploy');
+        }
+      }
+    }
+    
     // Initialize default data
     if (!initialized) {
       await insertDefaultData();
