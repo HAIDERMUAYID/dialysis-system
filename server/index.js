@@ -9,6 +9,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5001; // Changed to 5001 because 5000 is used by macOS ControlCenter
 
+// Trust proxy for rate limiting (required for Render)
+app.set('trust proxy', 1);
+
 // Initialize database
 const db = require('./database/db');
 

@@ -105,32 +105,86 @@ const init = async () => {
     if (process.env.NODE_ENV === 'production') {
       try {
         // Try to query a table to see if migrations have been run
-        await prisma.$queryRaw`SELECT 1 FROM information_schema.tables WHERE table_name = 'roles' LIMIT 1`;
-        console.log('Database tables exist, migrations already applied');
+        const result = await prisma.$queryRaw`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'roles'
+          ) as exists
+        `;
+        const tableExists = result[0]?.exists;
+        
+        if (tableExists) {
+          console.log('Database tables exist, migrations already applied');
+        } else {
+          throw new Error('Tables do not exist');
+        }
       } catch (migrationCheckError) {
         // If tables don't exist, try to run migrations
         console.log('Database tables not found, attempting to run migrations...');
+        console.log('Migration check error:', migrationCheckError.message);
         try {
           const { exec } = require('child_process');
           const { promisify } = require('util');
           const execAsync = promisify(exec);
           
-          await execAsync('npx prisma migrate deploy', {
+          console.log('Running: npx prisma migrate deploy');
+          const { stdout, stderr } = await execAsync('npx prisma migrate deploy', {
             cwd: process.cwd(),
-            env: process.env
+            env: process.env,
+            maxBuffer: 1024 * 1024 * 10 // 10MB buffer
           });
+          
+          if (stdout) console.log('Migration output:', stdout);
+          if (stderr) console.warn('Migration warnings:', stderr);
+          
           console.log('Database migrations applied successfully');
+          
+          // Verify tables exist after migration
+          const verifyResult = await prisma.$queryRaw`
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' 
+              AND table_name = 'roles'
+            ) as exists
+          `;
+          
+          if (verifyResult[0]?.exists) {
+            console.log('Migration verified: tables now exist');
+          } else {
+            console.error('WARNING: Migration completed but tables still not found!');
+          }
         } catch (migrateError) {
-          console.warn('Could not run migrations automatically:', migrateError.message);
-          console.warn('Please run: npx prisma migrate deploy');
+          console.error('Could not run migrations automatically:', migrateError.message);
+          console.error('Migration error details:', migrateError);
+          console.error('Please run manually in Shell: npx prisma migrate deploy');
         }
       }
     }
     
-    // Initialize default data
+    // Initialize default data (only if tables exist)
     if (!initialized) {
-      await insertDefaultData();
-      initialized = true;
+      try {
+        // Verify tables exist before inserting default data
+        const rolesCheck = await prisma.$queryRaw`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'roles'
+          ) as exists
+        `;
+        
+        if (rolesCheck[0]?.exists) {
+          await insertDefaultData();
+          initialized = true;
+        } else {
+          console.warn('Tables do not exist yet, skipping default data insertion');
+          console.warn('Default data will be inserted after migrations are applied');
+        }
+      } catch (error) {
+        console.error('Error checking tables before inserting default data:', error.message);
+        console.warn('Skipping default data insertion due to error');
+      }
     }
     
     // Set up periodic connection check (every 5 minutes)
