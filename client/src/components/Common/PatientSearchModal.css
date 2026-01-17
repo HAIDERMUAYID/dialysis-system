@@ -1,0 +1,88 @@
+.patient-search-modal .ant-modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: none;
+  padding: 20px 24px;
+}
+
+.patient-search-modal .ant-modal-title {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.patient-search-modal .ant-modal-close {
+  color: #ffffff;
+}
+
+.patient-search-modal .ant-modal-close:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.patient-search-content {
+  padding: 8px 0;
+}
+
+.patient-search-input {
+  width: 100%;
+}
+
+.patient-search-input .ant-input {
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  padding: 10px 16px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.patient-search-input .ant-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.patient-search-input .ant-input-group-addon .ant-btn {
+  border-radius: 0 8px 8px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.patient-search-input .ant-input-group-addon .ant-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.patient-search-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.patient-search-table .ant-table-thead > tr > th {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 16px;
+  font-size: 13px;
+}
+
+.patient-search-table .ant-table-tbody > tr {
+  transition: all 0.2s ease;
+}
+
+.patient-search-table .ant-table-tbody > tr:hover {
+  background: #f0f7ff;
+  transform: scale(1.01);
+}
+
+.patient-search-table .ant-table-tbody > tr > td {
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.patient-search-table .ant-table-tbody > tr > td:last-child {
+  text-align: center;
+}
+
+/* RTL adjustments */
+.patient-search-modal[dir='rtl'] .patient-search-input .ant-input-group-addon .ant-btn {
+  border-radius: 8px 0 0 8px;
+}

@@ -1,0 +1,150 @@
+/* ============================================
+   LAB DASHBOARD - MODERN REDESIGN
+   ============================================ */
+
+/* Extend unified dashboard classes */
+.lab-dashboard-layout {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+.lab-dashboard-layout::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(217, 119, 6, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lab-dashboard-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: var(--shadow-xl);
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.lab-dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+}
+
+.lab-dashboard-content {
+  padding: var(--space-8);
+  max-width: 1920px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* Lab-specific overrides */
+.lab-dashboard-header .header-icon {
+  color: #ffffff;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Statistics Cards - Second Row with Gradients */
+.lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: float 4s ease-in-out infinite;
+}
+
+.lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--shadow-2xl);
+}
+
+.lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic-content {
+  color: var(--text-inverse);
+  font-weight: var(--font-extrabold);
+  font-size: var(--text-3xl);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Table Enhancements */
+.lab-dashboard-content .ant-table {
+  border-radius: var(--radius-2xl);
+}
+
+.lab-dashboard-content .ant-table-thead > tr > th {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #78350f;
+  font-weight: var(--font-bold);
+}
+
+.lab-dashboard-content .ant-table-tbody > tr > td {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Row Status Colors */
+.lab-pending-row {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+  border-right: 4px solid var(--warning);
+}
+
+.lab-pending-row:hover {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.15) 0%, transparent 100%);
+  transform: translateX(-2px);
+}
+
+.lab-completed-row {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+  border-right: 4px solid var(--success);
+}
+
+.lab-completed-row:hover {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%);
+  transform: translateX(-2px);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic-content {
+    font-size: var(--text-2xl);
+  }
+}

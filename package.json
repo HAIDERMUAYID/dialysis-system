@@ -1,0 +1,61 @@
+{
+  "name": "al-hakim-hospital-system",
+  "version": "1.0.0",
+  "description": "نظام إدارة مستشفى الحكيم - شعبة الكلية الصناعية",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/index.js",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd client && npm install",
+    "start": "node server/index.js",
+    "start:pm2": "pm2 start ecosystem.config.js",
+    "stop:pm2": "pm2 stop hospital-api",
+    "restart:pm2": "pm2 restart hospital-api",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "node prisma/seed.js"
+  },
+  "keywords": ["hospital", "management", "system"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.6",
+    "mysql2": "^3.6.5",
+    "@prisma/client": "^5.7.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "body-parser": "^1.20.2",
+    "pdfkit": "^0.13.0",
+    "pdfmake": "^0.2.10",
+    "socket.io": "^4.6.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "express-validator": "^7.0.1",
+    "compression": "^1.7.4",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "node-cron": "^3.0.3",
+    "i18next": "^23.7.8",
+    "i18next-fs-backend": "^2.1.7",
+    "multer": "^1.4.5-lts.1",
+    "archiver": "^6.0.1",
+    "exceljs": "^4.4.0",
+    "csv-writer": "^1.6.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.0",
+    "prisma": "^5.7.1"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+}

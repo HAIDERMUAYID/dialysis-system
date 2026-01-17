@@ -1,0 +1,280 @@
+/* ============================================
+   MODERN MODALS & FORMS STYLES
+   ============================================ */
+
+/* ===== Modal Styles ===== */
+.ant-modal {
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+}
+
+.ant-modal-content {
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  background: var(--gradient-primary);
+  border-bottom: none;
+  padding: var(--space-6);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+
+.ant-modal-title {
+  color: var(--text-inverse);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ant-modal-close {
+  color: var(--text-inverse);
+  top: var(--space-6);
+  right: var(--space-6);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  transition: all var(--transition-base);
+}
+
+.ant-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.ant-modal-body {
+  padding: var(--space-6);
+  background: var(--bg-primary);
+}
+
+.ant-modal-footer {
+  padding: var(--space-6);
+  border-top: 2px solid var(--gray-100);
+  background: var(--gray-50);
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+}
+
+/* ===== Form Styles ===== */
+.ant-form {
+  background: var(--bg-primary);
+}
+
+.ant-form-item-label > label {
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gray-200);
+  padding: var(--space-3) var(--space-4);
+  transition: all var(--transition-base);
+  font-size: var(--text-base);
+}
+
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-select:hover .ant-select-selector,
+.ant-picker:hover {
+  border-color: var(--gray-300);
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.ant-input-affix-wrapper {
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gray-200);
+  transition: all var(--transition-base);
+}
+
+.ant-input-affix-wrapper:hover {
+  border-color: var(--gray-300);
+}
+
+.ant-input-affix-wrapper-focused {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ===== Select Styles ===== */
+.ant-select-dropdown {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--gray-200);
+  padding: var(--space-2);
+}
+
+.ant-select-item {
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-1);
+  transition: all var(--transition-fast);
+}
+
+.ant-select-item:hover {
+  background: var(--primary-50);
+}
+
+.ant-select-item-option-selected {
+  background: var(--primary-100);
+  font-weight: var(--font-semibold);
+}
+
+/* ===== DatePicker Styles ===== */
+.ant-picker-dropdown {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.ant-picker-panel {
+  border-radius: var(--radius-xl);
+}
+
+/* ===== Table in Modal ===== */
+.ant-modal .ant-table {
+  border-radius: var(--radius-xl);
+}
+
+.ant-modal .ant-table-thead > tr > th {
+  background: var(--gray-50);
+  font-weight: var(--font-bold);
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.ant-modal .ant-table-tbody > tr:hover > td {
+  background: var(--gray-50);
+}
+
+/* ===== Tabs in Modal ===== */
+.ant-modal .ant-tabs {
+  background: transparent;
+}
+
+.ant-modal .ant-tabs-tab {
+  font-weight: var(--font-semibold);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+.ant-modal .ant-tabs-tab:hover {
+  background: var(--gray-50);
+}
+
+.ant-modal .ant-tabs-tab-active {
+  background: var(--primary-50);
+  color: var(--primary-600);
+}
+
+/* ===== Buttons in Modal ===== */
+.ant-modal .ant-btn {
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-6);
+  height: auto;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.ant-modal .ant-btn-primary {
+  background: var(--gradient-primary);
+  border: none;
+  box-shadow: var(--shadow-md);
+}
+
+.ant-modal .ant-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.ant-modal .ant-btn-default {
+  background: var(--bg-primary);
+  border: 2px solid var(--gray-300);
+}
+
+.ant-modal .ant-btn-default:hover {
+  border-color: var(--primary-500);
+  color: var(--primary-600);
+  transform: translateY(-2px);
+}
+
+/* ===== Tags in Modal ===== */
+.ant-modal .ant-tag {
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-xs);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== Empty States in Modal ===== */
+.ant-modal .ant-empty {
+  padding: var(--space-12) var(--space-6);
+}
+
+.ant-modal .ant-empty-description {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+/* ===== Card in Modal ===== */
+.ant-modal .ant-card {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+  margin-bottom: var(--space-4);
+}
+
+.ant-modal .ant-card-head {
+  background: var(--gray-50);
+  border-bottom: 2px solid var(--gray-100);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.ant-modal .ant-card-body {
+  padding: var(--space-5);
+}
+
+/* ===== Responsive Modals ===== */
+@media (max-width: 768px) {
+  .ant-modal {
+    margin: var(--space-4);
+    max-width: calc(100% - 32px);
+  }
+  
+  .ant-modal-header,
+  .ant-modal-body,
+  .ant-modal-footer {
+    padding: var(--space-4);
+  }
+}
+
+/* ===== Animations for Modals ===== */
+.ant-modal-mask {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ant-modal-wrap {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.ant-modal {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

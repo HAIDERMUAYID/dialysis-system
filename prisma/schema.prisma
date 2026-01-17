@@ -1,0 +1,388 @@
+// Prisma Schema for Hospital Management System
+// Compatible with Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  displayName   String    @map("display_name")
+  description   String?
+  isSystemRole  Int       @default(0) @map("is_system_role")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  users         User[]
+  permissions   RolePermission[]
+  
+  @@map("roles")
+}
+
+model Permission {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  displayName   String    @map("display_name")
+  category      String?
+  description   String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  roles         RolePermission[]
+  
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            Int       @id @default(autoincrement())
+  roleId        Int       @map("role_id")
+  permissionId  Int       @map("permission_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  role          Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  password      String
+  role          String
+  roleId        Int?      @map("role_id")
+  name          String
+  email         String?
+  phone         String?
+  isActive      Int       @default(1) @map("is_active")
+  lastLogin     DateTime? @map("last_login")
+  createdBy     Int?      @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  roleRef       Role?     @relation(fields: [roleId], references: [id])
+  creator       User?     @relation("UserCreator", fields: [createdBy], references: [id])
+  createdUsers  User[]    @relation("UserCreator")
+  patients      Patient[]
+  visits        Visit[]
+  labResults    LabResult[]
+  prescriptions PharmacyPrescription[]
+  diagnoses     Diagnosis[]
+  statusHistory VisitStatusHistory[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  labTestsCatalog LabTestCatalog[]
+  labPanels     LabTestPanel[]
+  drugsCatalog  DrugCatalog[]
+  prescriptionSets PrescriptionSet[]
+  attachments   VisitAttachment[]
+  
+  @@map("users")
+}
+
+model Patient {
+  id                      Int       @id @default(autoincrement())
+  name                    String
+  nationalId              String?   @unique @map("national_id")
+  phone                   String?
+  mobile                  String?
+  email                   String?
+  age                     Int?
+  dateOfBirth             DateTime? @map("date_of_birth") @db.Date
+  gender                  String?
+  bloodType               String?   @map("blood_type")
+  address                 String?
+  city                    String?
+  patientCategory         String?   @map("patient_category")
+  medicalHistory          String?   @map("medical_history") @db.Text
+  allergies               String?   @db.Text
+  chronicDiseases         String?   @map("chronic_diseases") @db.Text
+  currentMedications      String?   @map("current_medications") @db.Text
+  emergencyContactName    String?   @map("emergency_contact_name")
+  emergencyContactPhone   String?   @map("emergency_contact_phone")
+  emergencyContactRelation String?  @map("emergency_contact_relation")
+  insuranceNumber         String?   @map("insurance_number")
+  insuranceType           String?   @map("insurance_type")
+  notes                   String?   @db.Text
+  isActive                Int       @default(1) @map("is_active")
+  createdBy               Int?      @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  creator                 User?     @relation(fields: [createdBy], references: [id])
+  visits                  Visit[]
+  
+  @@index([name])
+  @@index([nationalId])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([isActive])
+  @@index([name, isActive])
+  @@index([nationalId, isActive])
+  @@map("patients")
+}
+
+model Visit {
+  id                  Int       @id @default(autoincrement())
+  patientId           Int       @map("patient_id")
+  visitNumber         String    @unique @map("visit_number")
+  status              String    @default("pending_inquiry")
+  labCompleted        Int       @default(0) @map("lab_completed")
+  pharmacyCompleted   Int       @default(0) @map("pharmacy_completed")
+  doctorCompleted     Int       @default(0) @map("doctor_completed")
+  createdBy           Int?      @map("created_by")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  patient             Patient   @relation(fields: [patientId], references: [id])
+  creator             User?     @relation(fields: [createdBy], references: [id])
+  labResults          LabResult[]
+  prescriptions       PharmacyPrescription[]
+  diagnoses           Diagnosis[]
+  statusHistory       VisitStatusHistory[]
+  attachments         VisitAttachment[]
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([labCompleted])
+  @@index([pharmacyCompleted])
+  @@index([doctorCompleted])
+  @@index([status, labCompleted])
+  @@index([status, pharmacyCompleted])
+  @@index([status, doctorCompleted])
+  @@map("visits")
+}
+
+model LabResult {
+  id              Int       @id @default(autoincrement())
+  visitId         Int       @map("visit_id")
+  testName        String    @map("test_name")
+  testCatalogId   Int?      @map("test_catalog_id")
+  result          String?   @db.Text
+  unit            String?
+  normalRange     String?   @map("normal_range") @db.Text
+  notes           String?   @db.Text
+  createdBy       Int?      @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  visit           Visit     @relation(fields: [visitId], references: [id])
+  testCatalog     LabTestCatalog? @relation(fields: [testCatalogId], references: [id])
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  
+  @@index([visitId])
+  @@index([createdAt])
+  @@map("lab_results")
+}
+
+model PharmacyPrescription {
+  id              Int       @id @default(autoincrement())
+  visitId         Int       @map("visit_id")
+  medicationName  String    @map("medication_name")
+  drugCatalogId   Int?      @map("drug_catalog_id")
+  dosage          String?
+  quantity        Int?
+  instructions    String?   @db.Text
+  createdBy       Int?      @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  visit           Visit     @relation(fields: [visitId], references: [id])
+  drugCatalog     DrugCatalog? @relation(fields: [drugCatalogId], references: [id])
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  
+  @@index([visitId])
+  @@index([createdAt])
+  @@map("pharmacy_prescriptions")
+}
+
+model Diagnosis {
+  id              Int       @id @default(autoincrement())
+  visitId         Int       @map("visit_id")
+  diagnosis       String    @db.Text
+  notes           String?   @db.Text
+  createdBy       Int?      @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  visit           Visit     @relation(fields: [visitId], references: [id])
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  
+  @@map("diagnoses")
+}
+
+model VisitStatusHistory {
+  id              Int       @id @default(autoincrement())
+  visitId         Int       @map("visit_id")
+  status          String
+  notes           String?   @db.Text
+  changedBy       Int?      @map("changed_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  visit           Visit     @relation(fields: [visitId], references: [id])
+  changer         User?     @relation(fields: [changedBy], references: [id])
+  
+  @@map("visit_status_history")
+}
+
+model Notification {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  title           String
+  message         String?   @db.Text
+  type            String?
+  isRead          Int       @default(0) @map("is_read")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id              Int       @id @default(autoincrement())
+  userId          Int?      @map("user_id")
+  action          String
+  entityType      String?   @map("entity_type")
+  entityId        Int?      @map("entity_id")
+  details         String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  user            User?     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("activity_log")
+}
+
+model LabTestCatalog {
+  id              Int       @id @default(autoincrement())
+  testName        String    @unique @map("test_name")
+  testNameAr      String?   @map("test_name_ar")
+  unit            String
+  normalRangeMin  String?   @map("normal_range_min")
+  normalRangeMax  String?   @map("normal_range_max")
+  normalRangeText String?   @map("normal_range_text") @db.Text
+  description     String?   @db.Text
+  isActive        Int       @default(1) @map("is_active")
+  createdBy       Int?      @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  labResults      LabResult[]
+  panelItems      LabTestPanelItem[]
+  
+  @@map("lab_tests_catalog")
+}
+
+model LabTestPanel {
+  id              Int       @id @default(autoincrement())
+  panelName       String    @map("panel_name")
+  panelNameAr     String?   @map("panel_name_ar")
+  description     String?   @db.Text
+  createdBy       Int?      @map("created_by")
+  isActive        Int       @default(1) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  items           LabTestPanelItem[]
+  
+  @@map("lab_test_panels")
+}
+
+model LabTestPanelItem {
+  id              Int       @id @default(autoincrement())
+  panelId         Int       @map("panel_id")
+  testCatalogId  Int       @map("test_catalog_id")
+  displayOrder    Int       @default(0) @map("display_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  panel           LabTestPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  testCatalog     LabTestCatalog @relation(fields: [testCatalogId], references: [id], onDelete: Cascade)
+  
+  @@unique([panelId, testCatalogId])
+  @@map("lab_test_panel_items")
+}
+
+model DrugCatalog {
+  id              Int       @id @default(autoincrement())
+  drugName        String    @unique @map("drug_name")
+  drugNameAr      String?   @map("drug_name_ar")
+  form            String?
+  strength         String?
+  manufacturer     String?
+  description      String?   @db.Text
+  isActive         Int       @default(1) @map("is_active")
+  createdBy        Int?      @map("created_by")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  
+  creator          User?     @relation(fields: [createdBy], references: [id])
+  prescriptions    PharmacyPrescription[]
+  setItems         PrescriptionSetItem[]
+  
+  @@map("drugs_catalog")
+}
+
+model PrescriptionSet {
+  id              Int       @id @default(autoincrement())
+  setName         String    @map("set_name")
+  setNameAr       String?   @map("set_name_ar")
+  description     String?   @db.Text
+  createdBy       Int?      @map("created_by")
+  isActive        Int       @default(1) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  creator         User?     @relation(fields: [createdBy], references: [id])
+  items           PrescriptionSetItem[]
+  
+  @@map("prescription_sets")
+}
+
+model PrescriptionSetItem {
+  id              Int       @id @default(autoincrement())
+  setId           Int       @map("set_id")
+  drugCatalogId   Int       @map("drug_catalog_id")
+  dosage          String?
+  quantity        Int?
+  instructions    String?   @db.Text
+  displayOrder    Int       @default(0) @map("display_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  set             PrescriptionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  drugCatalog     DrugCatalog @relation(fields: [drugCatalogId], references: [id], onDelete: Cascade)
+  
+  @@unique([setId, drugCatalogId])
+  @@map("prescription_set_items")
+}
+
+model VisitAttachment {
+  id              Int       @id @default(autoincrement())
+  visitId         Int       @map("visit_id")
+  fileName        String    @map("file_name")
+  filePath        String    @map("file_path")
+  fileSize        Int?      @map("file_size")
+  fileType        String?   @map("file_type")
+  uploadedBy      Int?      @map("uploaded_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  visit           Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  uploader        User?     @relation(fields: [uploadedBy], references: [id])
+  
+  @@map("visit_attachments")
+}

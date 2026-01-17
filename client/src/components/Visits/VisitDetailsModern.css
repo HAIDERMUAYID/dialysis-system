@@ -1,0 +1,103 @@
+/* Visit Details Modern - Responsive Styles */
+
+.visit-details-modal .ant-modal {
+  top: 20px !important;
+  padding-bottom: 0;
+}
+
+.visit-details-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.visit-details-modal .ant-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  max-height: calc(90vh - 120px);
+}
+
+.visit-details-modal .ant-tabs {
+  height: 100%;
+}
+
+.visit-details-modal .ant-tabs-content-holder {
+  overflow-y: auto;
+  max-height: calc(90vh - 200px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .visit-details-modal .ant-modal {
+    width: 98% !important;
+    top: 5% !important;
+    margin: 0 auto;
+    transform: translate(-50%, 0);
+    left: 50% !important;
+    right: auto !important;
+  }
+
+  .visit-details-modal .ant-modal-body {
+    padding: 15px;
+    max-height: calc(95vh - 120px);
+  }
+
+  .visit-details-modal .ant-tabs-content-holder {
+    max-height: calc(95vh - 200px);
+  }
+}
+
+@media (max-width: 480px) {
+  .visit-details-modal .ant-modal {
+    width: 100% !important;
+    top: 0 !important;
+    margin: 0;
+    max-width: 100vw;
+    height: 100vh;
+  }
+
+  .visit-details-modal .ant-modal-content {
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .visit-details-modal .ant-modal-body {
+    padding: 10px;
+    max-height: calc(100vh - 120px);
+  }
+
+  .visit-details-modal .ant-tabs-content-holder {
+    max-height: calc(100vh - 200px);
+  }
+}
+
+/* Smooth scrolling */
+.visit-details-modal .ant-modal-body,
+.visit-details-modal .ant-tabs-content-holder {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.visit-details-modal .ant-modal-body::-webkit-scrollbar,
+.visit-details-modal .ant-tabs-content-holder::-webkit-scrollbar {
+  width: 8px;
+}
+
+.visit-details-modal .ant-modal-body::-webkit-scrollbar-track,
+.visit-details-modal .ant-tabs-content-holder::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.visit-details-modal .ant-modal-body::-webkit-scrollbar-thumb,
+.visit-details-modal .ant-tabs-content-holder::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.visit-details-modal .ant-modal-body::-webkit-scrollbar-thumb:hover,
+.visit-details-modal .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
