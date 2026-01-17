@@ -61,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setUser(user);
-      return user; // Return user object for navigation
     } catch (error: any) {
       console.error('Login error:', error);
       console.error('Error response:', error.response);

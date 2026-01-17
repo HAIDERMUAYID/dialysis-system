@@ -23,7 +23,7 @@ const { Title, Text, Paragraph } = Typography;
 const LoginModern: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [currentFeature, setCurrentFeature] = useState(0);
@@ -73,7 +73,7 @@ const LoginModern: React.FC = () => {
     setLoading(true);
 
     try {
-      const user = await login(values.username, values.password);
+      await login(values.username, values.password);
       
       // Get dashboard route based on user role
       const getDashboardRoute = (role: string): string => {
@@ -95,13 +95,11 @@ const LoginModern: React.FC = () => {
         }
       };
 
-      // Navigate to appropriate dashboard based on user role
-      if (user && user.role) {
-        navigate(getDashboardRoute(user.role), { replace: true });
-      } else {
-        // Fallback: navigate to root, which will redirect based on user state
+      // Wait a bit for state to update, then navigate
+      setTimeout(() => {
+        // Navigate to root, which will redirect based on user state
         navigate('/', { replace: true });
-      }
+      }, 100);
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول. تحقق من بيانات الاعتماد');
       setLoading(false);
