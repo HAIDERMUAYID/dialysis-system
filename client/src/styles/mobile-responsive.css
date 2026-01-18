@@ -1,0 +1,631 @@
+/* ============================================
+   MOBILE RESPONSIVE STYLES - ALL INTERFACES
+   ============================================ */
+
+/* ===== Base Mobile Styles ===== */
+@media (max-width: 768px) {
+  /* Reduce font sizes */
+  :root {
+    --text-xs: 0.7rem;
+    --text-sm: 0.8rem;
+    --text-base: 0.9rem;
+    --text-lg: 1rem;
+    --text-xl: 1.1rem;
+    --text-2xl: 1.3rem;
+    --text-3xl: 1.5rem;
+    --text-4xl: 1.8rem;
+    --space-1: 0.2rem;
+    --space-2: 0.4rem;
+    --space-3: 0.6rem;
+    --space-4: 0.8rem;
+    --space-5: 1rem;
+    --space-6: 1.2rem;
+    --space-8: 1.5rem;
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Container adjustments */
+  .container {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  /* Card adjustments */
+  .card,
+  .modern-card,
+  .dashboard-content .ant-card {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+
+  .dashboard-content .ant-card-body {
+    padding: var(--space-4);
+  }
+
+  /* Header adjustments */
+  .dashboard-header,
+  .admin-dashboard-header {
+    padding: 0;
+  }
+
+  .header-content {
+    height: 60px;
+    padding: 0 var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .header-left {
+    gap: var(--space-2);
+  }
+
+  .header-icon {
+    font-size: 1.3rem;
+  }
+
+  .header-title {
+    font-size: var(--text-lg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+
+  .header-right {
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  /* Statistics Grid */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .stat-card,
+  .stats-card {
+    padding: var(--space-4);
+  }
+
+  .stat-card-value,
+  .stats-card-value {
+    font-size: var(--text-2xl);
+  }
+
+  .stat-card-icon,
+  .stats-card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+
+  /* Tables - Make scrollable */
+  .dashboard-content .ant-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-content .ant-table {
+    min-width: 600px;
+    font-size: var(--text-sm);
+  }
+
+  .dashboard-content .ant-table-thead > tr > th {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+
+  .dashboard-content .ant-table-tbody > tr > td {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  /* Forms */
+  .ant-form-item {
+    margin-bottom: var(--space-4);
+  }
+
+  .ant-form-item-label {
+    padding-bottom: var(--space-1);
+  }
+
+  .ant-form-item-label > label {
+    font-size: var(--text-sm);
+  }
+
+  .ant-input,
+  .ant-select-selector,
+  .ant-picker {
+    font-size: var(--text-base);
+    padding: var(--space-2) var(--space-3);
+    height: auto;
+  }
+
+  /* Buttons */
+  .ant-btn {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    height: auto;
+    min-height: 36px;
+  }
+
+  .ant-btn-lg {
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--text-base);
+    min-height: 40px;
+  }
+
+  .ant-btn-sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    min-height: 28px;
+  }
+
+  /* Button groups - stack vertically */
+  .ant-btn-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ant-btn-group .ant-btn {
+    width: 100%;
+    margin-bottom: var(--space-2);
+  }
+
+  .ant-btn-group .ant-btn:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Space component - reduce gaps */
+  .ant-space {
+    gap: var(--space-2) !important;
+  }
+
+  .ant-space-vertical {
+    gap: var(--space-3) !important;
+  }
+
+  /* Row and Col - stack on mobile */
+  .ant-row {
+    margin-left: -var(--space-2);
+    margin-right: -var(--space-2);
+  }
+
+  .ant-col {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Modals */
+  .ant-modal {
+    max-width: 95vw !important;
+    margin: var(--space-4) auto;
+    top: var(--space-4);
+  }
+
+  .ant-modal-content {
+    border-radius: var(--radius-lg);
+  }
+
+  .ant-modal-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .ant-modal-title {
+    font-size: var(--text-lg);
+  }
+
+  .ant-modal-body {
+    padding: var(--space-4);
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  .ant-modal-footer {
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+
+  .ant-modal-footer .ant-btn {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Tabs */
+  .ant-tabs {
+    font-size: var(--text-sm);
+  }
+
+  .ant-tabs-tab {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    margin: 0 var(--space-1);
+  }
+
+  .ant-tabs-content-holder {
+    padding: var(--space-4) 0;
+  }
+
+  /* Cards */
+  .ant-card-head {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .ant-card-head-title {
+    font-size: var(--text-base);
+  }
+
+  .ant-card-body {
+    padding: var(--space-4);
+  }
+
+  /* Typography */
+  .ant-typography {
+    font-size: var(--text-base);
+  }
+
+  h1.ant-typography,
+  .ant-typography h1 {
+    font-size: var(--text-2xl);
+  }
+
+  h2.ant-typography,
+  .ant-typography h2 {
+    font-size: var(--text-xl);
+  }
+
+  h3.ant-typography,
+  .ant-typography h3 {
+    font-size: var(--text-lg);
+  }
+
+  /* Tags and Badges */
+  .ant-tag {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+    margin: var(--space-1);
+  }
+
+  .ant-badge {
+    font-size: var(--text-xs);
+  }
+
+  /* Select dropdowns */
+  .ant-select-dropdown {
+    font-size: var(--text-sm);
+  }
+
+  /* Date Picker */
+  .ant-picker {
+    width: 100%;
+  }
+
+  .ant-picker-dropdown {
+    font-size: var(--text-sm);
+  }
+
+  /* Input Groups */
+  .ant-input-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ant-input-group .ant-input {
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+  }
+
+  .ant-input-group .ant-input:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Search inputs */
+  .ant-input-search {
+    width: 100%;
+  }
+
+  .ant-input-search .ant-input {
+    font-size: var(--text-base);
+  }
+
+  /* Drawer */
+  .ant-drawer-content-wrapper {
+    width: 100% !important;
+  }
+
+  .ant-drawer-body {
+    padding: var(--space-4);
+  }
+
+  /* Empty states */
+  .ant-empty {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .ant-empty-description {
+    font-size: var(--text-sm);
+  }
+
+  /* Spin/Loading */
+  .ant-spin-nested-loading {
+    min-height: 150px;
+  }
+
+  /* Charts */
+  .chart-container {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .chart-title {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Login Page */
+  .login-container {
+    padding: var(--space-4);
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .login-card .ant-card-body {
+    padding: var(--space-4);
+  }
+
+  /* Patient Form */
+  .patient-form-modal .ant-form-item {
+    margin-bottom: var(--space-3);
+  }
+
+  /* Visit Details */
+  .visit-details-card {
+    margin-bottom: var(--space-4);
+  }
+
+  .visit-details-card .ant-card-body {
+    padding: var(--space-4);
+  }
+
+  /* Dashboard Content */
+  .dashboard-content,
+  .admin-dashboard-content {
+    padding: var(--space-4);
+  }
+
+  /* Action buttons in tables */
+  .ant-table-tbody .ant-btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+    margin: var(--space-1);
+  }
+
+  /* Tooltips */
+  .ant-tooltip {
+    font-size: var(--text-xs);
+  }
+
+  /* Popover */
+  .ant-popover {
+    max-width: 90vw;
+  }
+
+  .ant-popover-inner-content {
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  /* Message notifications */
+  .ant-message {
+    font-size: var(--text-sm);
+  }
+
+  /* Notification bell */
+  .notification-bell {
+    font-size: 1.2rem;
+  }
+
+  /* Welcome message */
+  .welcome-message {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .welcome-message .ant-typography {
+    font-size: var(--text-base);
+  }
+}
+
+/* ===== Extra Small Devices (phones in portrait) ===== */
+@media (max-width: 480px) {
+  :root {
+    --text-base: 0.85rem;
+    --space-4: 0.75rem;
+    --space-6: 1rem;
+  }
+
+  .header-content {
+    height: 55px;
+    padding: 0 var(--space-2);
+  }
+
+  .header-title {
+    font-size: var(--text-base);
+    max-width: 120px;
+  }
+
+  .header-icon {
+    font-size: 1.1rem;
+  }
+
+  .stat-card-value,
+  .stats-card-value {
+    font-size: var(--text-xl);
+  }
+
+  .ant-modal {
+    max-width: 98vw !important;
+    margin: var(--space-2) auto;
+  }
+
+  .ant-modal-body {
+    padding: var(--space-3);
+    max-height: calc(100vh - 150px);
+  }
+
+  .dashboard-content,
+  .admin-dashboard-content {
+    padding: var(--space-3);
+  }
+
+  .ant-card-body {
+    padding: var(--space-3);
+  }
+
+  .ant-table {
+    font-size: var(--text-xs);
+  }
+
+  .ant-table-thead > tr > th {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .ant-table-tbody > tr > td {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+  }
+}
+
+/* ===== Landscape Orientation ===== */
+@media (max-width: 768px) and (orientation: landscape) {
+  .ant-modal {
+    max-height: 90vh;
+  }
+
+  .ant-modal-body {
+    max-height: calc(90vh - 120px);
+  }
+
+  .header-content {
+    height: 55px;
+  }
+}
+
+/* ===== Touch Device Optimizations ===== */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .ant-btn {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .ant-input,
+  .ant-select-selector,
+  .ant-picker {
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Remove hover effects on touch devices */
+  .stat-card:hover,
+  .modern-card:hover,
+  .dashboard-content .ant-card:hover {
+    transform: none;
+  }
+
+  /* Larger table cells for touch */
+  .ant-table-tbody > tr > td {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Larger modal close button */
+  .ant-modal-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .dashboard-header,
+  .header-content,
+  .ant-btn,
+  .ant-modal-close,
+  .no-print {
+    display: none !important;
+  }
+
+  .dashboard-content {
+    padding: 0;
+  }
+
+  .ant-card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+  }
+}
+
+/* ===== Utility Classes for Mobile ===== */
+.mobile-hidden {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .mobile-hidden {
+    display: block !important;
+  }
+}
+
+.mobile-only {
+  display: block !important;
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* ===== Horizontal Scroll for Tables ===== */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.table-responsive table {
+  min-width: 600px;
+}
+
+/* ===== Stack Layouts on Mobile ===== */
+@media (max-width: 768px) {
+  .flex-row-mobile {
+    flex-direction: column;
+  }
+
+  .flex-row-mobile > * {
+    width: 100%;
+    margin-bottom: var(--space-4);
+  }
+
+  .flex-row-mobile > *:last-child {
+    margin-bottom: 0;
+  }
+}

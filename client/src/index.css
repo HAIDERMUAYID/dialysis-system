@@ -3,6 +3,7 @@
 @import './styles/dashboard-unified.css';
 @import './styles/modals-forms.css';
 @import './styles/modern-header.css';
+@import './styles/mobile-responsive.css';
 
 * {
   margin: 0;
