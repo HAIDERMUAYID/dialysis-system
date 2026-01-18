@@ -78,6 +78,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { formatBaghdadDate, formatBaghdadTime } from '../../utils/dayjs-config';
 import { useDashboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { EnhancedTooltip } from '../Common/EnhancedTooltip';
 import './AdminDashboardModern.css';
 import '../Welcome/WelcomeMessage.css';
 import ModernHeaderWithLogo from '../Layout/ModernHeaderWithLogo';
@@ -272,9 +273,9 @@ const AdminDashboardModern: React.FC = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Tooltip title="عرض التفاصيل">
+          <EnhancedTooltip title="عرض التفاصيل" description="عرض جميع تفاصيل الزيارة">
             <Button type="link" icon={<EyeOutlined />} size="small" />
-          </Tooltip>
+          </EnhancedTooltip>
         </Space>
       ),
     },
@@ -348,12 +349,12 @@ const AdminDashboardModern: React.FC = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Tooltip title="تعديل">
+          <EnhancedTooltip title="تعديل المستخدم" description="تعديل بيانات المستخدم">
             <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEditUser(record)} />
-          </Tooltip>
-          <Tooltip title="حذف">
+          </EnhancedTooltip>
+          <EnhancedTooltip title="حذف المستخدم" description="حذف المستخدم من النظام">
             <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => handleDeleteUser(record.id)} />
-          </Tooltip>
+          </EnhancedTooltip>
         </Space>
       ),
     },
@@ -748,12 +749,16 @@ const AdminDashboardModern: React.FC = () => {
             <Card
               extra={
                 <Space>
-                  <Button icon={<ReloadOutlined />} onClick={fetchDashboardData}>
-                    تحديث
-                  </Button>
-                  <Button icon={<ExportOutlined />} type="primary">
-                    تصدير
-                  </Button>
+                  <EnhancedTooltip title="تحديث البيانات" shortcut="Ctrl+R" description="إعادة تحميل قائمة الزيارات">
+                    <Button icon={<ReloadOutlined />} onClick={fetchDashboardData}>
+                      تحديث
+                    </Button>
+                  </EnhancedTooltip>
+                  <EnhancedTooltip title="تصدير البيانات" description="تصدير قائمة الزيارات إلى Excel أو PDF">
+                    <Button icon={<ExportOutlined />} type="primary">
+                      تصدير
+                    </Button>
+                  </EnhancedTooltip>
                 </Space>
               }
             >
@@ -826,13 +831,15 @@ const AdminDashboardModern: React.FC = () => {
           >
             <Card
               extra={
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleCreateUser}
-                >
-                  إضافة مستخدم
-                </Button>
+                <EnhancedTooltip title="إضافة مستخدم جديد" shortcut="Ctrl+N" description="إنشاء حساب مستخدم جديد في النظام">
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreateUser}
+                  >
+                    إضافة مستخدم
+                  </Button>
+                </EnhancedTooltip>
               }
             >
               <Table

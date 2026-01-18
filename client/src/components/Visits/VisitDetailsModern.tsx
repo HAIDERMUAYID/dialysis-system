@@ -52,6 +52,7 @@ import { VisitDetails as VisitDetailsType, LabResult, Prescription, Diagnosis, A
 import { useAuth } from '../../context/AuthContext';
 import dayjs from 'dayjs';
 import { formatBaghdadDateTimeArabic } from '../../utils/dayjs-config';
+import { EnhancedTooltip } from '../Common/EnhancedTooltip';
 import './VisitDetailsModern.css';
 
 const { Title, Text, Paragraph } = Typography;

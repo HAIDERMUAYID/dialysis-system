@@ -1,0 +1,74 @@
+/* Enhanced Tooltip Styles */
+
+.enhanced-tooltip-content {
+  padding: 4px 0;
+  max-width: 300px;
+}
+
+.tooltip-title {
+  font-weight: 600;
+  color: var(--text-inverse, #fff);
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.tooltip-description {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.tooltip-shortcut {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tooltip-shortcut kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Ant Design Tooltip Overrides */
+.ant-tooltip-inner {
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.ant-tooltip-arrow {
+  width: 8px;
+  height: 8px;
+}
+
+/* Dark Mode */
+.dark-mode .ant-tooltip-inner {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .tooltip-title {
+  color: var(--text-primary);
+}
+
+.dark-mode .tooltip-description {
+  color: var(--text-secondary);
+}
+
+.dark-mode .tooltip-shortcut {
+  border-top-color: var(--border);
+}
+
+.dark-mode .tooltip-shortcut kbd {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}

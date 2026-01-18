@@ -1,0 +1,130 @@
+/* Drag & Drop Upload Styles */
+
+.drag-drop-upload-container {
+  width: 100%;
+}
+
+.drag-drop-upload {
+  border-radius: 12px;
+  background: var(--bg-primary, #fff);
+  border: 2px dashed var(--gray-300, #d1d5db);
+  transition: all 0.3s ease;
+}
+
+.drag-drop-upload:hover {
+  border-color: var(--primary-500, #3b82f6);
+  background: var(--primary-50, #eff6ff);
+}
+
+.drag-drop-upload.ant-upload-drag {
+  background: var(--bg-primary, #fff);
+}
+
+.drag-drop-upload .ant-upload-drag-icon {
+  color: var(--primary-500, #3b82f6);
+  font-size: 48px;
+}
+
+.drag-drop-upload .ant-upload-text {
+  color: var(--text-primary, #0f172a);
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.drag-drop-upload .ant-upload-hint {
+  color: var(--text-secondary, #64748b);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Dark Mode */
+.dark-mode .drag-drop-upload {
+  background: var(--bg-primary);
+  border-color: var(--border);
+}
+
+.dark-mode .drag-drop-upload:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-500);
+}
+
+.dark-mode .drag-drop-upload .ant-upload-text {
+  color: var(--text-primary);
+}
+
+.dark-mode .drag-drop-upload .ant-upload-hint {
+  color: var(--text-secondary);
+}
+
+/* Drag Drop Zone */
+.drag-drop-zone {
+  position: relative;
+  min-height: 100px;
+  transition: all 0.3s ease;
+}
+
+.drag-drop-zone.dragging {
+  background: var(--primary-50, rgba(59, 130, 246, 0.1));
+  border: 2px dashed var(--primary-500, #3b82f6);
+  border-radius: 8px;
+}
+
+.drag-drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.15);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: fadeIn 0.3s ease;
+}
+
+.drag-drop-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--primary-600, #2563eb);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.drag-drop-message .anticon {
+  font-size: 48px;
+}
+
+.drag-drop-zone.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .drag-drop-upload .ant-upload-drag-icon {
+    font-size: 36px;
+  }
+
+  .drag-drop-upload .ant-upload-text {
+    font-size: 14px;
+  }
+
+  .drag-drop-upload .ant-upload-hint {
+    font-size: 12px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
