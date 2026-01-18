@@ -405,7 +405,56 @@
   /* Dashboard Content */
   .dashboard-content,
   .admin-dashboard-content {
-    padding: var(--space-4);
+    padding: var(--space-4) !important;
+  }
+
+  /* Ant Design Row and Col - Better spacing on mobile */
+  .ant-row {
+    margin-left: -var(--space-2) !important;
+    margin-right: -var(--space-2) !important;
+  }
+
+  .ant-col {
+    padding-left: var(--space-2) !important;
+    padding-right: var(--space-2) !important;
+  }
+
+  /* Force full width on mobile for statistics */
+  .ant-row .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Statistics Cards - Better mobile layout */
+  .ant-statistic {
+    margin-bottom: var(--space-4) !important;
+  }
+
+  .ant-statistic-title {
+    font-size: var(--text-xs) !important;
+  }
+
+  .ant-statistic-content {
+    font-size: var(--text-xl) !important;
+  }
+
+  /* Tabs - Scrollable on mobile */
+  .ant-tabs-nav-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .ant-tabs-tab {
+    white-space: nowrap !important;
+  }
+
+  /* Cards - Better mobile padding */
+  .ant-card {
+    margin-bottom: var(--space-4) !important;
+  }
+
+  .ant-card-head-title {
+    font-size: var(--text-base) !important;
   }
 
   /* Action buttons in tables */
@@ -490,7 +539,13 @@
 
   .dashboard-content,
   .admin-dashboard-content {
-    padding: var(--space-3);
+    padding: var(--space-3) !important;
+  }
+
+  /* Force single column on extra small screens */
+  .ant-row .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
   }
 
   .ant-card-body {
