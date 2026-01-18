@@ -1,17 +1,50 @@
 {
   "short_name": "مستشفى الحكيم",
   "name": "نظام إدارة مستشفى الحكيم - شعبة الكلية الصناعية",
+  "description": "نظام شامل لإدارة المستشفى - إدارة المرضى، الزيارات، التحاليل، الصيدلية والتشخيصات",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+    },
+    {
+      "src": "images/ministry-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/ministry-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "theme_color": "#667eea",
   "background_color": "#ffffff",
   "dir": "rtl",
-  "lang": "ar"
+  "lang": "ar",
+  "categories": ["medical", "health", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "لوحة التحكم",
+      "short_name": "Dashboard",
+      "description": "الانتقال إلى لوحة التحكم",
+      "url": "/admin",
+      "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "إضافة مريض",
+      "short_name": "New Patient",
+      "description": "إضافة مريض جديد",
+      "url": "/inquiry?action=new-patient",
+      "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
+    }
+  ]
 }

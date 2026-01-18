@@ -4,6 +4,7 @@
 @import './styles/modals-forms.css';
 @import './styles/modern-header.css';
 @import './styles/mobile-responsive.css';
+@import './styles/dark-mode.css';
 
 * {
   margin: 0;

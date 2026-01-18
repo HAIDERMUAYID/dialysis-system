@@ -1,0 +1,244 @@
+/* Dark Mode Styles */
+
+:root {
+  /* Light Mode Colors (Default) */
+  --bg-primary-light: #ffffff;
+  --bg-secondary-light: #f8fafc;
+  --bg-tertiary-light: #f1f5f9;
+  --text-primary-light: #0f172a;
+  --text-secondary-light: #475569;
+  --text-tertiary-light: #94a3b8;
+  --border-light: #e2e8f0;
+  --shadow-light: rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode {
+  /* Dark Mode Colors */
+  --bg-primary: #1e293b;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --border: #334155;
+  --shadow: rgba(0, 0, 0, 0.3);
+  
+  /* Override light mode */
+  --bg-primary-light: var(--bg-primary);
+  --bg-secondary-light: var(--bg-secondary);
+  --bg-tertiary-light: var(--bg-tertiary);
+  --text-primary-light: var(--text-primary);
+  --text-secondary-light: var(--text-secondary);
+  --text-tertiary-light: var(--text-tertiary);
+  --border-light: var(--border);
+  --shadow-light: var(--shadow);
+}
+
+.dark-mode body {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Cards */
+.dark-mode .ant-card,
+.dark-mode .modern-card,
+.dark-mode .dashboard-content .ant-card {
+  background: var(--bg-primary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-card-head {
+  background: var(--bg-tertiary);
+  border-bottom-color: var(--border);
+}
+
+.dark-mode .ant-card-head-title {
+  color: var(--text-primary);
+}
+
+/* Tables */
+.dark-mode .ant-table {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-table-thead > tr > th {
+  background: var(--bg-tertiary);
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-table-tbody > tr > td {
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-table-tbody > tr:hover > td {
+  background: var(--bg-tertiary);
+}
+
+/* Inputs */
+.dark-mode .ant-input,
+.dark-mode .ant-input-password,
+.dark-mode .ant-select-selector,
+.dark-mode .ant-picker {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-input::placeholder,
+.dark-mode .ant-input-password::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dark-mode .ant-input:focus,
+.dark-mode .ant-input-focused,
+.dark-mode .ant-select-focused .ant-select-selector {
+  border-color: var(--primary-500);
+  background: var(--bg-tertiary);
+}
+
+/* Buttons */
+.dark-mode .ant-btn-default {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-btn-default:hover {
+  border-color: var(--primary-500);
+  color: var(--primary-400);
+}
+
+/* Modals */
+.dark-mode .ant-modal-content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-modal-header {
+  background: var(--bg-tertiary);
+  border-bottom-color: var(--border);
+}
+
+.dark-mode .ant-modal-title {
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-modal-body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-modal-footer {
+  border-top-color: var(--border);
+}
+
+/* Header */
+.dark-mode .dashboard-header,
+.dark-mode .admin-dashboard-header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom-color: var(--border);
+}
+
+/* Tabs */
+.dark-mode .ant-tabs-tab {
+  color: var(--text-secondary);
+}
+
+.dark-mode .ant-tabs-tab-active {
+  color: var(--primary-400) !important;
+}
+
+.dark-mode .ant-tabs-ink-bar {
+  background: var(--primary-500);
+}
+
+/* Dropdowns */
+.dark-mode .ant-select-dropdown,
+.dark-mode .ant-dropdown-menu {
+  background: var(--bg-primary);
+  border-color: var(--border);
+}
+
+.dark-mode .ant-select-item {
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-select-item:hover,
+.dark-mode .ant-select-item-option-selected {
+  background: var(--bg-tertiary);
+}
+
+.dark-mode .ant-dropdown-menu-item {
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-dropdown-menu-item:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Tooltips */
+.dark-mode .ant-tooltip-inner {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dark-mode .ant-tooltip-arrow::before {
+  background: var(--bg-tertiary);
+}
+
+/* Messages */
+.dark-mode .ant-message-notice-content {
+  background: var(--bg-primary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+.dark-mode ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: var(--gray-600);
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* Statistics Cards */
+.dark-mode .stat-card,
+.dark-mode .stats-card {
+  background: var(--bg-primary);
+  border-left-color: var(--primary-500);
+  color: var(--text-primary);
+}
+
+.dark-mode .stat-card-value,
+.dark-mode .stats-card-value {
+  color: var(--text-primary);
+}
+
+.dark-mode .stat-card-label,
+.dark-mode .stats-card-label {
+  color: var(--text-secondary);
+}
+
+/* Charts */
+.dark-mode .chart-container {
+  background: var(--bg-primary);
+  border-color: var(--border);
+}
+
+.dark-mode .chart-title {
+  color: var(--text-primary);
+}
+
+/* Smooth transition */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

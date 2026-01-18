@@ -1,0 +1,17 @@
+.theme-toggle-btn {
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--primary-500);
+  transform: rotate(15deg);
+}
+
+.dark-mode .theme-toggle-btn {
+  color: var(--text-primary);
+}
+
+.dark-mode .theme-toggle-btn:hover {
+  color: var(--primary-400);
+}

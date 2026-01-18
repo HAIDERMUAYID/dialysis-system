@@ -15,6 +15,9 @@ import LabPanelsManagement from './components/Lab/LabPanelsManagement';
 import DrugsCatalogManagement from './components/Pharmacy/DrugsCatalogManagement';
 import PrescriptionSetsManagement from './components/Pharmacy/PrescriptionSetsManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { useGlobalShortcuts } from './hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from './components/Common/KeyboardShortcutsHelp';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRoles: string[] }> = ({ 
@@ -40,6 +43,10 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRoles: string[]
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // Global keyboard shortcuts
+  useGlobalShortcuts();
 
   // Helper function to get dashboard route based on role
   const getDashboardRoute = (role: string | undefined): string => {
@@ -63,7 +70,8 @@ const AppRoutes: React.FC = () => {
   };
 
   return (
-    <Routes>
+    <>
+      <Routes>
       {/* Root route - redirect to appropriate dashboard */}
       <Route path="/" element={
         loading ? (
@@ -203,17 +211,24 @@ const AppRoutes: React.FC = () => {
         ) : <Navigate to="/login" />
       } />
     </Routes>
+    <KeyboardShortcutsHelp
+      open={showShortcutsHelp}
+      onClose={() => setShowShortcutsHelp(false)}
+    />
+    </>
   );
 };
 
 const App: React.FC = () => {
   return (
     <AntdConfig>
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </AntdConfig>
   );
 };
