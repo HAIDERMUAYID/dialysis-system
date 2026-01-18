@@ -4,7 +4,7 @@
 
 .modern-header-with-logo {
   background: var(--gradient-primary);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 0;
   position: sticky;
   top: 0;
@@ -12,8 +12,8 @@
   border-bottom: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  min-height: 56px;
-  max-height: 56px;
+  min-height: 64px;
+  max-height: 64px;
   transition: all 0.3s ease;
   overflow: hidden;
 }
@@ -67,12 +67,13 @@
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
-  padding: 8px var(--space-5);
+  padding: 10px var(--space-6);
   position: relative;
   z-index: 1;
-  gap: var(--space-3);
+  gap: var(--space-4);
   transition: padding 0.3s ease;
   height: 100%;
+  min-height: 56px;
 }
 
 .modern-header-with-logo.collapsed .modern-header-content {
@@ -88,16 +89,16 @@
 }
 
 .modern-header-logo-wrapper {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.2);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-sm);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -146,43 +147,44 @@
 .modern-header-title-section {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  line-height: 1.2;
 }
 
 .modern-header-ministry {
-  font-size: 14px;
-  font-weight: var(--font-semibold);
+  font-size: 15px;
+  font-weight: var(--font-bold);
   color: var(--text-inverse);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.2px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.2px;
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .modern-header-directorate {
-  font-size: 11px;
-  font-weight: var(--font-normal);
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .modern-header-hospital {
-  font-size: 13px;
-  font-weight: var(--font-semibold);
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  color: rgba(255, 255, 255, 1);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .modern-header-subtitle {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: var(--font-normal);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  margin: 1px 0 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: var(--font-medium);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  margin: 2px 0 0 0;
 }
 
 /* ===== Header Center Section (Actions) ===== */
@@ -194,20 +196,20 @@
 }
 
 .modern-header-action-btn {
-  height: 44px;
-  padding: 0 var(--space-5);
+  height: 42px;
+  padding: 0 var(--space-6);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: var(--text-inverse);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
   font-size: var(--text-sm);
   display: flex;
   align-items: center;
   gap: var(--space-2);
   transition: all var(--transition-base);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -265,12 +267,13 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all var(--transition-base);
   cursor: pointer;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .modern-header-user-section::after {
@@ -303,15 +306,16 @@
 }
 
 .modern-header-user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.3);
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transition: all var(--transition-base);
 }
 
 .modern-header-user-avatar .anticon {
@@ -328,36 +332,36 @@
 }
 
 .modern-header-logout-btn {
-  height: 32px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  background: rgba(239, 68, 68, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  height: 38px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(239, 68, 68, 0.25);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(239, 68, 68, 0.35);
   color: var(--text-inverse);
-  font-weight: var(--font-medium);
-  font-size: 11px;
+  font-weight: var(--font-bold);
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: all var(--transition-base);
-  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2);
   cursor: pointer;
 }
 
 .modern-header-toggle-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: var(--text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.2);
   cursor: pointer;
 }
 
