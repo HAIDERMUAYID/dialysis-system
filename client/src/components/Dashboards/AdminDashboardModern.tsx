@@ -77,6 +77,7 @@ import { Stats, Visit, Patient, UserEnhanced, ActivityLog } from '../../types';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { formatBaghdadDate, formatBaghdadTime } from '../../utils/dayjs-config';
+import { useDashboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import './AdminDashboardModern.css';
 import '../Welcome/WelcomeMessage.css';
 import ModernHeaderWithLogo from '../Layout/ModernHeaderWithLogo';
@@ -91,6 +92,9 @@ const AdminDashboardModern: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  // Enable keyboard shortcuts for dashboard
+  useDashboardShortcuts(user?.role || 'admin');
   const [stats, setStats] = useState<Stats | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
