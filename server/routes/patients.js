@@ -536,18 +536,45 @@ async function generateComprehensiveReport(patientId) {
   let patient;
   
   if (db.prisma) {
-    patient = await db.prisma.patient.findUnique({
+    const patientData = await db.prisma.patient.findUnique({
       where: { id: parseInt(patientId) },
       include: { creator: true }
     });
     
-    if (!patient) {
+    if (!patientData) {
       return null;
     }
     
+    // Convert Prisma camelCase to snake_case for frontend compatibility
     patient = {
-      ...patient,
-      created_by_name: patient.creator?.name || null
+      id: patientData.id,
+      name: patientData.name,
+      national_id: patientData.nationalId || null,
+      phone: patientData.phone || null,
+      mobile: patientData.mobile || null,
+      email: patientData.email || null,
+      age: patientData.age || null,
+      date_of_birth: patientData.dateOfBirth ? (patientData.dateOfBirth instanceof Date ? patientData.dateOfBirth.toISOString().split('T')[0] : new Date(patientData.dateOfBirth).toISOString().split('T')[0]) : null,
+      gender: patientData.gender || null,
+      blood_type: patientData.bloodType || null,
+      address: patientData.address || null,
+      city: patientData.city || null,
+      patient_category: patientData.patientCategory || null,
+      medical_history: patientData.medicalHistory || null,
+      allergies: patientData.allergies || null,
+      chronic_diseases: patientData.chronicDiseases || null,
+      current_medications: patientData.currentMedications || null,
+      emergency_contact_name: patientData.emergencyContactName || null,
+      emergency_contact_phone: patientData.emergencyContactPhone || null,
+      emergency_contact_relation: patientData.emergencyContactRelation || null,
+      insurance_number: patientData.insuranceNumber || null,
+      insurance_type: patientData.insuranceType || null,
+      notes: patientData.notes || null,
+      is_active: patientData.isActive || 1,
+      created_by: patientData.createdBy || null,
+      created_by_name: patientData.creator?.name || null,
+      created_at: patientData.createdAt ? (patientData.createdAt instanceof Date ? patientData.createdAt.toISOString() : new Date(patientData.createdAt).toISOString()) : null,
+      updated_at: patientData.updatedAt ? (patientData.updatedAt instanceof Date ? patientData.updatedAt.toISOString() : new Date(patientData.updatedAt).toISOString()) : null
     };
   } else {
     const { getQuery } = require('../database/db');

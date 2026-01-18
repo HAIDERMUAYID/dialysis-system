@@ -284,54 +284,6 @@ const PrintReportPage: React.FC = () => {
           </div>
         )}
 
-        {/* Statistics */}
-        <div className="section">
-          <h2 className="section-title">
-            <span className="section-icon">📊</span>
-            الإحصائيات
-          </h2>
-          <div className="statistics-grid">
-            <div className="stat-card stat-card-primary">
-              <div className="stat-icon">📋</div>
-              <div className="stat-content">
-                <span className="stat-label">إجمالي الزيارات</span>
-                <span className="stat-value">{visits.length}</span>
-              </div>
-            </div>
-            <div className="stat-card stat-card-success">
-              <div className="stat-icon">✅</div>
-              <div className="stat-content">
-                <span className="stat-label">الزيارات المكتملة</span>
-                <span className="stat-value">
-                  {visits.filter(v => v.status === 'completed').length}
-                </span>
-              </div>
-            </div>
-            <div className="stat-card stat-card-info">
-              <div className="stat-icon">📅</div>
-              <div className="stat-content">
-                <span className="stat-label">أول زيارة</span>
-                <span className="stat-value">
-                  {visits.length > 0 && visits[visits.length - 1].created_at
-                    ? formatBaghdadDate(visits[visits.length - 1].created_at)
-                    : 'غير محدد'}
-                </span>
-              </div>
-            </div>
-            <div className="stat-card stat-card-warning">
-              <div className="stat-icon">📆</div>
-              <div className="stat-content">
-                <span className="stat-label">آخر زيارة</span>
-                <span className="stat-value">
-                  {visits.length > 0 && visits[0].created_at
-                    ? formatBaghdadDate(visits[0].created_at)
-                    : 'غير محدد'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Visits Details */}
         {visits.length > 0 && (
           <div className="section">
