@@ -402,12 +402,26 @@
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .inquiry-dashboard-content {
-    padding: 16px;
-    padding-top: 100px; /* Adjust for smaller header on mobile */
+    padding: var(--space-4) !important;
+    padding-top: 100px !important;
+  }
+
+  .inquiry-dashboard-content .ant-row {
+    margin-left: -var(--space-2) !important;
+    margin-right: -var(--space-2) !important;
+  }
+
+  .inquiry-dashboard-content .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    padding-left: var(--space-2) !important;
+    padding-right: var(--space-2) !important;
+    margin-bottom: var(--space-4) !important;
   }
 
   .inquiry-dashboard-content .ant-card-extra {
     flex-wrap: wrap;
+    width: 100%;
   }
 
   .inquiry-dashboard-content .ant-card-extra .ant-input {
@@ -415,21 +429,69 @@
     margin-bottom: 8px;
   }
 
+  .inquiry-dashboard-content .ant-statistic {
+    padding: var(--space-4) !important;
+  }
+
   .inquiry-dashboard-content .ant-statistic-content {
-    font-size: 24px;
+    font-size: var(--text-xl) !important;
   }
 
   .inquiry-dashboard-content .ant-statistic-title {
-    font-size: 12px;
+    font-size: var(--text-xs) !important;
+  }
+
+  .inquiry-dashboard-content .ant-tabs {
+    font-size: var(--text-sm) !important;
+  }
+
+  .inquiry-dashboard-content .ant-tabs-tab {
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: var(--text-sm) !important;
+  }
+
+  .inquiry-dashboard-content .ant-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .inquiry-dashboard-content .ant-table {
-    font-size: 12px;
+    font-size: var(--text-sm) !important;
+    min-width: 600px !important;
   }
 
   .inquiry-dashboard-content .ant-table-thead > tr > th,
   .inquiry-dashboard-content .ant-table-tbody > tr > td {
-    padding: 12px 8px;
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: var(--text-sm) !important;
+  }
+
+  .inquiry-dashboard-content .ant-card {
+    margin-bottom: var(--space-4) !important;
+  }
+
+  .inquiry-dashboard-content .ant-card-head {
+    padding: var(--space-3) var(--space-4) !important;
+  }
+
+  .inquiry-dashboard-content .ant-card-body {
+    padding: var(--space-4) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .inquiry-dashboard-content {
+    padding: var(--space-3) !important;
+  }
+
+  .inquiry-dashboard-content .ant-tabs-tab {
+    padding: var(--space-1) var(--space-2) !important;
+    font-size: var(--text-xs) !important;
+    margin: 0 2px !important;
+  }
+
+  .inquiry-dashboard-content .ant-statistic-content {
+    font-size: var(--text-lg) !important;
   }
 }
 

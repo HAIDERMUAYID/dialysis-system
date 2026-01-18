@@ -144,7 +144,69 @@
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+  .lab-dashboard-content {
+    padding: var(--space-4) !important;
+  }
+
+  .lab-dashboard-content .ant-row {
+    margin-left: -var(--space-2) !important;
+    margin-right: -var(--space-2) !important;
+  }
+
+  .lab-dashboard-content .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    padding-left: var(--space-2) !important;
+    padding-right: var(--space-2) !important;
+    margin-bottom: var(--space-4) !important;
+  }
+
   .lab-dashboard-content .ant-row .ant-col:nth-child(n+5) .ant-statistic-content {
-    font-size: var(--text-2xl);
+    font-size: var(--text-2xl) !important;
+  }
+
+  .lab-dashboard-content .ant-statistic {
+    padding: var(--space-4) !important;
+  }
+
+  .lab-dashboard-content .ant-statistic-content {
+    font-size: var(--text-xl) !important;
+  }
+
+  .lab-dashboard-content .ant-statistic-title {
+    font-size: var(--text-xs) !important;
+  }
+
+  .lab-dashboard-content .ant-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .lab-dashboard-content .ant-table {
+    min-width: 600px !important;
+    font-size: var(--text-sm) !important;
+  }
+
+  .lab-dashboard-content .ant-tabs {
+    font-size: var(--text-sm) !important;
+  }
+
+  .lab-dashboard-content .ant-tabs-tab {
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: var(--text-sm) !important;
+  }
+
+  .lab-dashboard-content .ant-card {
+    margin-bottom: var(--space-4) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .lab-dashboard-content {
+    padding: var(--space-3) !important;
+  }
+
+  .lab-dashboard-content .ant-statistic-content {
+    font-size: var(--text-lg) !important;
   }
 }
