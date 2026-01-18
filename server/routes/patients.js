@@ -220,6 +220,36 @@ router.post('/', authenticateToken, requireRole('inquiry', 'admin'), async (req,
     let result;
     if (db.prisma) {
       // Use Prisma to create patient
+      // Normalize dateOfBirth: convert empty string to null and ensure proper format
+      let normalizedDateOfBirth = null;
+      if (date_of_birth) {
+        const dateStr = String(date_of_birth).trim();
+        if (dateStr && dateStr !== '' && dateStr !== 'null' && dateStr !== 'undefined') {
+          try {
+            // If it's in YYYY-MM-DD format, convert to ISO DateTime
+            // Prisma expects DateTime in ISO-8601 format
+            let date;
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // YYYY-MM-DD format - add time component
+              date = new Date(dateStr + 'T00:00:00.000Z');
+            } else {
+              // Try to parse as-is
+              date = new Date(dateStr);
+            }
+            
+            if (!isNaN(date.getTime())) {
+              // Convert to ISO string format for Prisma
+              normalizedDateOfBirth = date.toISOString();
+            } else {
+              console.warn('Invalid date format:', dateStr);
+            }
+          } catch (e) {
+            console.error('Error parsing date_of_birth:', e, 'Value:', dateStr);
+            normalizedDateOfBirth = null;
+          }
+        }
+      }
+
       const patientData = {
         name,
         nationalId: national_id || null,
@@ -227,7 +257,7 @@ router.post('/', authenticateToken, requireRole('inquiry', 'admin'), async (req,
         mobile: mobile || null,
         email: email || null,
         age: age ? parseInt(age) : null,
-        dateOfBirth: date_of_birth || null,
+        dateOfBirth: normalizedDateOfBirth,
         gender: gender || null,
         bloodType: blood_type || null,
         address: address || null,
@@ -364,6 +394,36 @@ router.put('/:id', authenticateToken, requireRole('inquiry', 'admin'), async (re
 
     let updatedPatient;
     if (db.prisma) {
+      // Normalize dateOfBirth: convert empty string to null and ensure proper format
+      let normalizedDateOfBirth = null;
+      if (date_of_birth) {
+        const dateStr = String(date_of_birth).trim();
+        if (dateStr && dateStr !== '' && dateStr !== 'null' && dateStr !== 'undefined') {
+          try {
+            // If it's in YYYY-MM-DD format, convert to ISO DateTime
+            // Prisma expects DateTime in ISO-8601 format
+            let date;
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // YYYY-MM-DD format - add time component
+              date = new Date(dateStr + 'T00:00:00.000Z');
+            } else {
+              // Try to parse as-is
+              date = new Date(dateStr);
+            }
+            
+            if (!isNaN(date.getTime())) {
+              // Convert to ISO string format for Prisma
+              normalizedDateOfBirth = date.toISOString();
+            } else {
+              console.warn('Invalid date format:', dateStr);
+            }
+          } catch (e) {
+            console.error('Error parsing date_of_birth:', e, 'Value:', dateStr);
+            normalizedDateOfBirth = null;
+          }
+        }
+      }
+
       updatedPatient = await db.prisma.patient.update({
         where: { id: patientId },
         data: {
@@ -373,7 +433,7 @@ router.put('/:id', authenticateToken, requireRole('inquiry', 'admin'), async (re
           mobile: mobile || null,
           email: email || null,
           age: age ? parseInt(age) : null,
-          dateOfBirth: date_of_birth || null,
+          dateOfBirth: normalizedDateOfBirth,
           gender: gender || null,
           bloodType: blood_type || null,
           address: address || null,
