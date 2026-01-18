@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Modal, Table, Tag, Space } from 'antd';
-import { KeyboardOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 
 interface Shortcut {
   key: string;
@@ -59,7 +59,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({ op
     <Modal
       title={
         <Space>
-          <KeyboardOutlined />
+          <QuestionCircleOutlined />
           <span>اختصارات لوحة المفاتيح</span>
         </Space>
       }
