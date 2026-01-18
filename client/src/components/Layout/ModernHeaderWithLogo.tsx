@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { LogoutOutlined, UserOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 import NotificationBell from '../Notifications/NotificationBell';
 import ChangePasswordModal from '../Common/ChangePasswordModal';
 import { ThemeToggle } from '../Common/ThemeToggle';
+import { EnhancedTooltip } from '../Common/EnhancedTooltip';
 import './ModernHeaderWithLogo.css';
 
 const { Header } = Layout;
@@ -24,9 +25,32 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
   className = ''
 }) => {
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Load collapsed state from localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem('headerCollapsed');
+    if (savedState === 'true') {
+      setIsCollapsed(true);
+      document.body.classList.add('header-collapsed');
+    }
+  }, []);
+
+  const toggleHeader = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('headerCollapsed', String(newState));
+    
+    if (newState) {
+      document.body.classList.add('header-collapsed');
+    } else {
+      document.body.classList.remove('header-collapsed');
+    }
+  };
 
   return (
-    <Header className={`modern-header-with-logo ${className}`}>
+    <>
+      <Header className={`modern-header-with-logo ${className} ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="modern-header-content">
         <div className="modern-header-left">
           <div className="modern-header-logo-wrapper">
@@ -61,6 +85,15 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
         )}
         
         <div className="modern-header-right">
+          <EnhancedTooltip title={isCollapsed ? "إظهار الهيدر" : "إخفاء الهيدر"}>
+            <button
+              className="modern-header-toggle-btn"
+              onClick={toggleHeader}
+              aria-label={isCollapsed ? "إظهار" : "إخفاء"}
+            >
+              {isCollapsed ? <DownOutlined /> : <UpOutlined />}
+            </button>
+          </EnhancedTooltip>
           <ThemeToggle />
           <div className="modern-header-notification-wrapper">
             <NotificationBell />
@@ -73,7 +106,7 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
             <div className="modern-header-user-avatar">
               <UserOutlined />
             </div>
-            <span className="modern-header-user-name">{user?.name}</span>
+            {!isCollapsed && <span className="modern-header-user-name">{user?.name}</span>}
           </div>
           
           <ChangePasswordModal
@@ -85,11 +118,18 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
             onClick={onLogout}
           >
             <LogoutOutlined />
-            <span>تسجيل الخروج</span>
+            {!isCollapsed && <span>تسجيل الخروج</span>}
           </button>
         </div>
       </div>
     </Header>
+    <div 
+      className={`header-collapse-indicator ${isCollapsed ? 'visible' : ''}`}
+      onClick={toggleHeader}
+    >
+      <UpOutlined />
+    </div>
+    </>
   );
 };
 

@@ -12,7 +12,26 @@
   border-bottom: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  min-height: 100px;
+  min-height: 70px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.modern-header-with-logo.collapsed {
+  min-height: 60px;
+  max-height: 60px;
+}
+
+.modern-header-with-logo.collapsed .modern-header-title-section h1,
+.modern-header-with-logo.collapsed .modern-header-title-section h2,
+.modern-header-with-logo.collapsed .modern-header-title-section h3,
+.modern-header-with-logo.collapsed .modern-header-subtitle {
+  display: none;
+}
+
+.modern-header-with-logo.collapsed .modern-header-logo-wrapper {
+  width: 45px;
+  height: 45px;
 }
 
 .modern-header-with-logo::before {
@@ -47,10 +66,15 @@
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
-  padding: var(--space-5) var(--space-8);
+  padding: var(--space-3) var(--space-6);
   position: relative;
   z-index: 1;
-  gap: var(--space-6);
+  gap: var(--space-4);
+  transition: padding 0.3s ease;
+}
+
+.modern-header-with-logo.collapsed .modern-header-content {
+  padding: var(--space-2) var(--space-6);
 }
 
 /* ===== Header Left Section ===== */
@@ -62,15 +86,15 @@
 }
 
 .modern-header-logo-wrapper {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-xl);
+  width: 55px;
+  height: 55px;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all var(--transition-base);
   position: relative;
@@ -124,39 +148,39 @@
 }
 
 .modern-header-ministry {
-  font-size: 20px;
-  font-weight: var(--font-extrabold);
+  font-size: 16px;
+  font-weight: var(--font-bold);
   color: var(--text-inverse);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.3px;
   margin: 0;
   line-height: 1.2;
 }
 
 .modern-header-directorate {
-  font-size: 16px;
-  font-weight: var(--font-bold);
-  color: rgba(255, 255, 255, 0.98);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
   margin: 0;
   line-height: 1.2;
 }
 
 .modern-header-hospital {
-  font-size: 18px;
-  font-weight: var(--font-extrabold);
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  font-size: 15px;
+  font-weight: var(--font-bold);
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
   margin: 0;
   line-height: 1.2;
 }
 
 .modern-header-subtitle {
-  font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
   font-weight: var(--font-medium);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
 }
 
 /* ===== Header Center Section (Actions) ===== */
@@ -277,8 +301,8 @@
 }
 
 .modern-header-user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.5);
@@ -302,21 +326,83 @@
 }
 
 .modern-header-logout-btn {
-  height: 44px;
-  padding: 0 var(--space-5);
-  border-radius: var(--radius-xl);
+  height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
   background: rgba(239, 68, 68, 0.2);
   backdrop-filter: blur(10px);
   border: 2px solid rgba(239, 68, 68, 0.3);
   color: var(--text-inverse);
   font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   display: flex;
   align-items: center;
   gap: var(--space-2);
   transition: all var(--transition-base);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
   cursor: pointer;
+}
+
+.modern-header-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: var(--text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.modern-header-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.header-collapse-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 30px;
+  background: var(--gradient-primary);
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inverse);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: var(--z-sticky);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.header-collapse-indicator.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.header-collapse-indicator:hover {
+  transform: translateX(-50%) translateY(4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+body.header-collapsed .admin-dashboard-content,
+body.header-collapsed .inquiry-dashboard-content,
+body.header-collapsed .lab-dashboard-content,
+body.header-collapsed .pharmacy-dashboard-content,
+body.header-collapsed .doctor-dashboard-content {
+  padding-top: var(--space-4);
 }
 
 .modern-header-logout-btn:hover {
@@ -333,43 +419,11 @@
 /* ===== Responsive Design ===== */
 @media (max-width: 1400px) {
   .modern-header-content {
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-3) var(--space-5);
   }
   
   .modern-header-ministry {
-    font-size: 18px;
-  }
-  
-  .modern-header-directorate {
-    font-size: 14px;
-  }
-  
-  .modern-header-hospital {
-    font-size: 16px;
-  }
-  
-  .modern-header-logo-wrapper {
-    width: 70px;
-    height: 70px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .modern-header-with-logo {
-    min-height: 90px;
-  }
-  
-  .modern-header-content {
-    padding: var(--space-4) var(--space-5);
-    gap: var(--space-4);
-  }
-  
-  .modern-header-center {
-    display: none;
-  }
-  
-  .modern-header-ministry {
-    font-size: 16px;
+    font-size: 15px;
   }
   
   .modern-header-directorate {
@@ -380,33 +434,29 @@
     font-size: 14px;
   }
   
-  .modern-header-subtitle {
-    font-size: var(--text-xs);
-  }
-  
-  .modern-header-user-name {
-    display: none;
-  }
-  
-  .modern-header-logo-wrapper {
-    width: 60px;
-    height: 60px;
-  }
-}
-
-@media (max-width: 768px) {
-  .modern-header-with-logo {
-    min-height: 80px;
-  }
-  
-  .modern-header-content {
-    padding: var(--space-3) var(--space-4);
-    gap: var(--space-3);
-  }
-  
   .modern-header-logo-wrapper {
     width: 50px;
     height: 50px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modern-header-with-logo {
+    min-height: 65px;
+  }
+  
+  .modern-header-with-logo.collapsed {
+    min-height: 55px;
+    max-height: 55px;
+  }
+  
+  .modern-header-content {
+    padding: var(--space-2) var(--space-4);
+    gap: var(--space-3);
+  }
+  
+  .modern-header-center {
+    display: none;
   }
   
   .modern-header-ministry {
@@ -418,22 +468,69 @@
   }
   
   .modern-header-hospital {
-    font-size: 12px;
+    font-size: 13px;
+  }
+  
+  .modern-header-subtitle {
+    font-size: 11px;
+  }
+  
+  .modern-header-user-name {
+    display: none;
+  }
+  
+  .modern-header-logo-wrapper {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modern-header-with-logo {
+    min-height: 60px;
+  }
+  
+  .modern-header-with-logo.collapsed {
+    min-height: 50px;
+    max-height: 50px;
+  }
+  
+  .modern-header-content {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+  
+  .modern-header-logo-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .modern-header-ministry {
+    font-size: 13px;
+  }
+  
+  .modern-header-directorate {
+    font-size: 10px;
+  }
+  
+  .modern-header-hospital {
+    font-size: 11px;
   }
   
   .modern-header-subtitle {
     display: none;
   }
   
-  .modern-header-logout-btn {
-    height: 40px;
-    padding: 0 var(--space-3);
+  .modern-header-logout-btn,
+  .modern-header-toggle-btn {
+    height: 32px;
+    padding: 0 var(--space-2);
     font-size: var(--text-xs);
   }
   
   .modern-header-user-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 }
 
