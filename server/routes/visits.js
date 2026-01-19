@@ -60,6 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
         ];
       } else if (role === 'doctor') {
         where.OR = [
+          { status: 'pending_doctor' }, // Doctor-directed visits
           { status: 'pending_all', doctorCompleted: 0 },
           { status: 'completed' },
           { doctorCompleted: 1 }
@@ -79,6 +80,7 @@ router.get('/', authenticateToken, async (req, res) => {
           patientId: true,
           visitNumber: true,
           status: true,
+          visitType: true, // Include visitType
           labCompleted: true,
           pharmacyCompleted: true,
           doctorCompleted: true,
@@ -119,6 +121,7 @@ router.get('/', authenticateToken, async (req, res) => {
         created_by_name: v.creator?.name || null,
         // Convert camelCase to snake_case for compatibility
         visit_number: v.visitNumber,
+        visit_type: v.visitType || 'normal', // Include visit_type
         lab_completed: v.labCompleted,
         pharmacy_completed: v.pharmacyCompleted,
         doctor_completed: v.doctorCompleted,
