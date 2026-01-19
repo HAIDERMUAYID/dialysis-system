@@ -214,7 +214,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         // Get lab tests from catalog
         const labTests = await db.prisma.labTestCatalog.findMany({
           where: { 
-            id: { in: lab_test_ids.map((id: any) => parseInt(id)) },
+            id: { in: lab_test_ids.map((id) => parseInt(id)) },
             isActive: 1
           }
         });
@@ -239,7 +239,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         const placeholders = lab_test_ids.map(() => '?').join(',');
         const labTests = await allQuery(
           `SELECT * FROM lab_tests_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
-          lab_test_ids.map((id: any) => parseInt(id))
+          lab_test_ids.map((id) => parseInt(id))
         );
 
         for (const test of labTests) {
@@ -258,7 +258,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         // Get drugs from catalog
         const drugs = await db.prisma.drugCatalog.findMany({
           where: { 
-            id: { in: drug_ids.map((id: any) => parseInt(id)) },
+            id: { in: drug_ids.map((id) => parseInt(id)) },
             isActive: 1
           }
         });
@@ -281,7 +281,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         const placeholders = drug_ids.map(() => '?').join(',');
         const drugs = await allQuery(
           `SELECT * FROM drugs_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
-          drug_ids.map((id: any) => parseInt(id))
+          drug_ids.map((id) => parseInt(id))
         );
 
         for (const drug of drugs) {
