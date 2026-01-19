@@ -273,43 +273,57 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
       }
     }
 
-    // Create prescriptions from catalog if drug_ids provided
-    if (drug_ids && Array.isArray(drug_ids) && drug_ids.length > 0) {
+    // Create prescriptions from catalog if drugs provided
+    if (drugList && drugList.length > 0) {
       if (db.prisma) {
         // Get drugs from catalog
-        const drugs = await db.prisma.drugCatalog.findMany({
+        const drugIds = drugList.map(d => typeof d === 'object' ? d.id : parseInt(d));
+        const catalogDrugs = await db.prisma.drugCatalog.findMany({
           where: { 
-            id: { in: drug_ids.map((id) => parseInt(id)) },
+            id: { in: drugIds },
             isActive: 1
           }
         });
 
-        // Create prescriptions
+        // Create prescriptions with notes
         await Promise.all(
-          drugs.map(drug =>
-            db.prisma.pharmacyPrescription.create({
+          drugList.map(drugItem => {
+            const drugId = typeof drugItem === 'object' ? drugItem.id : parseInt(drugItem);
+            const notes = typeof drugItem === 'object' ? (drugItem.notes || '') : '';
+            const drug = catalogDrugs.find(d => d.id === drugId);
+            if (!drug) return null;
+            
+            return db.prisma.pharmacyPrescription.create({
               data: {
                 visitId: visitId,
                 drugCatalogId: drug.id,
                 medicationName: drug.drugName,
+                dosage: drug.strength || null,
+                instructions: notes || drug.form || null,
                 createdBy: req.user.id
               }
-            })
-          )
+            });
+          }).filter(Boolean)
         );
       } else {
         const { allQuery, runQuery } = require('../database/db');
-        const placeholders = drug_ids.map(() => '?').join(',');
-        const drugs = await allQuery(
+        const drugIds = drugList.map(d => typeof d === 'object' ? d.id : parseInt(d));
+        const placeholders = drugIds.map(() => '?').join(',');
+        const catalogDrugs = await allQuery(
           `SELECT * FROM drugs_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
-          drug_ids.map((id) => parseInt(id))
+          drugIds
         );
 
-        for (const drug of drugs) {
+        for (const drugItem of drugList) {
+          const drugId = typeof drugItem === 'object' ? drugItem.id : parseInt(drugItem);
+          const notes = typeof drugItem === 'object' ? (drugItem.notes || '') : '';
+          const drug = catalogDrugs.find(d => d.id === drugId);
+          if (!drug) continue;
+          
           await runQuery(
-            `INSERT INTO pharmacy_prescriptions (visit_id, drug_catalog_id, medication_name, created_by) 
-             VALUES (?, ?, ?, ?)`,
-            [visitId, drug.id, drug.drug_name, req.user.id]
+            `INSERT INTO pharmacy_prescriptions (visit_id, drug_catalog_id, medication_name, dosage, instructions, created_by) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [visitId, drug.id, drug.drug_name, drug.strength || null, notes || drug.form || null, req.user.id]
           );
         }
       }
@@ -317,11 +331,11 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
 
     // Update visit status based on selections
     let newStatus = 'pending_doctor';
-    if (lab_test_ids && lab_test_ids.length > 0 && drug_ids && drug_ids.length > 0) {
+    if (labTests.length > 0 && drugList.length > 0) {
       newStatus = 'pending_all';
-    } else if (lab_test_ids && lab_test_ids.length > 0) {
+    } else if (labTests.length > 0) {
       newStatus = 'pending_lab';
-    } else if (drug_ids && drug_ids.length > 0) {
+    } else if (drugList.length > 0) {
       newStatus = 'pending_pharmacy';
     }
 
