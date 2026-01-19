@@ -1647,7 +1647,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                       زيارة من خلال الطبيب - تعديل النتائج فقط
                     </Tag>
                   )}
-                  {labPanels.length > 0 && (
+                  {(!isDoctorDirected || role !== 'lab') && labPanels.length > 0 && (
                     <Button
                       icon={<AppstoreAddOutlined />}
                       onClick={() => setShowPanelModal(true)}
@@ -1655,12 +1655,14 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                       إضافة مجموعة
                     </Button>
                   )}
-                  <Button
-                    icon={<UploadOutlined />}
-                    onClick={() => setShowUploadModal(true)}
-                  >
-                    رفع ملف
-                  </Button>
+                  {(!isDoctorDirected || role !== 'lab') && (
+                    <Button
+                      icon={<UploadOutlined />}
+                      onClick={() => setShowUploadModal(true)}
+                    >
+                      رفع ملف
+                    </Button>
+                  )}
                 </Space>
               )
             }
@@ -1746,12 +1748,14 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                       زيارة من خلال الطبيب - تعديل الكميات فقط
                     </Tag>
                   )}
-                  <Button
-                    icon={<UploadOutlined />}
-                    onClick={() => setShowUploadModal(true)}
-                  >
-                    رفع ملف
-                  </Button>
+                  {(!isDoctorDirected || role !== 'pharmacist') && (
+                    <Button
+                      icon={<UploadOutlined />}
+                      onClick={() => setShowUploadModal(true)}
+                    >
+                      رفع ملف
+                    </Button>
+                  )}
                 </Space>
               )
             }
@@ -2003,11 +2007,11 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     );
   }
 
-  const handleDoctorSelectionSave = async (labTestIds: number[], drugIds: number[]) => {
+  const handleDoctorSelectionSave = async (labTests: Array<{ id: number; notes?: string }>, drugs: Array<{ id: number; notes?: string }>) => {
     try {
       await axios.post(`/api/doctor/select-items/${visitId}`, {
-        lab_test_ids: labTestIds,
-        drug_ids: drugIds
+        lab_tests: labTests,
+        drugs: drugs
       });
       await fetchVisitDetails();
       setShowDoctorSelection(false);
@@ -2015,6 +2019,23 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       message.success('تم حفظ الاختيارات بنجاح');
     } catch (error: any) {
       throw error; // Let DoctorVisitSelection handle the error
+    }
+  };
+
+  const handleDiagnosisOnly = async () => {
+    try {
+      // Update visit status to allow diagnosis only
+      await axios.post(`/api/doctor/select-items/${visitId}`, {
+        lab_tests: [],
+        drugs: [],
+        diagnosis_only: true
+      });
+      await fetchVisitDetails();
+      setShowDoctorSelection(false);
+      onUpdate();
+      message.success('يمكنك الآن إضافة التشخيص فقط');
+    } catch (error: any) {
+      message.error(error.response?.data?.error || 'حدث خطأ');
     }
   };
 
@@ -2026,6 +2047,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
           visitNumber={visit.visit_number}
           onSave={handleDoctorSelectionSave}
           onCancel={() => setShowDoctorSelection(false)}
+          onDiagnosisOnly={handleDiagnosisOnly}
         />
       )}
       <Modal

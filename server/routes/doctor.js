@@ -180,7 +180,23 @@ router.delete('/diagnosis/:id', authenticateToken, requireRole('doctor'), async 
 router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), async (req, res) => {
   try {
     const visitId = parseInt(req.params.visitId);
-    const { lab_test_ids, drug_ids } = req.body;
+    const { lab_tests, drugs, lab_test_ids, drug_ids, diagnosis_only } = req.body;
+    
+    // Support both old format (arrays) and new format (objects with notes)
+    let labTests = [];
+    let drugList = [];
+    
+    if (lab_tests && Array.isArray(lab_tests)) {
+      labTests = lab_tests;
+    } else if (lab_test_ids && Array.isArray(lab_test_ids)) {
+      labTests = lab_test_ids.map(id => ({ id: parseInt(id), notes: '' }));
+    }
+    
+    if (drugs && Array.isArray(drugs)) {
+      drugList = drugs;
+    } else if (drug_ids && Array.isArray(drug_ids)) {
+      drugList = drug_ids.map(id => ({ id: parseInt(id), notes: '' }));
+    }
 
     // Verify visit exists and is doctor-directed
     let visit;
@@ -242,11 +258,16 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
           lab_test_ids.map((id) => parseInt(id))
         );
 
-        for (const test of labTests) {
+        for (const testItem of labTests) {
+          const testId = typeof testItem === 'object' ? testItem.id : parseInt(testItem);
+          const notes = typeof testItem === 'object' ? (testItem.notes || '') : '';
+          const test = labTests.find(t => t.id === testId);
+          if (!test) continue;
+          
           await runQuery(
-            `INSERT INTO lab_results (visit_id, test_catalog_id, test_name, unit, normal_range, created_by) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [visitId, test.id, test.test_name, test.unit || null, test.normal_range_text || null, req.user.id]
+            `INSERT INTO lab_results (visit_id, test_catalog_id, test_name, unit, normal_range, notes, created_by) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [visitId, test.id, test.test_name, test.unit || null, test.normal_range_text || null, notes || null, req.user.id]
           );
         }
       }
