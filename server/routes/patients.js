@@ -751,13 +751,13 @@ async function generateComprehensiveReport(patientId) {
       try {
         statusHistory = await db.prisma.visitStatusHistory.findMany({
           where: { visitId: visit.id },
-          include: { changedBy: true },
+          include: { changer: true },
           orderBy: { createdAt: 'asc' }
         });
         
         statusHistory = statusHistory.map(sh => ({
           ...sh,
-          changed_by_name: sh.changedBy?.name || null
+          changed_by_name: sh.changer?.name || null
         }));
       } catch (error) {
         console.warn('Status history table might not exist:', error.message);

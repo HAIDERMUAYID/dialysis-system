@@ -62,13 +62,13 @@ router.get('/visit/:visitId', authenticateToken, async (req, res) => {
       
       const attachments = await db.prisma.visitAttachment.findMany({
         where,
-        include: { creator: true },
+        include: { uploader: true },
         orderBy: { createdAt: 'desc' }
       });
       
       const attachmentsWithCreator = attachments.map(a => ({
         ...a,
-        uploaded_by_name: a.creator?.name || null
+        uploaded_by_name: a.uploader?.name || null
       }));
       
       res.json(attachmentsWithCreator);
