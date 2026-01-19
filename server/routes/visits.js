@@ -254,9 +254,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
           throw error;
         }
       }
-        }
-        throw error;
-      });
       
       if (!visit) {
         return res.status(404).json({ error: 'الزيارة غير موجودة' });
@@ -565,25 +562,39 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
         createdBy: req.user.id
       };
       
-      // Only include visitType if it exists in schema (for backward compatibility)
-      // In production, this should always be included after migration
+      // Try to create visit with visitType, fallback if column doesn't exist
+      let newVisit;
       try {
         visitData.visitType = validVisitType;
-      } catch (e) {
-        // visitType field might not exist yet - will be added by migration
-        console.warn('visitType field not available, using default');
-      }
-      
-      const newVisit = await db.prisma.visit.create({
-        data: visitData,
-        select: {
-          id: true,
-          visitNumber: true,
-          status: true,
-          patientId: true,
-          createdAt: true
+        newVisit = await db.prisma.visit.create({
+          data: visitData,
+          select: {
+            id: true,
+            visitNumber: true,
+            status: true,
+            patientId: true,
+            createdAt: true
+          }
+        });
+      } catch (error) {
+        // If visitType column doesn't exist, create without it
+        if (error.code === 'P2022' && error.meta?.column?.includes('visit_type')) {
+          console.warn('visit_type column not found, creating visit without it');
+          delete visitData.visitType;
+          newVisit = await db.prisma.visit.create({
+            data: visitData,
+            select: {
+              id: true,
+              visitNumber: true,
+              status: true,
+              patientId: true,
+              createdAt: true
+            }
+          });
+        } else {
+          throw error;
         }
-      });
+      }
       
       // Create status history in background (non-blocking)
       const statusNote = validVisitType === 'doctor_directed' 
