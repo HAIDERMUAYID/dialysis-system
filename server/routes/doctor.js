@@ -332,18 +332,31 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
 
     // Update visit status based on selections
     let newStatus = 'pending_doctor';
+    let labCompleted = 0;
+    let pharmacyCompleted = 0;
+    
     if (labTests.length > 0 && drugList.length > 0) {
       newStatus = 'pending_all';
     } else if (labTests.length > 0) {
       newStatus = 'pending_lab';
+      pharmacyCompleted = 1; // No drugs needed, mark pharmacy as completed
     } else if (drugList.length > 0) {
       newStatus = 'pending_pharmacy';
+      labCompleted = 1; // No lab tests needed, mark lab as completed
+    } else {
+      // No tests or drugs - diagnosis only
+      labCompleted = 1;
+      pharmacyCompleted = 1;
     }
 
     if (db.prisma) {
       await db.prisma.visit.update({
         where: { id: visitId },
-        data: { status: newStatus }
+        data: { 
+          status: newStatus,
+          labCompleted: labCompleted,
+          pharmacyCompleted: pharmacyCompleted
+        }
       });
 
       // Create status history
@@ -352,16 +365,19 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
           visitId: visitId,
           status: newStatus,
           changedBy: req.user.id,
-          notes: `الطبيب اختار ${lab_test_ids?.length || 0} تحليل و ${drug_ids?.length || 0} دواء`
+          notes: `الطبيب اختار ${labTests.length} تحليل و ${drugList.length} دواء`
         }
       });
     } else {
       const { runQuery } = require('../database/db');
-      await runQuery('UPDATE visits SET status = ? WHERE id = ?', [newStatus, visitId]);
+      await runQuery(
+        'UPDATE visits SET status = ?, lab_completed = ?, pharmacy_completed = ? WHERE id = ?', 
+        [newStatus, labCompleted, pharmacyCompleted, visitId]
+      );
       await runQuery(
         `INSERT INTO visit_status_history (visit_id, status, changed_by, notes) 
          VALUES (?, ?, ?, ?)`,
-        [visitId, newStatus, req.user.id, `الطبيب اختار ${lab_test_ids?.length || 0} تحليل و ${drug_ids?.length || 0} دواء`]
+        [visitId, newStatus, req.user.id, `الطبيب اختار ${labTests.length} تحليل و ${drugList.length} دواء`]
       );
     }
 

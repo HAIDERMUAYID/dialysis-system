@@ -80,8 +80,30 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       
       setLabTestsCatalog(labResponse.data || []);
       setDrugsCatalog(drugResponse.data || []);
-      setLabPanels(panelsResponse.data || []);
-      setPrescriptionSets(setsResponse.data || []);
+      
+      // Check if panels already have items included
+      const panelsData = panelsResponse.data || [];
+      const panelsWithItems = panelsData.map((panel: any) => {
+        // If items are already included in the response, use them
+        if (panel.items && Array.isArray(panel.items)) {
+          return panel;
+        }
+        // Otherwise, return empty items array (will be fetched on demand)
+        return { ...panel, items: [] };
+      });
+      setLabPanels(panelsWithItems);
+      
+      // Check if sets already have items included
+      const setsData = setsResponse.data || [];
+      const setsWithItems = setsData.map((set: any) => {
+        // If items are already included in the response, use them
+        if (set.items && Array.isArray(set.items)) {
+          return set;
+        }
+        // Otherwise, return empty items array (will be fetched on demand)
+        return { ...set, items: [] };
+      });
+      setPrescriptionSets(setsWithItems);
     } catch (error: any) {
       console.error('Error fetching catalogs:', error);
       message.error('حدث خطأ أثناء جلب الكتالوجات');
@@ -124,31 +146,91 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
     });
   };
 
-  const handleAddPanel = (panel: any) => {
-    if (panel.items && Array.isArray(panel.items)) {
-      const newMap = new Map(selectedLabTests);
-      panel.items.forEach((item: any) => {
-        const testId = item.test_catalog_id;
-        if (testId && !newMap.has(testId)) {
-          newMap.set(testId, { id: testId, notes: '' });
+  const handleAddPanel = async (panelId: number) => {
+    try {
+      const panel = labPanels.find(p => p.id === panelId);
+      if (!panel) {
+        message.error('المجموعة غير موجودة');
+        return;
+      }
+      
+      // Fetch panel items if not already loaded
+      let items = panel.items || [];
+      if (!items || items.length === 0) {
+        try {
+          const panelDetails = await axios.get(`/api/lab/panels/${panelId}`);
+          items = panelDetails.data?.items || panelDetails.data?.tests || [];
+          // Update panel in state with items
+          setLabPanels(prev => prev.map(p => 
+            p.id === panelId ? { ...p, items } : p
+          ));
+        } catch (error) {
+          message.error('فشل تحميل عناصر المجموعة');
+          return;
         }
-      });
-      setSelectedLabTests(newMap);
-      message.success(`تم إضافة ${panel.items.length} تحليل من مجموعة "${panel.panel_name_ar || panel.panel_name}"`);
+      }
+      
+      if (items && Array.isArray(items) && items.length > 0) {
+        const newMap = new Map(selectedLabTests);
+        items.forEach((item: any) => {
+          // Handle both formats: item.test_catalog_id or item.testCatalogId
+          const testId = item.test_catalog_id || item.testCatalogId || item.test_catalog?.id || item.testCatalog?.id;
+          if (testId && !newMap.has(testId)) {
+            newMap.set(testId, { id: testId, notes: '' });
+          }
+        });
+        setSelectedLabTests(newMap);
+        message.success(`تم إضافة ${items.length} تحليل من مجموعة "${panel.panel_name_ar || panel.panel_name}"`);
+      } else {
+        message.warning('المجموعة لا تحتوي على تحاليل');
+      }
+    } catch (error: any) {
+      message.error('حدث خطأ أثناء إضافة المجموعة');
+      console.error('Error adding panel:', error);
     }
   };
 
-  const handleAddSet = (set: any) => {
-    if (set.items && Array.isArray(set.items)) {
-      const newMap = new Map(selectedDrugs);
-      set.items.forEach((item: any) => {
-        const drugId = item.drug_catalog_id;
-        if (drugId && !newMap.has(drugId)) {
-          newMap.set(drugId, { id: drugId, notes: '' });
+  const handleAddSet = async (setId: number) => {
+    try {
+      const set = prescriptionSets.find(s => s.id === setId);
+      if (!set) {
+        message.error('المجموعة غير موجودة');
+        return;
+      }
+      
+      // Fetch set items if not already loaded
+      let items = set.items || [];
+      if (!items || items.length === 0) {
+        try {
+          const setDetails = await axios.get(`/api/pharmacy/sets/${setId}`);
+          items = setDetails.data?.items || setDetails.data?.drugs || [];
+          // Update set in state with items
+          setPrescriptionSets(prev => prev.map(s => 
+            s.id === setId ? { ...s, items } : s
+          ));
+        } catch (error) {
+          message.error('فشل تحميل عناصر المجموعة');
+          return;
         }
-      });
-      setSelectedDrugs(newMap);
-      message.success(`تم إضافة ${set.items.length} دواء من مجموعة "${set.set_name_ar || set.set_name}"`);
+      }
+      
+      if (items && Array.isArray(items) && items.length > 0) {
+        const newMap = new Map(selectedDrugs);
+        items.forEach((item: any) => {
+          // Handle both formats: item.drug_catalog_id or item.drugCatalogId
+          const drugId = item.drug_catalog_id || item.drugCatalogId || item.drug_catalog?.id || item.drugCatalog?.id;
+          if (drugId && !newMap.has(drugId)) {
+            newMap.set(drugId, { id: drugId, notes: '' });
+          }
+        });
+        setSelectedDrugs(newMap);
+        message.success(`تم إضافة ${items.length} دواء من مجموعة "${set.set_name_ar || set.set_name}"`);
+      } else {
+        message.warning('المجموعة لا تحتوي على أدوية');
+      }
+    } catch (error: any) {
+      message.error('حدث خطأ أثناء إضافة المجموعة');
+      console.error('Error adding set:', error);
     }
   };
 
@@ -354,8 +436,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
                     placeholder="إضافة مجموعة تحاليل"
                     style={{ width: 200 }}
                     onChange={(panelId) => {
-                      const panel = labPanels.find(p => p.id === panelId);
-                      if (panel) handleAddPanel(panel);
+                      if (panelId) handleAddPanel(panelId);
                     }}
                     allowClear
                   >
@@ -406,8 +487,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
                     placeholder="إضافة مجموعة أدوية"
                     style={{ width: 200 }}
                     onChange={(setId) => {
-                      const set = prescriptionSets.find(s => s.id === setId);
-                      if (set) handleAddSet(set);
+                      if (setId) handleAddSet(setId);
                     }}
                     allowClear
                   >

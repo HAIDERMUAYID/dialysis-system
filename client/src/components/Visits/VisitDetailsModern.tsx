@@ -2115,6 +2115,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       await fetchVisitDetails();
       setShowDoctorSelection(false);
       setHasShownSelection(true); // Mark as shown so it doesn't reopen
+      setActiveTab('diagnosis'); // Switch to diagnosis tab
       onUpdate();
       message.success('يمكنك الآن إضافة التشخيص فقط');
     } catch (error: any) {
