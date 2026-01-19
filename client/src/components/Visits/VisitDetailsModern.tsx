@@ -43,7 +43,8 @@ import {
   ClockCircleOutlined,
   EyeOutlined,
   AppstoreAddOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import type { UploadFile, UploadProps } from 'antd/es/upload';
