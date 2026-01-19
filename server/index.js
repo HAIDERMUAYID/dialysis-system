@@ -152,28 +152,34 @@ app.use((req, res, next) => {
 app.use('/api/', apiLimiter);
 app.use('/api/auth', authLimiter);
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/patients', require('./routes/patients'));
-app.use('/api/visits', require('./routes/visits'));
-app.use('/api/lab', require('./routes/lab'));
-app.use('/api/lab', require('./routes/lab-catalog'));
-app.use('/api/pharmacy', require('./routes/pharmacy'));
-app.use('/api/pharmacy', require('./routes/pharmacy-catalog'));
-app.use('/api/doctor', require('./routes/doctor'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/medical-reports', require('./routes/medical-reports'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/notifications', require('./routes/notifications').router);
-app.use('/api/advanced-reports', require('./routes/advanced-reports'));
-app.use('/api/search', require('./routes/search'));
-app.use('/api/export', require('./routes/export'));
+// Routes - with error handling
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/users', require('./routes/users'));
+  app.use('/api/patients', require('./routes/patients'));
+  app.use('/api/visits', require('./routes/visits'));
+  app.use('/api/lab', require('./routes/lab'));
+  app.use('/api/lab', require('./routes/lab-catalog'));
+  app.use('/api/pharmacy', require('./routes/pharmacy'));
+  app.use('/api/pharmacy', require('./routes/pharmacy-catalog'));
+  app.use('/api/doctor', require('./routes/doctor'));
+  app.use('/api/reports', require('./routes/reports'));
+  app.use('/api/medical-reports', require('./routes/medical-reports'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/notifications', require('./routes/notifications').router);
+  app.use('/api/advanced-reports', require('./routes/advanced-reports'));
+  app.use('/api/search', require('./routes/search'));
+  app.use('/api/export', require('./routes/export'));
 
-// Enterprise-level routes
-app.use('/api/workflows', require('./routes/workflows'));
-app.use('/api/backups', require('./routes/backups'));
-app.use('/api/attachments', require('./routes/attachments'));
+  // Enterprise-level routes
+  app.use('/api/workflows', require('./routes/workflows'));
+  app.use('/api/backups', require('./routes/backups'));
+  app.use('/api/attachments', require('./routes/attachments'));
+} catch (error) {
+  console.error('Error loading routes:', error);
+  logger.error('Error loading routes:', error);
+  throw error;
+}
 // app.use('/api/documents', require('./routes/documents'));
 // app.use('/api/analytics', require('./routes/analytics'));
 // app.use('/api/webhooks', require('./routes/webhooks'));
@@ -222,9 +228,10 @@ app.use((req, res) => {
 });
 
 // Initialize database first, then start server
+console.log('Starting database initialization...');
 db.init()
   .then(() => {
-    console.log('Database initialized successfully');
+    console.log('✅ Database initialized successfully');
     dbInitialized = true;
 
     // Start server only after database is initialized
@@ -249,8 +256,10 @@ db.init()
       app.locals.realtimeService = realtimeService;
 
       logger.info('Real-time service initialized');
+      console.log('✅ Real-time service initialized');
     } catch (error) {
       logger.error('Error initializing real-time service:', error);
+      console.error('⚠️ Real-time service error (non-critical):', error.message);
       logger.warn('Real-time service will not be available');
     }
 
