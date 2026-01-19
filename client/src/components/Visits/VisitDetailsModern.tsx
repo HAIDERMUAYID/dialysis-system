@@ -1752,12 +1752,23 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
           >
             {(() => {
               // Combine saved results with pending results
-              const savedResults = (visit.lab_results || []).map((r: any) => ({ 
-                ...r, 
-                tempKey: null,
-                // Fallback to visit date if created_at is missing
-                created_at: r.created_at || visit.created_at || null
-              }));
+              const savedResults = (visit.lab_results || []).map((r: any) => {
+                // Ensure test_name is populated from catalog if missing
+                let testName = r.test_name;
+                if (!testName && r.test_catalog_id) {
+                  const catalogTest = labTestsCatalog.find(t => t.id === r.test_catalog_id);
+                  if (catalogTest) {
+                    testName = catalogTest.test_name_ar || catalogTest.test_name;
+                  }
+                }
+                return { 
+                  ...r, 
+                  test_name: testName || r.test_name,
+                  tempKey: null,
+                  // Fallback to visit date if created_at is missing
+                  created_at: r.created_at || visit.created_at || null
+                };
+              });
               const allResults = [...savedResults, ...pendingLabResults];
               
               if (allResults.length === 0) {
