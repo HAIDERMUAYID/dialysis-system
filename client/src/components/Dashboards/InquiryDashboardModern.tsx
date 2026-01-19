@@ -24,7 +24,8 @@ import {
   InputNumber,
   Divider,
   Statistic,
-  Popconfirm
+  Popconfirm,
+  Radio
 } from 'antd';
 import {
   UserOutlined,
@@ -268,8 +269,15 @@ const InquiryDashboardModern: React.FC = () => {
 
   const handleVisitSubmit = async (values: any) => {
     try {
-      await axios.post('/api/visits', { patient_id: values.patient_id });
-      message.success('تم إنشاء زيارة جديدة بنجاح - تم إرسالها إلى المختبر والصيدلية والطبيب');
+      const visitData = {
+        patient_id: values.patient_id,
+        visit_type: values.visit_type || 'normal' // Add visit_type to request
+      };
+      await axios.post('/api/visits', visitData);
+      const visitTypeText = visitData.visit_type === 'doctor_directed' 
+        ? 'زيارة من خلال الطبيب' 
+        : 'زيارة عادية';
+      message.success(`تم إنشاء ${visitTypeText} بنجاح`);
       setVisitModalVisible(false);
       setIncompleteVisitInfo(null);
       setActiveTab('visits');
@@ -1087,6 +1095,49 @@ const InquiryDashboardModern: React.FC = () => {
                   hidden
                 >
                   <Input />
+                </Form.Item>
+                
+                <Form.Item
+                  name="visit_type"
+                  label="نوع الزيارة"
+                  initialValue="normal"
+                  rules={[{ required: true, message: 'يرجى اختيار نوع الزيارة' }]}
+                >
+                  <Radio.Group>
+                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                      <Radio value="normal">
+                        <div>
+                          <div style={{ fontWeight: 600 }}>زيارة عادية</div>
+                          <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                            تبدأ عند موظف التحليلات ثم الصيدلية ثم الطبيب
+                          </div>
+                        </div>
+                      </Radio>
+                      <Radio value="doctor_directed">
+                        <div>
+                          <div style={{ fontWeight: 600 }}>زيارة من خلال الطبيب</div>
+                          <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                            تبدأ مباشرة عند الطبيب الذي يختار التحاليل والأدوية المطلوبة
+                          </div>
+                        </div>
+                      </Radio>
+                    </Space>
+                  </Radio.Group>
+                </Form.Item>
+                
+                <Form.Item shouldUpdate={(prevValues, currentValues) => prevValues.visit_type !== currentValues.visit_type}>
+                  {({ getFieldValue }) => {
+                    const visitType = getFieldValue('visit_type');
+                    return visitType === 'normal' ? (
+                      <div style={{ padding: '0.75rem', backgroundColor: '#e3f2fd', borderRadius: '6px', fontSize: '0.9rem', color: '#666' }}>
+                        سيتم إنشاء زيارة جديدة وفتح ملف باسم المريض. بعد إنشاء الزيارة، ستنتقل إلى موظف التحليلات.
+                      </div>
+                    ) : visitType === 'doctor_directed' ? (
+                      <div style={{ padding: '0.75rem', backgroundColor: '#e8f5e9', borderRadius: '6px', fontSize: '0.9rem', color: '#666' }}>
+                        سيتم إنشاء زيارة تبدأ مباشرة عند الطبيب. الطبيب سيختار التحاليل والأدوية المطلوبة من الكتالوجات.
+                      </div>
+                    ) : null;
+                  }}
                 </Form.Item>
 
                 <Form.Item>
