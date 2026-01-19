@@ -176,33 +176,84 @@ router.get('/:id', authenticateToken, async (req, res) => {
     let visit;
     
     if (db.prisma) {
-      visit = await db.prisma.visit.findUnique({
-        where: { id: parseInt(req.params.id) },
-        include: {
-          patient: true,
-          creator: true,
-          labResults: {
-            include: { creator: true, testCatalog: true },
-            orderBy: { createdAt: 'desc' }
-          },
-          prescriptions: {
-            include: { creator: true, drugCatalog: true },
-            orderBy: { createdAt: 'desc' }
-          },
-          diagnoses: {
-            include: { creator: true },
-            orderBy: { createdAt: 'desc' }
-          },
-          statusHistory: {
-            include: { changer: true },
-            orderBy: { createdAt: 'asc' }
-          },
-          attachments: {
-            include: { uploader: true },
-            orderBy: { createdAt: 'desc' }
+      // Try to fetch visit - handle visitType gracefully if column doesn't exist
+      try {
+        visit = await db.prisma.visit.findUnique({
+          where: { id: parseInt(req.params.id) },
+          include: {
+            patient: true,
+            creator: true,
+            labResults: {
+              include: { creator: true, testCatalog: true },
+              orderBy: { createdAt: 'desc' }
+            },
+            prescriptions: {
+              include: { creator: true, drugCatalog: true },
+              orderBy: { createdAt: 'desc' }
+            },
+            diagnoses: {
+              include: { creator: true },
+              orderBy: { createdAt: 'desc' }
+            },
+            statusHistory: {
+              include: { changer: true },
+              orderBy: { createdAt: 'asc' }
+            },
+            attachments: {
+              include: { uploader: true },
+              orderBy: { createdAt: 'desc' }
+            }
           }
+        });
+      } catch (error) {
+        // If visitType column doesn't exist, try raw query
+        if (error.code === 'P2022' && error.meta?.column?.includes('visit_type')) {
+          console.warn('visit_type column not found, using raw query');
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+          const result = await prisma.$queryRaw`
+            SELECT v.*, 
+                   p.name as patient_name, p.national_id, p.phone, p.age, p.gender, p.address,
+                   u.name as created_by_name
+            FROM visits v
+            LEFT JOIN patients p ON v.patient_id = p.id
+            LEFT JOIN users u ON v.created_by = u.id
+            WHERE v.id = ${parseInt(req.params.id)}
+          `;
+          if (result && result.length > 0) {
+            visit = result[0];
+            // Fetch related data separately
+            visit.labResults = await prisma.labResult.findMany({
+              where: { visitId: parseInt(req.params.id) },
+              include: { creator: true, testCatalog: true },
+              orderBy: { createdAt: 'desc' }
+            });
+            visit.prescriptions = await prisma.pharmacyPrescription.findMany({
+              where: { visitId: parseInt(req.params.id) },
+              include: { creator: true, drugCatalog: true },
+              orderBy: { createdAt: 'desc' }
+            });
+            visit.diagnoses = await prisma.diagnosis.findMany({
+              where: { visitId: parseInt(req.params.id) },
+              include: { creator: true },
+              orderBy: { createdAt: 'desc' }
+            });
+            visit.statusHistory = await prisma.visitStatusHistory.findMany({
+              where: { visitId: parseInt(req.params.id) },
+              include: { changer: true },
+              orderBy: { createdAt: 'asc' }
+            });
+            visit.attachments = await prisma.visitAttachment.findMany({
+              where: { visitId: parseInt(req.params.id) },
+              include: { uploader: true },
+              orderBy: { createdAt: 'desc' }
+            });
+            visit.visitType = 'normal'; // Default for old visits
+          }
+        } else {
+          throw error;
         }
-      });
+      }
         }
         throw error;
       });
