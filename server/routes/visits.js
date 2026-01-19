@@ -309,7 +309,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
           file_name: a.fileName,
           file_path: a.filePath,
           file_size: a.fileSize,
-          mime_type: a.mimeType,
+          mime_type: a.fileType, // fileType in Prisma schema
           uploaded_by: a.uploadedBy,
           created_at: a.createdAt,
           uploaded_by_name: a.uploader?.name || null
