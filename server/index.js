@@ -228,13 +228,16 @@ db.init()
     dbInitialized = true;
 
     // Start server only after database is initialized
-    const server = app.listen(PORT, () => {
+    // Use process.env.PORT for Render (required), fallback to 5001 for local
+    const serverPort = process.env.PORT || 5001;
+    const server = app.listen(serverPort, '0.0.0.0', () => {
       logger.info(`🚀 Enterprise Hospital Management System`);
-      logger.info(`Server is running on port ${PORT}`);
+      logger.info(`Server is running on port ${serverPort}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`API available at: http://localhost:${PORT}/api`);
-      logger.info(`Health check: http://localhost:${PORT}/api/health`);
-      logger.info(`API Info: http://localhost:${PORT}/api/info`);
+      logger.info(`API available at: http://0.0.0.0:${serverPort}/api`);
+      logger.info(`Health check: http://0.0.0.0:${serverPort}/api/health`);
+      logger.info(`API Info: http://0.0.0.0:${serverPort}/api/info`);
+      console.log(`✅ Server started successfully on port ${serverPort}`);
     });
 
     // Initialize Real-time Service (WebSocket)
@@ -290,22 +293,14 @@ db.init()
     // Handle server errors (e.g., port already in use)
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        logger.error(`Port ${PORT} is already in use!`);
+        logger.error(`Port ${serverPort} is already in use!`);
         logger.error(`To fix this, you can:`);
-        logger.error(`1. Stop the process: kill -9 $(lsof -ti:${PORT})`);
+        logger.error(`1. Stop the process: kill -9 $(lsof -ti:${serverPort})`);
         logger.error(`2. Or change the port in server/index.js or .env file`);
-        // Wait a bit and try to kill the process automatically
-        setTimeout(() => {
-          const { exec } = require('child_process');
-          exec(`lsof -ti:${PORT} | xargs kill -9 2>/dev/null`, (err) => {
-            if (!err) {
-              logger.info(`Attempted to free port ${PORT}, please restart the server`);
-            }
-          });
-        }, 1000);
         process.exit(1);
       } else {
         logger.error('Server error:', error);
+        console.error('Server error:', error);
         process.exit(1);
       }
     });
@@ -365,6 +360,9 @@ db.init()
   })
   .catch((error) => {
     logger.error('Failed to initialize database:', error);
+    console.error('Failed to initialize database:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack:', error.stack);
     logger.error('Server will not start without database');
     process.exit(1);
   });
