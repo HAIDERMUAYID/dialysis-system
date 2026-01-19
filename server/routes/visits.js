@@ -214,6 +214,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         patient_id: visit.patientId,
         visit_number: visit.visitNumber,
         status: visit.status,
+        visit_type: visit.visitType || 'normal', // Add visit_type field
         lab_completed: visit.labCompleted,
         pharmacy_completed: visit.pharmacyCompleted,
         doctor_completed: visit.doctorCompleted,
