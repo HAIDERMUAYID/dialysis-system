@@ -352,9 +352,20 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
   };
 
   const handleUpdatePrescription = (key: string, field: string, value: any) => {
-    setPendingPrescriptions(prev => prev.map(item => 
-      item.tempKey === key ? { ...item, [field]: value } : item
-    ));
+    // Handle both pending items (tempKey) and saved items (id)
+    if (key.startsWith('pending-') || key.includes('temp')) {
+      setPendingPrescriptions(prev => prev.map(item => 
+        item.tempKey === key ? { ...item, [field]: value } : item
+      ));
+    } else {
+      // Update saved item in visit data
+      if (visit && visit.prescriptions) {
+        const updatedPrescriptions = visit.prescriptions.map((p: any) => 
+          p.id?.toString() === key ? { ...p, [field]: value } : p
+        );
+        setVisit({ ...visit, prescriptions: updatedPrescriptions });
+      }
+    }
   };
 
   const handleDeletePendingPrescription = (key: string) => {
@@ -736,14 +747,16 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
 
 
   // Lab Results columns with inline editing
-  const labColumns: ColumnsType<any> = [
-    {
-      title: 'اسم التحليل',
-      key: 'test_name',
-      width: 200,
-      render: (_, record: any) => {
-        const isPending = record.tempKey;
-        const isEditing = editingLabResultKey === record.tempKey;
+  const labColumns: ColumnsType<any> = useMemo(() => {
+    const baseColumns: ColumnsType<any> = [
+      {
+        title: 'اسم التحليل',
+        key: 'test_name',
+        width: isDoctorDirected && (role === 'lab' || role === 'lab_manager') ? 250 : 200,
+        fixed: 'left' as const,
+        render: (_, record: any) => {
+          const isPending = record.tempKey;
+          const isEditing = editingLabResultKey === record.tempKey;
         
         if (isPending && isEditing) {
           return (
@@ -803,10 +816,39 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     {
       title: 'النتيجة',
       key: 'result',
-      width: 120,
+      width: 150,
       render: (_, record: any) => {
         const isPending = record.tempKey;
         const isEditing = editingLabResultKey === record.tempKey;
+        const isDoctorDirectedLab = isDoctorDirected && (role === 'lab' || role === 'lab_manager');
+        
+        // For doctor-directed visits, lab can edit result directly
+        if (isDoctorDirectedLab && !isPending && record.id) {
+          return (
+            <Input
+              value={record.result || ''}
+              onChange={(e) => {
+                handleUpdateLabResult(record.id?.toString() || '', 'result', e.target.value);
+              }}
+              onBlur={async () => {
+                try {
+                  await axios.put(`/api/lab/${record.id}`, {
+                    result: record.result,
+                    unit: record.unit,
+                    normal_range: record.normal_range,
+                    notes: record.notes
+                  });
+                  message.success('تم حفظ النتيجة');
+                  fetchVisitDetails();
+                } catch (error: any) {
+                  message.error(error.response?.data?.error || 'حدث خطأ أثناء الحفظ');
+                }
+              }}
+              placeholder="أدخل النتيجة"
+              style={{ width: '100%', fontWeight: 500 }}
+            />
+          );
+        }
         
         if (isPending && isEditing) {
           return (
@@ -818,7 +860,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             />
           );
         }
-        return <Text>{record.result || '-'}</Text>;
+        return <Text strong={isDoctorDirectedLab}>{record.result || '-'}</Text>;
       }
     },
     {
@@ -1061,10 +1103,38 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     {
       title: 'الكمية',
       key: 'quantity',
-      width: 100,
+      width: 120,
       render: (_, record: any) => {
         const isPending = record.tempKey;
         const isEditing = editingPrescriptionKey === record.tempKey;
+        const isDoctorDirectedPharmacy = isDoctorDirected && (role === 'pharmacist' || role === 'pharmacy_manager');
+        
+        // For doctor-directed visits, pharmacy can edit quantity directly
+        if (isDoctorDirectedPharmacy && !isPending && record.id) {
+          return (
+            <InputNumber
+              value={record.quantity || 1}
+              onChange={(value) => {
+                handleUpdatePrescription(record.id?.toString() || '', 'quantity', value || 1);
+              }}
+              onBlur={async () => {
+                try {
+                  await axios.put(`/api/pharmacy/${record.id}`, {
+                    quantity: record.quantity,
+                    dosage: record.dosage,
+                    instructions: record.instructions
+                  });
+                  message.success('تم حفظ الكمية');
+                  fetchVisitDetails();
+                } catch (error: any) {
+                  message.error(error.response?.data?.error || 'حدث خطأ أثناء الحفظ');
+                }
+              }}
+              min={1}
+              style={{ width: '100%', fontWeight: 500 }}
+            />
+          );
+        }
         
         if (isPending && isEditing) {
           return (
@@ -1076,7 +1146,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             />
           );
         }
-        return <Text>{record.quantity || '-'}</Text>;
+        return <Text strong={isDoctorDirectedPharmacy}>{record.quantity || '-'}</Text>;
       }
     },
     {
@@ -1719,6 +1789,11 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                 <Tag color={isPharmacyCompleted ? 'green' : 'orange'}>
                   {isPharmacyCompleted ? 'منجز' : 'معلق'}
                 </Tag>
+                {isDoctorDirected && (role === 'pharmacist' || role === 'pharmacy_manager') && (
+                  <Tag color="purple" icon={<InfoCircleOutlined />}>
+                    اضغط على حقل "الكمية" لتعديلها مباشرة
+                  </Tag>
+                )}
               </Space>
             }
             extra={
@@ -1743,9 +1818,9 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                       )}
                     </>
                   )}
-                  {isDoctorDirected && (
-                    <Tag color="purple" icon={<MedicineBoxOutlined />}>
-                      زيارة من خلال الطبيب - تعديل الكميات فقط
+                  {isDoctorDirected && (role === 'pharmacist' || role === 'pharmacy_manager') && (
+                    <Tag color="purple" icon={<InfoCircleOutlined />}>
+                      تعديل الكميات فقط - اضغط على حقل "الكمية" لتعديلها
                     </Tag>
                   )}
                   {(!isDoctorDirected || role !== 'pharmacist') && (
