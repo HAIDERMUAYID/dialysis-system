@@ -421,13 +421,13 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
             <Col span={12}>
               <Space>
                 <ExperimentOutlined style={{ color: '#0284c7' }} />
-                <Text strong>التحاليل المختارة: {selectedLabTests.length}</Text>
+                <Text strong>التحاليل المختارة: {selectedLabTests.size}</Text>
               </Space>
             </Col>
             <Col span={12}>
               <Space>
                 <MedicineBoxOutlined style={{ color: '#0284c7' }} />
-                <Text strong>الأدوية المختارة: {selectedDrugs.length}</Text>
+                <Text strong>الأدوية المختارة: {selectedDrugs.size}</Text>
               </Space>
             </Col>
           </Row>
