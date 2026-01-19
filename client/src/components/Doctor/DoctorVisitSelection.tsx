@@ -155,17 +155,19 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       }
       
       // Fetch panel items if not already loaded
-      let items = panel.items || [];
+      let items = panel.items || panel.tests || [];
       if (!items || items.length === 0) {
         try {
           const panelDetails = await axios.get(`/api/lab/panels/${panelId}`);
-          items = panelDetails.data?.items || panelDetails.data?.tests || [];
+          // API returns 'tests' not 'items'
+          items = panelDetails.data?.tests || panelDetails.data?.items || [];
           // Update panel in state with items
           setLabPanels(prev => prev.map(p => 
-            p.id === panelId ? { ...p, items } : p
+            p.id === panelId ? { ...p, items: items, tests: items } : p
           ));
         } catch (error) {
           message.error('فشل تحميل عناصر المجموعة');
+          console.error('Error fetching panel details:', error);
           return;
         }
       }
@@ -173,8 +175,10 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       if (items && Array.isArray(items) && items.length > 0) {
         const newMap = new Map(selectedLabTests);
         items.forEach((item: any) => {
-          // Handle both formats: item.test_catalog_id or item.testCatalogId
-          const testId = item.test_catalog_id || item.testCatalogId || item.test_catalog?.id || item.testCatalog?.id;
+          // Handle both formats: item.test_catalog_id or item.testCatalogId or from nested testCatalog
+          const testId = item.test_catalog_id || item.testCatalogId || 
+                        item.test_catalog?.id || item.testCatalog?.id ||
+                        item.testCatalogId || item.test_catalog_id;
           if (testId && !newMap.has(testId)) {
             newMap.set(testId, { id: testId, notes: '' });
           }
@@ -199,17 +203,19 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       }
       
       // Fetch set items if not already loaded
-      let items = set.items || [];
+      let items = set.items || set.drugs || [];
       if (!items || items.length === 0) {
         try {
           const setDetails = await axios.get(`/api/pharmacy/sets/${setId}`);
-          items = setDetails.data?.items || setDetails.data?.drugs || [];
+          // API returns 'drugs' not 'items'
+          items = setDetails.data?.drugs || setDetails.data?.items || [];
           // Update set in state with items
           setPrescriptionSets(prev => prev.map(s => 
-            s.id === setId ? { ...s, items } : s
+            s.id === setId ? { ...s, items: items, drugs: items } : s
           ));
         } catch (error) {
           message.error('فشل تحميل عناصر المجموعة');
+          console.error('Error fetching set details:', error);
           return;
         }
       }
@@ -217,8 +223,10 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       if (items && Array.isArray(items) && items.length > 0) {
         const newMap = new Map(selectedDrugs);
         items.forEach((item: any) => {
-          // Handle both formats: item.drug_catalog_id or item.drugCatalogId
-          const drugId = item.drug_catalog_id || item.drugCatalogId || item.drug_catalog?.id || item.drugCatalog?.id;
+          // Handle both formats: item.drug_catalog_id or item.drugCatalogId or from nested drugCatalog
+          const drugId = item.drug_catalog_id || item.drugCatalogId || 
+                        item.drug_catalog?.id || item.drugCatalog?.id ||
+                        item.drugCatalogId || item.drug_catalog_id;
           if (drugId && !newMap.has(drugId)) {
             newMap.set(drugId, { id: drugId, notes: '' });
           }
