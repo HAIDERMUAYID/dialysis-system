@@ -2016,21 +2016,6 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     }
   };
 
-  const handleDoctorSelectionSave = async (labTestIds: number[], drugIds: number[]) => {
-    try {
-      await axios.post(`/api/doctor/select-items/${visitId}`, {
-        lab_test_ids: labTestIds,
-        drug_ids: drugIds
-      });
-      await fetchVisitDetails();
-      setShowDoctorSelection(false);
-      onUpdate();
-      message.success('تم حفظ الاختيارات بنجاح');
-    } catch (error: any) {
-      throw error; // Let DoctorVisitSelection handle the error
-    }
-  };
-
   return (
     <>
       {showDoctorSelection && visit && (
