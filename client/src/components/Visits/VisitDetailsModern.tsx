@@ -813,7 +813,14 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             </Select>
           );
         }
-        return <Text>{record.test_name || '-'}</Text>;
+        // For doctor-directed visits, show test name from catalog if available
+        const displayName = record.test_name || 
+                           record.testCatalog?.testName || 
+                           record.testCatalog?.testNameAr ||
+                           (record.test_catalog_id && labTestsCatalog.find(t => t.id === record.test_catalog_id)?.test_name_ar) ||
+                           (record.test_catalog_id && labTestsCatalog.find(t => t.id === record.test_catalog_id)?.test_name) ||
+                           '-';
+        return <Text strong={isDoctorDirected && (role === 'lab' || role === 'lab_manager')}>{displayName}</Text>;
       }
     },
     {
