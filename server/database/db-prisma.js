@@ -101,6 +101,26 @@ const init = async () => {
     await prisma.$connect();
     console.log('Connected to database via Prisma');
     
+    // Check and add visit_type column if it doesn't exist
+    try {
+      const columnExists = await prisma.$queryRaw`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'visits' AND column_name = 'visit_type'
+      `;
+      
+      if (!columnExists || columnExists.length === 0) {
+        console.log('Adding visit_type column to visits table...');
+        await prisma.$executeRaw`
+          ALTER TABLE "visits" ADD COLUMN IF NOT EXISTS "visit_type" VARCHAR(50) DEFAULT 'normal'
+        `;
+        console.log('✅ visit_type column added successfully');
+      }
+    } catch (migrationError) {
+      console.warn('Could not add visit_type column automatically:', migrationError.message);
+      console.warn('This is non-critical - the column will be added by migration');
+    }
+    
     // Check if migrations need to be run (only in production)
     if (process.env.NODE_ENV === 'production') {
       try {
