@@ -206,7 +206,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       render: (_, record) => (
         <Space>
           <Checkbox
-            checked={selectedLabTests.includes(record.id)}
+            checked={selectedLabTests.has(record.id)}
             onChange={() => handleLabTestToggle(record.id)}
           />
           <div>
