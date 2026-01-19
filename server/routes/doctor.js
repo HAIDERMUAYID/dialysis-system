@@ -252,16 +252,17 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         );
       } else {
         const { allQuery, runQuery } = require('../database/db');
-        const placeholders = lab_test_ids.map(() => '?').join(',');
-        const labTests = await allQuery(
+        const testIds = labTests.map(t => typeof t === 'object' ? t.id : parseInt(t));
+        const placeholders = testIds.map(() => '?').join(',');
+        const catalogTests = await allQuery(
           `SELECT * FROM lab_tests_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
-          lab_test_ids.map((id) => parseInt(id))
+          testIds
         );
 
         for (const testItem of labTests) {
           const testId = typeof testItem === 'object' ? testItem.id : parseInt(testItem);
           const notes = typeof testItem === 'object' ? (testItem.notes || '') : '';
-          const test = labTests.find(t => t.id === testId);
+          const test = catalogTests.find(t => t.id === testId);
           if (!test) continue;
           
           await runQuery(
