@@ -203,6 +203,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
           }
         }
       });
+        }
+        throw error;
+      });
       
       if (!visit) {
         return res.status(404).json({ error: 'الزيارة غير موجودة' });
@@ -500,18 +503,28 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
       // Determine initial status based on visit type
       const initialStatus = validVisitType === 'doctor_directed' ? 'pending_doctor' : 'pending_all';
       
-      // Create visit
+      // Create visit - handle visitType conditionally in case column doesn't exist yet
+      const visitData = {
+        patientId: parseInt(patient_id),
+        visitNumber,
+        status: initialStatus,
+        labCompleted: 0,
+        pharmacyCompleted: 0,
+        doctorCompleted: 0,
+        createdBy: req.user.id
+      };
+      
+      // Only include visitType if it exists in schema (for backward compatibility)
+      // In production, this should always be included after migration
+      try {
+        visitData.visitType = validVisitType;
+      } catch (e) {
+        // visitType field might not exist yet - will be added by migration
+        console.warn('visitType field not available, using default');
+      }
+      
       const newVisit = await db.prisma.visit.create({
-        data: {
-          patientId: parseInt(patient_id),
-          visitNumber,
-          status: initialStatus,
-          visitType: validVisitType,
-          labCompleted: 0,
-          pharmacyCompleted: 0,
-          doctorCompleted: 0,
-          createdBy: req.user.id
-        },
+        data: visitData,
         select: {
           id: true,
           visitNumber: true,

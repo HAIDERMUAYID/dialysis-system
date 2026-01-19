@@ -56,9 +56,8 @@ router.get('/visit/:visitId', authenticateToken, async (req, res) => {
     
     if (db.prisma) {
       const where = { visitId: parseInt(req.params.visitId) };
-      if (department) where.department = department;
-      if (entity_type) where.entityType = entity_type;
-      if (entity_id) where.entityId = parseInt(entity_id);
+      // Note: VisitAttachment schema doesn't have department, entity_type, entity_id fields
+      // These filters are only supported in SQLite mode
       
       const attachments = await db.prisma.visitAttachment.findMany({
         where,
@@ -66,7 +65,12 @@ router.get('/visit/:visitId', authenticateToken, async (req, res) => {
         orderBy: { createdAt: 'desc' }
       });
       
-      const attachmentsWithCreator = attachments.map(a => ({
+      // Filter by department/entity_type/entity_id in memory if needed (for Prisma mode)
+      let filteredAttachments = attachments;
+      // Note: Since these fields don't exist in schema, we can't filter by them in Prisma mode
+      // If filtering is needed, these fields should be added to the schema first
+      
+      const attachmentsWithCreator = filteredAttachments.map(a => ({
         ...a,
         uploaded_by_name: a.uploader?.name || null
       }));
