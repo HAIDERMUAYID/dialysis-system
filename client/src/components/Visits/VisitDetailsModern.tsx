@@ -1033,7 +1033,10 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
         );
       }
     }
-  ];
+    ];
+    
+    return baseColumns;
+  }, [isDoctorDirected, role, editingLabResultKey, labTestsCatalog, loadingCatalogs, visit, handleUpdateLabResult, fetchVisitDetails, onUpdate]);
 
   // Prescriptions columns with inline editing
   const prescriptionColumns: ColumnsType<any> = [
