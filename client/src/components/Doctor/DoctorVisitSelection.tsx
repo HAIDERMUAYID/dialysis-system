@@ -301,9 +301,9 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
           icon={<CheckOutlined />}
           loading={saving}
           onClick={handleSave}
-          disabled={selectedLabTests.length === 0 && selectedDrugs.length === 0}
+          disabled={selectedLabTests.size === 0 && selectedDrugs.size === 0}
         >
-          حفظ الاختيارات ({selectedLabTests.length} تحليل، {selectedDrugs.length} دواء)
+          حفظ الاختيارات ({selectedLabTests.size} تحليل، {selectedDrugs.size} دواء)
         </Button>
       ]}
     >
@@ -313,7 +313,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
             tab={
               <Space>
                 <ExperimentOutlined />
-                <span>التحاليل ({selectedLabTests.length})</span>
+                <span>التحاليل ({selectedLabTests.size})</span>
               </Space>
             }
             key="lab"
@@ -365,7 +365,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
             tab={
               <Space>
                 <MedicineBoxOutlined />
-                <span>الأدوية ({selectedDrugs.length})</span>
+                <span>الأدوية ({selectedDrugs.size})</span>
               </Space>
             }
             key="drugs"
