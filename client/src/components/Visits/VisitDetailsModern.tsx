@@ -162,6 +162,22 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     }
   }, [visit]);
 
+  // Auto-show doctor selection modal if needed (must be before any early returns)
+  useEffect(() => {
+    if (visit && visit.visit_type === 'doctor_directed' && role === 'doctor') {
+      const isDoctorDirected = visit.visit_type === 'doctor_directed';
+      const needsDoctorSelection = isDoctorDirected && 
+                                   role === 'doctor' && 
+                                   visit.status === 'pending_doctor' &&
+                                   (!visit.lab_results || visit.lab_results.length === 0) &&
+                                   (!visit.prescriptions || visit.prescriptions.length === 0);
+      
+      if (needsDoctorSelection && !showDoctorSelection) {
+        setShowDoctorSelection(true);
+      }
+    }
+  }, [visit, role, showDoctorSelection]);
+
   const fetchVisitDetails = async (showLoading = true) => {
     try {
       if (showLoading) {
@@ -1986,20 +2002,6 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       </Modal>
     );
   }
-
-  // Check if this is a doctor-directed visit that needs selection
-  const needsDoctorSelection = isDoctorDirected && 
-                               role === 'doctor' && 
-                               visit?.status === 'pending_doctor' &&
-                               (!visit?.lab_results || visit.lab_results.length === 0) &&
-                               (!visit?.prescriptions || visit.prescriptions.length === 0);
-
-  // Auto-show doctor selection modal if needed
-  useEffect(() => {
-    if (needsDoctorSelection && !showDoctorSelection && visit) {
-      setShowDoctorSelection(true);
-    }
-  }, [needsDoctorSelection, showDoctorSelection, visit]);
 
   const handleDoctorSelectionSave = async (labTestIds: number[], drugIds: number[]) => {
     try {
