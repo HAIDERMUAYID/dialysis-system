@@ -110,6 +110,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
   
   // Doctor visit selection modal
   const [showDoctorSelection, setShowDoctorSelection] = useState(false);
+  const [hasShownSelection, setHasShownSelection] = useState(false);
 
   // Hide header when modal is open
   useEffect(() => {
@@ -165,7 +166,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
 
   // Auto-show doctor selection modal if needed (must be before any early returns)
   useEffect(() => {
-    if (visit && visit.visit_type === 'doctor_directed' && role === 'doctor') {
+    if (visit && visit.visit_type === 'doctor_directed' && role === 'doctor' && !hasShownSelection) {
       const isDoctorDirected = visit.visit_type === 'doctor_directed';
       const needsDoctorSelection = isDoctorDirected && 
                                    role === 'doctor' && 
@@ -175,9 +176,10 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       
       if (needsDoctorSelection && !showDoctorSelection) {
         setShowDoctorSelection(true);
+        setHasShownSelection(true);
       }
     }
-  }, [visit, role, showDoctorSelection]);
+  }, [visit, role, showDoctorSelection, hasShownSelection]);
 
   const fetchVisitDetails = async (showLoading = true) => {
     try {
@@ -2112,6 +2114,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       });
       await fetchVisitDetails();
       setShowDoctorSelection(false);
+      setHasShownSelection(true); // Mark as shown so it doesn't reopen
       onUpdate();
       message.success('يمكنك الآن إضافة التشخيص فقط');
     } catch (error: any) {
