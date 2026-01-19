@@ -176,6 +176,199 @@ router.delete('/diagnosis/:id', authenticateToken, requireRole('doctor'), async 
   }
 });
 
+// Select lab tests and drugs for doctor-directed visit
+router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), async (req, res) => {
+  try {
+    const visitId = parseInt(req.params.visitId);
+    const { lab_test_ids, drug_ids } = req.body;
+
+    // Verify visit exists and is doctor-directed
+    let visit;
+    if (db.prisma) {
+      visit = await db.prisma.visit.findUnique({
+        where: { id: visitId },
+        select: { 
+          id: true, 
+          visitType: true,
+          status: true,
+          visitNumber: true
+        }
+      });
+    } else {
+      const { getQuery } = require('../database/db');
+      visit = await getQuery('SELECT id, visit_type, status, visit_number FROM visits WHERE id = ?', [visitId]);
+    }
+
+    if (!visit) {
+      return res.status(404).json({ error: 'الزيارة غير موجودة' });
+    }
+
+    const visitType = visit.visitType || visit.visit_type;
+    if (visitType !== 'doctor_directed') {
+      return res.status(400).json({ error: 'هذه الزيارة ليست من نوع "زيارة من خلال الطبيب"' });
+    }
+
+    // Create lab results from catalog if lab_test_ids provided
+    if (lab_test_ids && Array.isArray(lab_test_ids) && lab_test_ids.length > 0) {
+      if (db.prisma) {
+        // Get lab tests from catalog
+        const labTests = await db.prisma.labTestCatalog.findMany({
+          where: { 
+            id: { in: lab_test_ids.map((id: any) => parseInt(id)) },
+            isActive: 1
+          }
+        });
+
+        // Create lab results
+        await Promise.all(
+          labTests.map(test =>
+            db.prisma.labResult.create({
+              data: {
+                visitId: visitId,
+                testCatalogId: test.id,
+                testName: test.testName,
+                unit: test.unit || null,
+                normalRange: test.normalRangeText || null,
+                createdBy: req.user.id
+              }
+            })
+          )
+        );
+      } else {
+        const { allQuery, runQuery } = require('../database/db');
+        const placeholders = lab_test_ids.map(() => '?').join(',');
+        const labTests = await allQuery(
+          `SELECT * FROM lab_tests_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
+          lab_test_ids.map((id: any) => parseInt(id))
+        );
+
+        for (const test of labTests) {
+          await runQuery(
+            `INSERT INTO lab_results (visit_id, test_catalog_id, test_name, unit, normal_range, created_by) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [visitId, test.id, test.test_name, test.unit || null, test.normal_range_text || null, req.user.id]
+          );
+        }
+      }
+    }
+
+    // Create prescriptions from catalog if drug_ids provided
+    if (drug_ids && Array.isArray(drug_ids) && drug_ids.length > 0) {
+      if (db.prisma) {
+        // Get drugs from catalog
+        const drugs = await db.prisma.drugCatalog.findMany({
+          where: { 
+            id: { in: drug_ids.map((id: any) => parseInt(id)) },
+            isActive: 1
+          }
+        });
+
+        // Create prescriptions
+        await Promise.all(
+          drugs.map(drug =>
+            db.prisma.pharmacyPrescription.create({
+              data: {
+                visitId: visitId,
+                drugCatalogId: drug.id,
+                medicationName: drug.drugName,
+                createdBy: req.user.id
+              }
+            })
+          )
+        );
+      } else {
+        const { allQuery, runQuery } = require('../database/db');
+        const placeholders = drug_ids.map(() => '?').join(',');
+        const drugs = await allQuery(
+          `SELECT * FROM drugs_catalog WHERE id IN (${placeholders}) AND is_active = 1`,
+          drug_ids.map((id: any) => parseInt(id))
+        );
+
+        for (const drug of drugs) {
+          await runQuery(
+            `INSERT INTO pharmacy_prescriptions (visit_id, drug_catalog_id, medication_name, created_by) 
+             VALUES (?, ?, ?, ?)`,
+            [visitId, drug.id, drug.drug_name, req.user.id]
+          );
+        }
+      }
+    }
+
+    // Update visit status based on selections
+    let newStatus = 'pending_doctor';
+    if (lab_test_ids && lab_test_ids.length > 0 && drug_ids && drug_ids.length > 0) {
+      newStatus = 'pending_all';
+    } else if (lab_test_ids && lab_test_ids.length > 0) {
+      newStatus = 'pending_lab';
+    } else if (drug_ids && drug_ids.length > 0) {
+      newStatus = 'pending_pharmacy';
+    }
+
+    if (db.prisma) {
+      await db.prisma.visit.update({
+        where: { id: visitId },
+        data: { status: newStatus }
+      });
+
+      // Create status history
+      await db.prisma.visitStatusHistory.create({
+        data: {
+          visitId: visitId,
+          status: newStatus,
+          changedBy: req.user.id,
+          notes: `الطبيب اختار ${lab_test_ids?.length || 0} تحليل و ${drug_ids?.length || 0} دواء`
+        }
+      });
+    } else {
+      const { runQuery } = require('../database/db');
+      await runQuery('UPDATE visits SET status = ? WHERE id = ?', [newStatus, visitId]);
+      await runQuery(
+        `INSERT INTO visit_status_history (visit_id, status, changed_by, notes) 
+         VALUES (?, ?, ?, ?)`,
+        [visitId, newStatus, req.user.id, `الطبيب اختار ${lab_test_ids?.length || 0} تحليل و ${drug_ids?.length || 0} دواء`]
+      );
+    }
+
+    // Create notifications
+    const { createNotification } = require('./notifications');
+    const visitNumber = visit.visitNumber || visit.visit_number;
+    
+    if (lab_test_ids && lab_test_ids.length > 0) {
+      createNotification(
+        req.user.id,
+        null,
+        'lab',
+        visitId,
+        'new_visit',
+        'زيارة من خلال الطبيب - تحاليل مطلوبة',
+        `تم اختيار ${lab_test_ids.length} تحليل للزيارة ${visitNumber}. يرجى إدخال النتائج`
+      ).catch(() => null);
+    }
+
+    if (drug_ids && drug_ids.length > 0) {
+      createNotification(
+        req.user.id,
+        null,
+        'pharmacist',
+        visitId,
+        'new_visit',
+        'زيارة من خلال الطبيب - أدوية مطلوبة',
+        `تم اختيار ${drug_ids.length} دواء للزيارة ${visitNumber}. يرجى صرف العلاج`
+      ).catch(() => null);
+    }
+
+    res.json({ 
+      message: 'تم اختيار التحاليل والأدوية بنجاح',
+      lab_tests_count: lab_test_ids?.length || 0,
+      drugs_count: drug_ids?.length || 0,
+      new_status: newStatus
+    });
+  } catch (error) {
+    console.error('Error selecting items:', error);
+    res.status(500).json({ error: 'حدث خطأ أثناء اختيار التحاليل والأدوية' });
+  }
+});
+
 // Mark doctor work as completed (can be toggled) - OPTIMIZED
 router.post('/complete/:visitId', authenticateToken, requireRole('doctor'), async (req, res) => {
   try {

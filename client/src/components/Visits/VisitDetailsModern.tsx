@@ -53,6 +53,7 @@ import { useAuth } from '../../context/AuthContext';
 import dayjs from 'dayjs';
 import { formatBaghdadDateTimeArabic } from '../../utils/dayjs-config';
 import { EnhancedTooltip } from '../Common/EnhancedTooltip';
+import DoctorVisitSelection from '../Doctor/DoctorVisitSelection';
 import './VisitDetailsModern.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -105,6 +106,9 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
   const [showSetModal, setShowSetModal] = useState(false);
   const [selectedPanelTests, setSelectedPanelTests] = useState<any[]>([]);
   const [selectedSetDrugs, setSelectedSetDrugs] = useState<any[]>([]);
+  
+  // Doctor visit selection modal
+  const [showDoctorSelection, setShowDoctorSelection] = useState(false);
 
   // Hide header when modal is open
   useEffect(() => {
@@ -258,8 +262,17 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     }
   };
 
+  // Check if this is a doctor-directed visit
+  const isDoctorDirected = visit?.visit_type === 'doctor_directed';
+  
   // Inline editing handlers for cashier-style list (Lab Results)
   const handleAddLabResult = () => {
+    // For doctor-directed visits, lab can only edit existing results, not add new ones
+    if (isDoctorDirected && role === 'lab') {
+      message.warning('في الزيارات من خلال الطبيب، يمكنك فقط تعديل النتائج المختارة من قبل الطبيب');
+      return;
+    }
+    
     const newKey = `pending-${Date.now()}-${Math.random()}`;
     const newItem: Partial<LabResult> & { tempKey: string } = {
       tempKey: newKey,
@@ -296,6 +309,12 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
 
   // Inline editing handlers for cashier-style list (Prescriptions)
   const handleAddPrescription = () => {
+    // For doctor-directed visits, pharmacy can only edit existing prescriptions, not add new ones
+    if (isDoctorDirected && role === 'pharmacist') {
+      message.warning('في الزيارات من خلال الطبيب، يمكنك فقط تعديل الأدوية المختارة من قبل الطبيب');
+      return;
+    }
+    
     const newKey = `pending-${Date.now()}-${Math.random()}`;
     const newItem: Partial<Prescription> & { tempKey: string } = {
       tempKey: newKey,
@@ -1598,13 +1617,20 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             extra={
               (role === 'lab' || role === 'lab_manager') && !isLabCompleted && (
                 <Space>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAddLabResult}
-                  >
-                    إضافة تحليل
-                  </Button>
+                  {!isDoctorDirected && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddLabResult}
+                    >
+                      إضافة تحليل
+                    </Button>
+                  )}
+                  {isDoctorDirected && (
+                    <Tag color="purple" icon={<MedicineBoxOutlined />}>
+                      زيارة من خلال الطبيب - تعديل النتائج فقط
+                    </Tag>
+                  )}
                   {labPanels.length > 0 && (
                     <Button
                       icon={<AppstoreAddOutlined />}
@@ -1680,20 +1706,29 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             extra={
               (role === 'pharmacist' || role === 'pharmacy_manager') && !isPharmacyCompleted && (
                 <Space>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAddPrescription}
-                  >
-                    إضافة دواء
-                  </Button>
-                  {prescriptionSets.length > 0 && (
-                    <Button
-                      icon={<AppstoreAddOutlined />}
-                      onClick={() => setShowSetModal(true)}
-                    >
-                      إضافة مجموعة
-                    </Button>
+                  {!isDoctorDirected && (
+                    <>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAddPrescription}
+                      >
+                        إضافة دواء
+                      </Button>
+                      {prescriptionSets.length > 0 && (
+                        <Button
+                          icon={<AppstoreAddOutlined />}
+                          onClick={() => setShowSetModal(true)}
+                        >
+                          إضافة مجموعة
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {isDoctorDirected && (
+                    <Tag color="purple" icon={<MedicineBoxOutlined />}>
+                      زيارة من خلال الطبيب - تعديل الكميات فقط
+                    </Tag>
                   )}
                   <Button
                     icon={<UploadOutlined />}
@@ -1952,8 +1987,61 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
     );
   }
 
+  // Check if this is a doctor-directed visit that needs selection
+  const isDoctorDirected = visit?.visit_type === 'doctor_directed';
+  const needsDoctorSelection = isDoctorDirected && 
+                               role === 'doctor' && 
+                               visit?.status === 'pending_doctor' &&
+                               (!visit?.lab_results || visit.lab_results.length === 0) &&
+                               (!visit?.prescriptions || visit.prescriptions.length === 0);
+
+  // Auto-show doctor selection modal if needed
+  useEffect(() => {
+    if (needsDoctorSelection && !showDoctorSelection && visit) {
+      setShowDoctorSelection(true);
+    }
+  }, [needsDoctorSelection, showDoctorSelection, visit]);
+
+  const handleDoctorSelectionSave = async (labTestIds: number[], drugIds: number[]) => {
+    try {
+      await axios.post(`/api/doctor/select-items/${visitId}`, {
+        lab_test_ids: labTestIds,
+        drug_ids: drugIds
+      });
+      await fetchVisitDetails();
+      setShowDoctorSelection(false);
+      onUpdate();
+      message.success('تم حفظ الاختيارات بنجاح');
+    } catch (error: any) {
+      throw error; // Let DoctorVisitSelection handle the error
+    }
+  };
+
+  const handleDoctorSelectionSave = async (labTestIds: number[], drugIds: number[]) => {
+    try {
+      await axios.post(`/api/doctor/select-items/${visitId}`, {
+        lab_test_ids: labTestIds,
+        drug_ids: drugIds
+      });
+      await fetchVisitDetails();
+      setShowDoctorSelection(false);
+      onUpdate();
+      message.success('تم حفظ الاختيارات بنجاح');
+    } catch (error: any) {
+      throw error; // Let DoctorVisitSelection handle the error
+    }
+  };
+
   return (
     <>
+      {showDoctorSelection && visit && (
+        <DoctorVisitSelection
+          visitId={visitId}
+          visitNumber={visit.visit_number}
+          onSave={handleDoctorSelectionSave}
+          onCancel={() => setShowDoctorSelection(false)}
+        />
+      )}
       <Modal
         open={true}
         onCancel={onClose}

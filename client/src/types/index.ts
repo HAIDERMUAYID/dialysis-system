@@ -40,6 +40,7 @@ export interface Visit {
   age?: number;
   gender?: string;
   status: string;
+  visit_type?: string; // 'normal' or 'doctor_directed'
   lab_completed?: number; // 0 or 1
   pharmacy_completed?: number; // 0 or 1
   doctor_completed?: number; // 0 or 1
@@ -98,6 +99,7 @@ export interface StatusHistory {
 }
 
 export interface VisitDetails extends Visit {
+  visit_type?: string; // 'normal' or 'doctor_directed'
   phone?: string;
   address?: string;
   lab_results: LabResult[];

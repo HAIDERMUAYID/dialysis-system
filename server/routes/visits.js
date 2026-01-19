@@ -402,11 +402,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new visit
 router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => {
   try {
-    const { patient_id } = req.body;
+    const { patient_id, visit_type } = req.body;
 
     if (!patient_id) {
       return res.status(400).json({ error: 'رقم المريض مطلوب' });
     }
+
+    // Validate visit_type (optional, defaults to 'normal')
+    const validVisitType = visit_type === 'doctor_directed' ? 'doctor_directed' : 'normal';
 
     // Validate patient and check for incomplete visits
     let patient, existingIncompleteVisit;
@@ -493,12 +496,16 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
 
     let result;
     if (db.prisma) {
+      // Determine initial status based on visit type
+      const initialStatus = validVisitType === 'doctor_directed' ? 'pending_doctor' : 'pending_all';
+      
       // Create visit
       const newVisit = await db.prisma.visit.create({
         data: {
           patientId: parseInt(patient_id),
           visitNumber,
-          status: 'pending_all',
+          status: initialStatus,
+          visitType: validVisitType,
           labCompleted: 0,
           pharmacyCompleted: 0,
           doctorCompleted: 0,
@@ -514,12 +521,16 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
       });
       
       // Create status history in background (non-blocking)
+      const statusNote = validVisitType === 'doctor_directed' 
+        ? 'تم إنشاء زيارة من خلال الطبيب - تبدأ مباشرة عند الطبيب'
+        : 'تم إنشاء زيارة جديدة - متاحة لجميع الأقسام';
+      
       db.prisma.visitStatusHistory.create({
         data: {
           visitId: newVisit.id,
-          status: 'pending_all',
+          status: initialStatus,
           changedBy: req.user.id,
-          notes: 'تم إنشاء زيارة جديدة - متاحة لجميع الأقسام'
+          notes: statusNote
         }
       }).catch(() => null); // Don't fail if this fails
       
@@ -527,52 +538,72 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
     } else {
       // Fallback to SQL
       const { runQuery } = require('../database/db');
+      const initialStatus = validVisitType === 'doctor_directed' ? 'pending_doctor' : 'pending_all';
+      const statusNote = validVisitType === 'doctor_directed' 
+        ? 'تم إنشاء زيارة من خلال الطبيب - تبدأ مباشرة عند الطبيب'
+        : 'تم إنشاء زيارة جديدة - متاحة لجميع الأقسام';
+      
       result = await runQuery(
-        `INSERT INTO visits (patient_id, visit_number, status, lab_completed, pharmacy_completed, doctor_completed, created_by) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [patient_id, visitNumber, 'pending_all', 0, 0, 0, req.user.id]
+        `INSERT INTO visits (patient_id, visit_number, status, visit_type, lab_completed, pharmacy_completed, doctor_completed, created_by) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [patient_id, visitNumber, initialStatus, validVisitType, 0, 0, 0, req.user.id]
       );
 
       await runQuery(
         `INSERT INTO visit_status_history (visit_id, status, changed_by, notes) 
          VALUES (?, ?, ?, ?)`,
-        [result.lastID, 'pending_all', req.user.id, 'تم إنشاء زيارة جديدة - متاحة لجميع الأقسام']
+        [result.lastID, initialStatus, req.user.id, statusNote]
       );
     }
 
-    // Create notifications for ALL departments simultaneously (lab, pharmacy, doctor) - in parallel
-    // Run notifications in background (non-blocking) to improve response time
-    Promise.all([
-      createNotification(
-        req.user.id,
-        null,
-        'lab',
-        result.lastID,
-        'new_visit',
-        'زيارة جديدة - متاحة للتحاليل',
-        `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بإجراء التحاليل الآن`
-      ),
-      createNotification(
-        req.user.id,
-        null,
-        'pharmacist',
-        result.lastID,
-        'new_visit',
-        'زيارة جديدة - متاحة للصيدلية',
-        `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بصرف العلاج الآن`
-      ),
+    // Create notifications based on visit type
+    if (validVisitType === 'doctor_directed') {
+      // For doctor-directed visits, only notify doctor
       createNotification(
         req.user.id,
         null,
         'doctor',
         result.lastID,
         'new_visit',
-        'زيارة جديدة - متاحة للطبيب',
-        `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بالتشخيص الآن`
-      )
-    ]).catch(error => {
-      console.error('Error creating notifications (non-critical):', error);
-    });
+        'زيارة من خلال الطبيب',
+        `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك اختيار التحاليل والأدوية المطلوبة`
+      ).catch(error => {
+        console.error('Error creating notification (non-critical):', error);
+      });
+    } else {
+      // For normal visits, notify all departments
+      Promise.all([
+        createNotification(
+          req.user.id,
+          null,
+          'lab',
+          result.lastID,
+          'new_visit',
+          'زيارة جديدة - متاحة للتحاليل',
+          `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بإجراء التحاليل الآن`
+        ),
+        createNotification(
+          req.user.id,
+          null,
+          'pharmacist',
+          result.lastID,
+          'new_visit',
+          'زيارة جديدة - متاحة للصيدلية',
+          `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بصرف العلاج الآن`
+        ),
+        createNotification(
+          req.user.id,
+          null,
+          'doctor',
+          result.lastID,
+          'new_visit',
+          'زيارة جديدة - متاحة للطبيب',
+          `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بالتشخيص الآن`
+        )
+      ]).catch(error => {
+        console.error('Error creating notifications (non-critical):', error);
+      });
+    }
 
       // Broadcast real-time update if realtime service is available (non-blocking)
       if (req.app.locals?.realtimeService) {
@@ -584,15 +615,24 @@ router.post('/', authenticateToken, requireRole('inquiry'), async (req, res) => 
               status: 'pending_all'
             });
             
-            // Notify all roles in real-time simultaneously
-            ['lab', 'pharmacist', 'doctor'].forEach(role => {
-              req.app.locals.realtimeService.sendNotificationToRole(role, {
+            // Notify roles based on visit type
+            if (validVisitType === 'doctor_directed') {
+              req.app.locals.realtimeService.sendNotificationToRole('doctor', {
                 visit_id: result.lastID,
-                title: 'زيارة جديدة - متاحة للعمل',
-                message: `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بالعمل الآن`,
+                title: 'زيارة من خلال الطبيب',
+                message: `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك اختيار التحاليل والأدوية المطلوبة`,
                 type: 'new_visit'
               });
-            });
+            } else {
+              ['lab', 'pharmacist', 'doctor'].forEach(role => {
+                req.app.locals.realtimeService.sendNotificationToRole(role, {
+                  visit_id: result.lastID,
+                  title: 'زيارة جديدة - متاحة للعمل',
+                  message: `تم إنشاء زيارة جديدة برقم ${visitNumber}. يمكنك البدء بالعمل الآن`,
+                  type: 'new_visit'
+                });
+              });
+            }
           } catch (error) {
             console.error('Error broadcasting real-time update (non-critical):', error);
           }

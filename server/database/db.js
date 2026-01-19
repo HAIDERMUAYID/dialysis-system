@@ -201,6 +201,10 @@ const createTables = async () => {
       await runQuery('ALTER TABLE visits ADD COLUMN doctor_completed INTEGER DEFAULT 0');
       console.log('Added doctor_completed column to visits table');
     }
+    if (!columnNames.includes('visit_type')) {
+      await runQuery("ALTER TABLE visits ADD COLUMN visit_type TEXT DEFAULT 'normal'");
+      console.log('Added visit_type column to visits table');
+    }
     
     // Migrate old status values to new system (only if status is old format)
     await runQuery(`UPDATE visits SET status = 'pending_all', lab_completed = 0, pharmacy_completed = 0, doctor_completed = 0 

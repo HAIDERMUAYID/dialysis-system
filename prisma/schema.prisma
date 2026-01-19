@@ -132,6 +132,7 @@ model Visit {
   patientId           Int       @map("patient_id")
   visitNumber         String    @unique @map("visit_number")
   status              String    @default("pending_inquiry")
+  visitType           String?   @default("normal") @map("visit_type")
   labCompleted        Int       @default(0) @map("lab_completed")
   pharmacyCompleted   Int       @default(0) @map("pharmacy_completed")
   doctorCompleted     Int       @default(0) @map("doctor_completed")
