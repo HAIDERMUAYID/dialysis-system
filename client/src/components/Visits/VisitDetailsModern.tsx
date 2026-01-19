@@ -1988,7 +1988,6 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
   }
 
   // Check if this is a doctor-directed visit that needs selection
-  const isDoctorDirected = visit?.visit_type === 'doctor_directed';
   const needsDoctorSelection = isDoctorDirected && 
                                role === 'doctor' && 
                                visit?.status === 'pending_doctor' &&
