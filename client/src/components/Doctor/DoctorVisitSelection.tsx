@@ -204,17 +204,28 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
       title: 'التحليل',
       key: 'test',
       render: (_, record) => (
-        <Space>
-          <Checkbox
-            checked={selectedLabTests.has(record.id)}
-            onChange={() => handleLabTestToggle(record.id)}
-          />
-          <div>
-            <div style={{ fontWeight: 600 }}>{record.test_name_ar || record.test_name}</div>
-            {record.test_name_ar && record.test_name !== record.test_name_ar && (
-              <Text type="secondary" style={{ fontSize: '12px' }}>{record.test_name}</Text>
-            )}
-          </div>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Space>
+            <Checkbox
+              checked={selectedLabTests.has(record.id)}
+              onChange={() => handleLabTestToggle(record.id)}
+            />
+            <div>
+              <div style={{ fontWeight: 600 }}>{record.test_name_ar || record.test_name}</div>
+              {record.test_name_ar && record.test_name !== record.test_name_ar && (
+                <Text type="secondary" style={{ fontSize: '12px' }}>{record.test_name}</Text>
+              )}
+            </div>
+          </Space>
+          {selectedLabTests.has(record.id) && (
+            <Input.TextArea
+              placeholder="ملاحظات أو تعليمات خاصة بهذا التحليل (اختياري)"
+              value={selectedLabTests.get(record.id)?.notes || ''}
+              onChange={(e) => handleUpdateNotes('lab', record.id, e.target.value)}
+              rows={2}
+              style={{ marginLeft: '24px', fontSize: '12px' }}
+            />
+          )}
         </Space>
       )
     },
@@ -295,6 +306,16 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
         <Button key="cancel" onClick={onCancel}>
           إلغاء
         </Button>,
+        onDiagnosisOnly && (
+          <Button
+            key="diagnosis-only"
+            onClick={handleDiagnosisOnly}
+            style={{ marginRight: '8px' }}
+            type="default"
+          >
+            التشخيص فقط (بدون تحاليل أو أدوية)
+          </Button>
+        ),
         <Button
           key="save"
           type="primary"
@@ -305,7 +326,7 @@ const DoctorVisitSelection: React.FC<DoctorVisitSelectionProps> = ({
         >
           حفظ الاختيارات ({selectedLabTests.size} تحليل، {selectedDrugs.size} دواء)
         </Button>
-      ]}
+      ].filter(Boolean)}
     >
       <Spin spinning={loading}>
         <Tabs defaultActiveKey="lab">

@@ -2094,6 +2094,7 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
       });
       await fetchVisitDetails();
       setShowDoctorSelection(false);
+      setHasShownSelection(true); // Mark as shown so it doesn't reopen
       onUpdate();
       message.success('تم حفظ الاختيارات بنجاح');
     } catch (error: any) {
@@ -2125,7 +2126,10 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
           visitId={visitId}
           visitNumber={visit.visit_number}
           onSave={handleDoctorSelectionSave}
-          onCancel={() => setShowDoctorSelection(false)}
+          onCancel={() => {
+            setShowDoctorSelection(false);
+            setHasShownSelection(true); // Mark as shown so it doesn't reopen
+          }}
           onDiagnosisOnly={handleDiagnosisOnly}
         />
       )}
