@@ -224,31 +224,40 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
       return res.status(400).json({ error: 'هذه الزيارة ليست من نوع "زيارة من خلال الطبيب"' });
     }
 
-    // Create lab results from catalog if lab_test_ids provided
-    if (lab_test_ids && Array.isArray(lab_test_ids) && lab_test_ids.length > 0) {
+    // Create lab results from catalog if labTests provided
+    if (labTests && Array.isArray(labTests) && labTests.length > 0) {
       if (db.prisma) {
+        // Extract test IDs from labTests array (can be objects with id and notes, or just IDs)
+        const testIds = labTests.map(t => typeof t === 'object' ? t.id : parseInt(t));
+        
         // Get lab tests from catalog
-        const labTests = await db.prisma.labTestCatalog.findMany({
+        const catalogTests = await db.prisma.labTestCatalog.findMany({
           where: { 
-            id: { in: lab_test_ids.map((id) => parseInt(id)) },
+            id: { in: testIds },
             isActive: 1
           }
         });
 
-        // Create lab results
+        // Create lab results with notes if provided
         await Promise.all(
-          labTests.map(test =>
-            db.prisma.labResult.create({
+          labTests.map(testItem => {
+            const testId = typeof testItem === 'object' ? testItem.id : parseInt(testItem);
+            const notes = typeof testItem === 'object' ? (testItem.notes || '') : '';
+            const test = catalogTests.find(t => t.id === testId);
+            if (!test) return null;
+            
+            return db.prisma.labResult.create({
               data: {
                 visitId: visitId,
                 testCatalogId: test.id,
                 testName: test.testName,
                 unit: test.unit || null,
                 normalRange: test.normalRangeText || null,
+                notes: notes || null,
                 createdBy: req.user.id
               }
-            })
-          )
+            });
+          }).filter(Boolean)
         );
       } else {
         const { allQuery, runQuery } = require('../database/db');
@@ -411,8 +420,8 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
 
     res.json({ 
       message: 'تم اختيار التحاليل والأدوية بنجاح',
-      lab_tests_count: lab_test_ids?.length || 0,
-      drugs_count: drug_ids?.length || 0,
+      lab_tests_count: labTests?.length || 0,
+      drugs_count: drugList?.length || 0,
       new_status: newStatus
     });
   } catch (error) {

@@ -187,6 +187,11 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
         setLoading(true);
       }
       const response = await axios.get(`/api/visits/${visitId}`);
+      console.log('Fetched visit data:', response.data);
+      console.log('Lab results count:', response.data.lab_results?.length || 0);
+      if (response.data.lab_results && response.data.lab_results.length > 0) {
+        console.log('First lab result:', response.data.lab_results[0]);
+      }
       setVisit(response.data);
       // Set attachments if they exist in visit data
       if (response.data.attachments) {
