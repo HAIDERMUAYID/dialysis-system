@@ -554,44 +554,59 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                       user?.role === 'doctor' ? 'الطبيب' : 'غير معروف';
 
       if (role === 'lab' || role === 'lab_manager') {
-        if (pendingLabResults.length === 0) {
-          message.warning('يجب إضافة على الأقل نتيجة تحليل واحدة قبل إنهاء الجلسة');
-          return;
+        // For doctor-directed visits, check if all existing results have values
+        if (isDoctorDirected && visit?.lab_results && visit.lab_results.length > 0) {
+          const resultsWithoutValues = visit.lab_results.filter((r: any) => !r.result || r.result.trim() === '');
+          if (resultsWithoutValues.length > 0) {
+            message.warning(`يرجى إدخال النتائج لجميع التحاليل (${resultsWithoutValues.length} تحليل بدون نتيجة)`);
+            return;
+          }
+          
+          // All results have values, complete the session
+          await axios.post(`/api/lab/complete/${visitId}`);
+          await fetchVisitDetails(false);
+          message.success(`تم حفظ وإنهاء جلسة التحاليل بنجاح - تم إدخال نتائج ${visit.lab_results.length} تحليل بواسطة ${userName} (${userRole})`);
+        } else {
+          // Normal visit flow - check pending results
+          if (pendingLabResults.length === 0) {
+            message.warning('يجب إضافة على الأقل نتيجة تحليل واحدة قبل إنهاء الجلسة');
+            return;
+          }
+
+          // Validate all items have test_catalog_id or test_name
+          const invalidItems = pendingLabResults.filter(item => !item.test_catalog_id && !item.test_name);
+          if (invalidItems.length > 0) {
+            message.warning('يرجى إكمال بيانات جميع التحاليل قبل إنهاء الجلسة');
+            return;
+          }
+
+          // Send all lab results
+          const results = await Promise.all(
+            pendingLabResults.map(item => 
+              axios.post('/api/lab', {
+                visit_id: visitId,
+                test_catalog_id: item.test_catalog_id || undefined,
+                test_name: item.test_name || undefined,
+                result: item.result || undefined,
+                unit: item.unit || undefined,
+                normal_range: item.normal_range || undefined,
+                notes: item.notes || undefined
+              })
+            )
+          );
+
+          // Complete lab session
+          await axios.post(`/api/lab/complete/${visitId}`);
+          
+          // Refresh visit details first to get updated data
+          await fetchVisitDetails(false);
+          
+          // Clear pending results after data is refreshed
+          setPendingLabResults([]);
+          setEditingLabResultKey(null);
+          
+          message.success(`تم حفظ وإنهاء جلسة التحاليل بنجاح - تم إضافة ${results.length} تحليل بواسطة ${userName} (${userRole})`);
         }
-
-        // Validate all items have test_catalog_id or test_name
-        const invalidItems = pendingLabResults.filter(item => !item.test_catalog_id && !item.test_name);
-        if (invalidItems.length > 0) {
-          message.warning('يرجى إكمال بيانات جميع التحاليل قبل إنهاء الجلسة');
-          return;
-        }
-
-        // Send all lab results
-        const results = await Promise.all(
-          pendingLabResults.map(item => 
-            axios.post('/api/lab', {
-              visit_id: visitId,
-              test_catalog_id: item.test_catalog_id || undefined,
-              test_name: item.test_name || undefined,
-              result: item.result || undefined,
-              unit: item.unit || undefined,
-              normal_range: item.normal_range || undefined,
-              notes: item.notes || undefined
-            })
-          )
-        );
-
-        // Complete lab session
-        await axios.post(`/api/lab/complete/${visitId}`);
-        
-        // Refresh visit details first to get updated data
-        await fetchVisitDetails(false);
-        
-        // Clear pending results after data is refreshed
-        setPendingLabResults([]);
-        setEditingLabResultKey(null);
-        
-        message.success(`تم حفظ وإنهاء جلسة التحاليل بنجاح - تم إضافة ${results.length} تحليل بواسطة ${userName} (${userRole})`);
       } else if (role === 'pharmacist' || role === 'pharmacy_manager') {
         if (pendingPrescriptions.length === 0) {
           message.warning('يجب إضافة على الأقل دواء واحد قبل إنهاء الجلسة');
