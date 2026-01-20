@@ -867,16 +867,26 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
               }}
               onBlur={async () => {
                 try {
+                  // Get the latest value from visit state
+                  const currentResult = visit?.lab_results?.find((r: any) => r.id === record.id);
+                  if (!currentResult) {
+                    message.error('لم يتم العثور على التحليل');
+                    return;
+                  }
+                  
                   await axios.put(`/api/lab/${record.id}`, {
-                    result: record.result,
-                    unit: record.unit,
-                    normal_range: record.normal_range,
-                    notes: record.notes
+                    result: currentResult.result || record.result,
+                    unit: currentResult.unit || record.unit,
+                    normal_range: currentResult.normal_range || record.normal_range,
+                    notes: currentResult.notes || record.notes
                   });
                   message.success('تم حفظ النتيجة');
-                  fetchVisitDetails();
+                  // Refresh to get updated data
+                  await fetchVisitDetails(false);
                 } catch (error: any) {
                   message.error(error.response?.data?.error || 'حدث خطأ أثناء الحفظ');
+                  // Refresh on error to restore original values
+                  await fetchVisitDetails(false);
                 }
               }}
               placeholder="أدخل النتيجة"
