@@ -608,50 +608,65 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
           message.success(`تم حفظ وإنهاء جلسة التحاليل بنجاح - تم إضافة ${results.length} تحليل بواسطة ${userName} (${userRole})`);
         }
       } else if (role === 'pharmacist' || role === 'pharmacy_manager') {
-        if (pendingPrescriptions.length === 0) {
-          message.warning('يجب إضافة على الأقل دواء واحد قبل إنهاء الجلسة');
-          return;
+        // For doctor-directed visits, check if all existing prescriptions have quantities
+        if (isDoctorDirected && visit?.prescriptions && visit.prescriptions.length > 0) {
+          const prescriptionsWithoutQuantity = visit.prescriptions.filter((p: any) => !p.quantity || p.quantity < 1);
+          if (prescriptionsWithoutQuantity.length > 0) {
+            message.warning(`يرجى تحديد الكمية لجميع الأدوية (${prescriptionsWithoutQuantity.length} دواء بدون كمية)`);
+            return;
+          }
+          
+          // All prescriptions have quantities, complete the session
+          await axios.post(`/api/pharmacy/complete/${visitId}`);
+          await fetchVisitDetails(false);
+          message.success(`تم حفظ وإنهاء جلسة الصيدلية بنجاح - تم تحديد كميات ${visit.prescriptions.length} دواء بواسطة ${userName} (${userRole})`);
+        } else {
+          // Normal visit flow - check pending prescriptions
+          if (pendingPrescriptions.length === 0) {
+            message.warning('يجب إضافة على الأقل دواء واحد قبل إنهاء الجلسة');
+            return;
+          }
+
+          // Validate all items have drug_catalog_id or medication_name
+          const invalidItems = pendingPrescriptions.filter(item => !item.drug_catalog_id && !item.medication_name);
+          if (invalidItems.length > 0) {
+            message.warning('يرجى إكمال بيانات جميع الأدوية قبل إنهاء الجلسة');
+            return;
+          }
+
+          // Validate all items have quantity
+          const invalidQuantity = pendingPrescriptions.filter(item => !item.quantity || item.quantity < 1);
+          if (invalidQuantity.length > 0) {
+            message.warning('يرجى تحديد الكمية لجميع الأدوية قبل إنهاء الجلسة');
+            return;
+          }
+
+          // Send all prescriptions
+          const prescriptions = await Promise.all(
+            pendingPrescriptions.map(item => 
+              axios.post('/api/pharmacy', {
+                visit_id: visitId,
+                drug_catalog_id: item.drug_catalog_id || undefined,
+                medication_name: item.medication_name || undefined,
+                dosage: item.dosage || undefined,
+                quantity: item.quantity || 1,
+                instructions: item.instructions || undefined
+              })
+            )
+          );
+
+          // Complete pharmacy session
+          await axios.post(`/api/pharmacy/complete/${visitId}`);
+          
+          // Refresh visit details first to get updated data
+          await fetchVisitDetails(false);
+          
+          // Clear pending prescriptions after data is refreshed
+          setPendingPrescriptions([]);
+          setEditingPrescriptionKey(null);
+          
+          message.success(`تم حفظ وإنهاء جلسة الصيدلية بنجاح - تم إضافة ${prescriptions.length} دواء بواسطة ${userName} (${userRole})`);
         }
-
-        // Validate all items have drug_catalog_id or medication_name
-        const invalidItems = pendingPrescriptions.filter(item => !item.drug_catalog_id && !item.medication_name);
-        if (invalidItems.length > 0) {
-          message.warning('يرجى إكمال بيانات جميع الأدوية قبل إنهاء الجلسة');
-          return;
-        }
-
-        // Validate all items have quantity
-        const invalidQuantity = pendingPrescriptions.filter(item => !item.quantity || item.quantity < 1);
-        if (invalidQuantity.length > 0) {
-          message.warning('يرجى تحديد الكمية لجميع الأدوية قبل إنهاء الجلسة');
-          return;
-        }
-
-        // Send all prescriptions
-        const prescriptions = await Promise.all(
-          pendingPrescriptions.map(item => 
-            axios.post('/api/pharmacy', {
-              visit_id: visitId,
-              drug_catalog_id: item.drug_catalog_id || undefined,
-              medication_name: item.medication_name || undefined,
-              dosage: item.dosage || undefined,
-              quantity: item.quantity || 1,
-              instructions: item.instructions || undefined
-            })
-          )
-        );
-
-        // Complete pharmacy session
-        await axios.post(`/api/pharmacy/complete/${visitId}`);
-        
-        // Refresh visit details first to get updated data
-        await fetchVisitDetails(false);
-        
-        // Clear pending prescriptions after data is refreshed
-        setPendingPrescriptions([]);
-        setEditingPrescriptionKey(null);
-        
-        message.success(`تم حفظ وإنهاء جلسة الصيدلية بنجاح - تم إضافة ${prescriptions.length} دواء بواسطة ${userName} (${userRole})`);
       } else if (role === 'doctor') {
         if (pendingDiagnoses.length === 0) {
           message.warning('يجب إضافة على الأقل تشخيص واحد قبل إنهاء الجلسة');
@@ -2247,9 +2262,17 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                 icon={<CheckCircleOutlined />}
                 onClick={handleSaveAndCompleteSession}
                 style={{ background: '#1890ff', borderColor: '#1890ff' }}
-                disabled={pendingPrescriptions.length === 0}
+                disabled={
+                  isDoctorDirected 
+                    ? !visit?.prescriptions || visit.prescriptions.length === 0 || visit.prescriptions.some((p: any) => !p.quantity || p.quantity < 1)
+                    : pendingPrescriptions.length === 0
+                }
               >
-                حفظ وإنهاء الجلسة ({pendingPrescriptions.length})
+                حفظ وإنهاء الجلسة (
+                  {isDoctorDirected 
+                    ? visit?.prescriptions?.length || 0 
+                    : pendingPrescriptions.length}
+                )
               </Button>
             )}
             {role === 'doctor' && !isDoctorCompleted && (
