@@ -806,9 +806,9 @@ body.header-collapsed .doctor-dashboard-content {
 
 /* ===== Dark Mode Header Styles ===== */
 .dark-mode .modern-header-with-logo {
-  background: linear-gradient(135deg, #0a0e1a 0%, #0f1419 50%, #151b24 100%) !important;
-  border-bottom-color: var(--border, #2d3748) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  background: linear-gradient(135deg, #1a1a1a 0%, #252525 50%, #2d2d2d 100%) !important;
+  border-bottom-color: var(--border, #3a3a3a) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .modern-header-logo-wrapper {

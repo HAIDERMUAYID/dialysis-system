@@ -15,31 +15,31 @@
 }
 
 .dark-mode {
-  /* Very Dark Professional Colors */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #050810;
-  --bg-tertiary: #0f1419;
-  --bg-elevated: #151b24;
-  --bg-hover: #1a2332;
+  /* Professional Dark Mode Colors - Balanced and Elegant */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #121212;
+  --bg-tertiary: #252525;
+  --bg-elevated: #2d2d2d;
+  --bg-hover: #353535;
   
-  --text-primary: #e8eaed;
-  --text-secondary: #bdc1c6;
-  --text-tertiary: #80868b;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
   --text-inverse: #ffffff;
   
-  --border: #2d3748;
-  --border-hover: #3d4758;
-  --border-focus: #4a5568;
+  --border: #3a3a3a;
+  --border-hover: #4a4a4a;
+  --border-focus: #5a5a5a;
   
-  --shadow: rgba(0, 0, 0, 0.5);
-  --shadow-lg: rgba(0, 0, 0, 0.7);
-  --shadow-xl: rgba(0, 0, 0, 0.9);
+  --shadow: rgba(0, 0, 0, 0.3);
+  --shadow-lg: rgba(0, 0, 0, 0.5);
+  --shadow-xl: rgba(0, 0, 0, 0.7);
   
-  /* Accent Colors - Brighter for contrast */
-  --primary-500: #60a5fa;
-  --primary-400: #93c5fd;
-  --primary-600: #3b82f6;
-  --success: #34d399;
+  /* Accent Colors - Professional and Visible */
+  --primary-500: #4a9eff;
+  --primary-400: #6bb3ff;
+  --primary-600: #3a8eef;
+  --success: #4ade80;
   --warning: #fbbf24;
   --error: #f87171;
   --info: #60a5fa;
@@ -94,7 +94,7 @@
 
 .dark-mode .ant-card:hover {
   border-color: var(--border-hover);
-  box-shadow: 0 8px 24px var(--shadow-xl), 0 4px 12px var(--shadow-lg) !important;
+  box-shadow: 0 4px 12px var(--shadow-lg), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* ===== Tables ===== */
@@ -205,7 +205,7 @@
 .dark-mode .ant-modal-content {
   background: var(--bg-primary) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 12px 48px var(--shadow-xl) !important;
+  box-shadow: 0 8px 32px var(--shadow-lg), 0 4px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
 .dark-mode .ant-modal-header {
@@ -229,8 +229,8 @@
 }
 
 .dark-mode .ant-modal-mask {
-  background: rgba(0, 0, 0, 0.75) !important;
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px);
 }
 
 /* ===== Header ===== */
@@ -277,7 +277,7 @@
 .dark-mode .ant-picker-dropdown {
   background: var(--bg-primary) !important;
   border-color: var(--border) !important;
-  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .ant-select-item {
@@ -304,7 +304,7 @@
   background: var(--bg-elevated) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--border) !important;
-  box-shadow: 0 4px 16px var(--shadow-lg) !important;
+  box-shadow: 0 2px 8px var(--shadow), 0 1px 4px rgba(0, 0, 0, 0.2) !important;
 }
 
 .dark-mode .ant-tooltip-arrow::before {
@@ -317,12 +317,12 @@
   background: var(--bg-primary) !important;
   border-color: var(--border) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .ant-notification-notice {
   background: var(--bg-primary) !important;
-  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .ant-notification-notice-message {
@@ -359,7 +359,7 @@
   background: var(--bg-primary) !important;
   border-left-color: var(--primary-500) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 4px 16px var(--shadow-lg) !important;
+  box-shadow: 0 2px 8px var(--shadow), 0 1px 4px rgba(0, 0, 0, 0.2) !important;
 }
 
 .dark-mode .stat-card-value,
@@ -425,15 +425,15 @@
 }
 
 .dark-mode .ant-drawer-mask {
-  background: rgba(0, 0, 0, 0.75) !important;
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px);
 }
 
 /* ===== Popovers ===== */
 .dark-mode .ant-popover-inner {
   background: var(--bg-primary) !important;
   border-color: var(--border) !important;
-  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .ant-popover-inner-content {
