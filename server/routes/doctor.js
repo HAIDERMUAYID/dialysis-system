@@ -394,7 +394,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
     const { createNotification } = require('./notifications');
     const visitNumber = visit.visitNumber || visit.visit_number;
     
-    if (lab_test_ids && lab_test_ids.length > 0) {
+    if (labTests && labTests.length > 0) {
       createNotification(
         req.user.id,
         null,
@@ -402,11 +402,11 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         visitId,
         'new_visit',
         'زيارة من خلال الطبيب - تحاليل مطلوبة',
-        `تم اختيار ${lab_test_ids.length} تحليل للزيارة ${visitNumber}. يرجى إدخال النتائج`
+        `تم اختيار ${labTests.length} تحليل للزيارة ${visitNumber}. يرجى إدخال النتائج`
       ).catch(() => null);
     }
 
-    if (drug_ids && drug_ids.length > 0) {
+    if (drugList && drugList.length > 0) {
       createNotification(
         req.user.id,
         null,
@@ -414,7 +414,7 @@ router.post('/select-items/:visitId', authenticateToken, requireRole('doctor'), 
         visitId,
         'new_visit',
         'زيارة من خلال الطبيب - أدوية مطلوبة',
-        `تم اختيار ${drug_ids.length} دواء للزيارة ${visitNumber}. يرجى صرف العلاج`
+        `تم اختيار ${drugList.length} دواء للزيارة ${visitNumber}. يرجى صرف العلاج`
       ).catch(() => null);
     }
 
