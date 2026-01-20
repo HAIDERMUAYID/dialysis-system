@@ -803,3 +803,97 @@ body.header-collapsed .doctor-dashboard-content {
 .admin-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
+
+/* ===== Dark Mode Header Styles ===== */
+.dark-mode .modern-header-with-logo {
+  background: linear-gradient(135deg, #0a0e1a 0%, #0f1419 50%, #151b24 100%) !important;
+  border-bottom-color: var(--border, #2d3748) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-mode .modern-header-logo-wrapper {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.dark-mode .modern-header-logo-wrapper:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark-mode .modern-header-ministry,
+.dark-mode .modern-header-directorate,
+.dark-mode .modern-header-hospital,
+.dark-mode .modern-header-subtitle {
+  color: rgba(255, 255, 255, 0.95) !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark-mode .modern-header-toggle-btn,
+.dark-mode .theme-toggle-btn-header,
+.dark-mode .modern-header-notification-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark-mode .modern-header-toggle-btn:hover,
+.dark-mode .theme-toggle-btn-header:hover,
+.dark-mode .modern-header-notification-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.dark-mode .modern-header-user-section {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.dark-mode .modern-header-user-section:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark-mode .modern-header-user-avatar {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark-mode .modern-header-user-avatar .anticon {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark-mode .modern-header-user-name {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark-mode .modern-header-logout-btn {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark-mode .modern-header-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.dark-mode .modern-header-action-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.dark-mode .modern-header-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark-mode .header-collapse-indicator {
+  background: linear-gradient(135deg, #0a0e1a 0%, #0f1419 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
