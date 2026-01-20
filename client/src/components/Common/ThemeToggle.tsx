@@ -14,13 +14,13 @@ export const ThemeToggle: React.FC = () => {
 
   return (
     <Tooltip title={theme === 'light' ? 'تفعيل الوضع الداكن' : 'تفعيل الوضع الفاتح'}>
-      <Button
-        type="text"
-        icon={theme === 'light' ? <MoonOutlined /> : <SunOutlined />}
+      <button
+        className="theme-toggle-btn-header"
         onClick={toggleTheme}
-        className="theme-toggle-btn"
-        size="large"
-      />
+        aria-label={theme === 'light' ? 'تفعيل الوضع الداكن' : 'تفعيل الوضع الفاتح'}
+      >
+        {theme === 'light' ? <MoonOutlined /> : <SunOutlined />}
+      </button>
     </Tooltip>
   );
 };
