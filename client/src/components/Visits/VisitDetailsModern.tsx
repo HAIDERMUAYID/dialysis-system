@@ -1751,6 +1751,10 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
             }
           >
             {(() => {
+              // Debug: Log visit data
+              console.log('Visit lab_results:', visit.lab_results);
+              console.log('Lab tests catalog:', labTestsCatalog.length, 'items');
+              
               // Combine saved results with pending results
               const savedResults = (visit.lab_results || []).map((r: any) => {
                 // Ensure test_name is populated from catalog if missing
@@ -1761,15 +1765,21 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                     testName = catalogTest.test_name_ar || catalogTest.test_name;
                   }
                 }
+                // Also try to get from testCatalog relation if available
+                if (!testName && r.testCatalog) {
+                  testName = r.testCatalog.testNameAr || r.testCatalog.testName;
+                }
                 return { 
                   ...r, 
-                  test_name: testName || r.test_name,
+                  test_name: testName || r.test_name || 'تحليل غير محدد',
                   tempKey: null,
                   // Fallback to visit date if created_at is missing
                   created_at: r.created_at || visit.created_at || null
                 };
               });
               const allResults = [...savedResults, ...pendingLabResults];
+              
+              console.log('All results:', allResults.length, 'items');
               
               if (allResults.length === 0) {
                 return <Empty description="لا توجد نتائج تحاليل" />;
