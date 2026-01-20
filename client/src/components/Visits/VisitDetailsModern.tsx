@@ -2228,9 +2228,17 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
                 icon={<CheckCircleOutlined />}
                 onClick={handleSaveAndCompleteSession}
                 style={{ background: '#52c41a', borderColor: '#52c41a' }}
-                disabled={pendingLabResults.length === 0}
+                disabled={
+                  isDoctorDirected 
+                    ? !visit?.lab_results || visit.lab_results.length === 0 || visit.lab_results.some((r: any) => !r.result || r.result.trim() === '')
+                    : pendingLabResults.length === 0
+                }
               >
-                حفظ وإنهاء الجلسة ({pendingLabResults.length})
+                حفظ وإنهاء الجلسة (
+                  {isDoctorDirected 
+                    ? visit?.lab_results?.length || 0 
+                    : pendingLabResults.length}
+                )
               </Button>
             )}
             {(role === 'pharmacist' || role === 'pharmacy_manager') && !isPharmacyCompleted && (
