@@ -296,19 +296,32 @@ router.get('/:id', authenticateToken, async (req, res) => {
             }
           }
           
+          // Get test name from catalog relation or stored name
+          let testName = lr.testName;
+          if (!testName && lr.testCatalog) {
+            testName = lr.testCatalog.testNameAr || lr.testCatalog.testName;
+          }
+          
           return {
             id: lr.id,
             visit_id: lr.visitId,
             test_catalog_id: lr.testCatalogId,
-            test_name: lr.testName || lr.testCatalog?.testName || null,
-            result: lr.result,
-            unit: lr.unit,
-            normal_range: lr.normalRange,
-            notes: lr.notes,
+            test_name: testName || lr.testCatalog?.testNameAr || lr.testCatalog?.testName || null,
+            result: lr.result || null,
+            unit: lr.unit || lr.testCatalog?.unit || null,
+            normal_range: lr.normalRange || lr.testCatalog?.normalRangeText || null,
+            notes: lr.notes || null,
             created_by: lr.createdBy,
             created_at: createdAt,
             updated_at: lr.updatedAt ? (lr.updatedAt instanceof Date ? lr.updatedAt.toISOString() : new Date(lr.updatedAt).toISOString()) : null,
-            created_by_name: lr.creator?.name || null
+            created_by_name: lr.creator?.name || null,
+            // Include testCatalog for frontend use
+            testCatalog: lr.testCatalog ? {
+              id: lr.testCatalog.id,
+              test_name: lr.testCatalog.testName,
+              test_name_ar: lr.testCatalog.testNameAr,
+              unit: lr.testCatalog.unit
+            } : null
           };
         }),
         prescriptions: visit.prescriptions.map(p => {
