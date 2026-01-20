@@ -99,22 +99,38 @@ const NotificationBell: React.FC = () => {
       </button>
 
       {showDropdown && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 12px)',
-            right: 0,
-            background: 'white',
-            border: 'none',
-            borderRadius: 'var(--radius-2xl)',
-            boxShadow: 'var(--shadow-2xl)',
-            minWidth: '360px',
-            maxHeight: '500px',
-            overflowY: 'auto',
-            zIndex: 1000,
-            animation: 'fadeInDown 0.3s ease-out'
-          }}
-        >
+        <>
+          {/* Backdrop to close dropdown when clicking outside */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9999,
+              background: 'transparent'
+            }}
+            onClick={() => setShowDropdown(false)}
+          />
+          <div
+            style={{
+              position: 'fixed',
+              top: '70px',
+              right: '20px',
+              background: 'white',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              borderRadius: 'var(--radius-2xl)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15)',
+              minWidth: '380px',
+              maxWidth: '420px',
+              maxHeight: '600px',
+              overflowY: 'auto',
+              zIndex: 10000,
+              animation: 'fadeInDown 0.3s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
           <div style={{ 
             padding: 'var(--space-5)', 
             borderBottom: '2px solid var(--gray-100)', 
@@ -213,6 +229,7 @@ const NotificationBell: React.FC = () => {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

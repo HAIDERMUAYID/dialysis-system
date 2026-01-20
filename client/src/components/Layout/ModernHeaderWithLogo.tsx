@@ -85,41 +85,55 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
         )}
         
         <div className="modern-header-right">
-          <EnhancedTooltip title={isCollapsed ? "إظهار الهيدر" : "إخفاء الهيدر"}>
-            <button
-              className="modern-header-toggle-btn"
-              onClick={toggleHeader}
-              aria-label={isCollapsed ? "إظهار" : "إخفاء"}
-            >
-              {isCollapsed ? <DownOutlined /> : <UpOutlined />}
-            </button>
-          </EnhancedTooltip>
-          <ThemeToggle />
-          <div className="modern-header-notification-wrapper">
-            <NotificationBell />
-          </div>
-          <div 
-            className="modern-header-user-section"
-            onClick={() => setChangePasswordVisible(true)}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="modern-header-user-avatar">
-              <UserOutlined />
+          {centerActions && (
+            <div className="modern-header-center-actions">
+              {centerActions}
             </div>
-            {!isCollapsed && <span className="modern-header-user-name">{user?.name}</span>}
+          )}
+          
+          <div className="modern-header-actions-group">
+            <EnhancedTooltip title={isCollapsed ? "إظهار الهيدر" : "إخفاء الهيدر"}>
+              <button
+                className="modern-header-toggle-btn"
+                onClick={toggleHeader}
+                aria-label={isCollapsed ? "إظهار" : "إخفاء"}
+              >
+                {isCollapsed ? <DownOutlined /> : <UpOutlined />}
+              </button>
+            </EnhancedTooltip>
+            
+            <ThemeToggle />
+            
+            <div className="modern-header-notification-wrapper">
+              <NotificationBell />
+            </div>
           </div>
           
-          <ChangePasswordModal
-            open={changePasswordVisible}
-            onClose={() => setChangePasswordVisible(false)}
-          />
-          <button
-            className="modern-header-logout-btn"
-            onClick={onLogout}
-          >
-            <LogoutOutlined />
-            {!isCollapsed && <span>تسجيل الخروج</span>}
-          </button>
+          <div className="modern-header-user-group">
+            <div 
+              className="modern-header-user-section"
+              onClick={() => setChangePasswordVisible(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="modern-header-user-avatar">
+                <UserOutlined />
+              </div>
+              {!isCollapsed && <span className="modern-header-user-name">{user?.name}</span>}
+            </div>
+            
+            <ChangePasswordModal
+              open={changePasswordVisible}
+              onClose={() => setChangePasswordVisible(false)}
+            />
+            
+            <button
+              className="modern-header-logout-btn"
+              onClick={onLogout}
+            >
+              <LogoutOutlined />
+              {!isCollapsed && <span>تسجيل الخروج</span>}
+            </button>
+          </div>
         </div>
       </div>
     </Header>
