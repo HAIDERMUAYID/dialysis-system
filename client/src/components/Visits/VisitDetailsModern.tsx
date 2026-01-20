@@ -319,9 +319,29 @@ const VisitDetailsModern: React.FC<VisitDetailsModernProps> = ({ visitId, role, 
   };
 
   const handleUpdateLabResult = (key: string, field: string, value: any) => {
-    setPendingLabResults(prev => prev.map(item => 
-      item.tempKey === key ? { ...item, [field]: value } : item
-    ));
+    // Check if it's a pending item (has tempKey) or saved item (has id)
+    const isPendingKey = key.startsWith('pending-') || key.includes('pending');
+    
+    if (isPendingKey) {
+      // Update pending results
+      setPendingLabResults(prev => prev.map(item => 
+        item.tempKey === key ? { ...item, [field]: value } : item
+      ));
+    } else {
+      // Update saved results in visit state (for doctor-directed visits)
+      const resultId = parseInt(key);
+      if (!isNaN(resultId) && visit) {
+        setVisit(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            lab_results: (prev.lab_results || []).map((r: any) => 
+              r.id === resultId ? { ...r, [field]: value } : r
+            )
+          };
+        });
+      }
+    }
   };
 
   const handleDeletePendingLabResult = (key: string) => {
