@@ -65,30 +65,30 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', zIndex: 10001 }}>
       <button
         className="modern-header-notification-btn"
         onClick={() => setShowDropdown(!showDropdown)}
         style={{ position: 'relative' }}
       >
-        <span style={{ fontSize: '1.25rem' }}>🔔</span>
+        <span style={{ fontSize: '1.4rem', display: 'block' }}>🔔</span>
         {unreadCount > 0 && (
           <span
             style={{
               position: 'absolute',
-              top: '-6px',
-              right: '-6px',
+              top: '-4px',
+              right: '-4px',
               background: '#ef4444',
               color: 'white',
               borderRadius: '50%',
-              width: '22px',
-              height: '22px',
-              fontSize: '0.7rem',
+              width: '20px',
+              height: '20px',
+              fontSize: '0.65rem',
               fontWeight: 'bold',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.8)',
               border: '2px solid white',
               animation: 'pulse 2s ease-in-out infinite'
             }}
