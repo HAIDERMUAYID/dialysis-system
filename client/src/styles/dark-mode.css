@@ -1,4 +1,6 @@
-/* Dark Mode Styles */
+/* ============================================
+   PROFESSIONAL DARK MODE - VERY DARK THEME
+   ============================================ */
 
 :root {
   /* Light Mode Colors (Default) */
@@ -13,15 +15,34 @@
 }
 
 .dark-mode {
-  /* Dark Mode Colors */
-  --bg-primary: #1e293b;
-  --bg-secondary: #0f172a;
-  --bg-tertiary: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
-  --border: #334155;
-  --shadow: rgba(0, 0, 0, 0.3);
+  /* Very Dark Professional Colors */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #050810;
+  --bg-tertiary: #0f1419;
+  --bg-elevated: #151b24;
+  --bg-hover: #1a2332;
+  
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-tertiary: #80868b;
+  --text-inverse: #ffffff;
+  
+  --border: #2d3748;
+  --border-hover: #3d4758;
+  --border-focus: #4a5568;
+  
+  --shadow: rgba(0, 0, 0, 0.5);
+  --shadow-lg: rgba(0, 0, 0, 0.7);
+  --shadow-xl: rgba(0, 0, 0, 0.9);
+  
+  /* Accent Colors - Brighter for contrast */
+  --primary-500: #60a5fa;
+  --primary-400: #93c5fd;
+  --primary-600: #3b82f6;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
   
   /* Override light mode */
   --bg-primary-light: var(--bg-primary);
@@ -34,118 +55,208 @@
   --shadow-light: var(--shadow);
 }
 
+/* ===== Body & Base ===== */
 .dark-mode body {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Cards */
+.dark-mode #root {
+  background: var(--bg-secondary);
+  min-height: 100vh;
+}
+
+/* ===== Cards ===== */
 .dark-mode .ant-card,
 .dark-mode .modern-card,
-.dark-mode .dashboard-content .ant-card {
-  background: var(--bg-primary);
-  border-color: var(--border);
-  color: var(--text-primary);
+.dark-mode .dashboard-content .ant-card,
+.dark-mode .card {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg), 0 2px 8px var(--shadow) !important;
 }
 
 .dark-mode .ant-card-head {
-  background: var(--bg-tertiary);
-  border-bottom-color: var(--border);
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border) !important;
 }
 
 .dark-mode .ant-card-head-title {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
-/* Tables */
+.dark-mode .ant-card-body {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px var(--shadow-xl), 0 4px 12px var(--shadow-lg) !important;
+}
+
+/* ===== Tables ===== */
 .dark-mode .ant-table {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-table-thead > tr > th {
-  background: var(--bg-tertiary);
-  border-bottom-color: var(--border);
-  color: var(--text-primary);
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .dark-mode .ant-table-tbody > tr > td {
-  border-bottom-color: var(--border);
-  color: var(--text-primary);
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-primary) !important;
 }
 
 .dark-mode .ant-table-tbody > tr:hover > td {
-  background: var(--bg-tertiary);
+  background: var(--bg-hover) !important;
 }
 
-/* Inputs */
+.dark-mode .ant-table-tbody > tr.ant-table-row-selected > td {
+  background: var(--bg-elevated) !important;
+}
+
+/* ===== Inputs ===== */
 .dark-mode .ant-input,
-.dark-mode .ant-input-password,
+.dark-mode .ant-input-password input,
+.dark-mode .ant-input-number,
 .dark-mode .ant-select-selector,
-.dark-mode .ant-picker {
-  background: var(--bg-tertiary);
-  border-color: var(--border);
-  color: var(--text-primary);
+.dark-mode .ant-picker,
+.dark-mode .ant-textarea,
+.dark-mode textarea,
+.dark-mode input[type="text"],
+.dark-mode input[type="number"],
+.dark-mode input[type="email"],
+.dark-mode input[type="password"],
+.dark-mode .form-control {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-input::placeholder,
-.dark-mode .ant-input-password::placeholder {
-  color: var(--text-tertiary);
+.dark-mode .ant-input-password::placeholder,
+.dark-mode .ant-textarea::placeholder {
+  color: var(--text-tertiary) !important;
 }
 
 .dark-mode .ant-input:focus,
 .dark-mode .ant-input-focused,
-.dark-mode .ant-select-focused .ant-select-selector {
-  border-color: var(--primary-500);
-  background: var(--bg-tertiary);
+.dark-mode .ant-input-number-focused,
+.dark-mode .ant-select-focused .ant-select-selector,
+.dark-mode .ant-picker-focused {
+  border-color: var(--primary-500) !important;
+  background: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
 }
 
-/* Buttons */
+.dark-mode .ant-input:hover,
+.dark-mode .ant-select-selector:hover {
+  border-color: var(--border-hover) !important;
+}
+
+/* ===== Buttons ===== */
 .dark-mode .ant-btn-default {
-  background: var(--bg-tertiary);
-  border-color: var(--border);
-  color: var(--text-primary);
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-btn-default:hover {
-  border-color: var(--primary-500);
-  color: var(--primary-400);
+  background: var(--bg-hover) !important;
+  border-color: var(--border-hover) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Modals */
+.dark-mode .ant-btn-primary {
+  background: var(--primary-600) !important;
+  border-color: var(--primary-600) !important;
+  color: var(--text-inverse) !important;
+}
+
+.dark-mode .ant-btn-primary:hover {
+  background: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+.dark-mode .ant-btn-success,
+.dark-mode .btn-success {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: var(--text-inverse) !important;
+}
+
+.dark-mode .ant-btn-danger,
+.dark-mode .btn-danger {
+  background: var(--error) !important;
+  border-color: var(--error) !important;
+  color: var(--text-inverse) !important;
+}
+
+/* ===== Modals ===== */
 .dark-mode .ant-modal-content {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 12px 48px var(--shadow-xl) !important;
 }
 
 .dark-mode .ant-modal-header {
-  background: var(--bg-tertiary);
-  border-bottom-color: var(--border);
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border) !important;
 }
 
 .dark-mode .ant-modal-title {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .dark-mode .ant-modal-body {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-modal-footer {
-  border-top-color: var(--border);
+  border-top-color: var(--border) !important;
+  background: var(--bg-elevated) !important;
 }
 
-/* Header */
+.dark-mode .ant-modal-mask {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ===== Header ===== */
+.dark-mode .modern-header-with-logo {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
+  border-bottom-color: var(--border) !important;
+  box-shadow: 0 4px 20px var(--shadow-xl) !important;
+}
+
 .dark-mode .dashboard-header,
 .dark-mode .admin-dashboard-header {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border-bottom-color: var(--border);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  border-bottom-color: var(--border) !important;
 }
 
-/* Tabs */
+/* ===== Tabs ===== */
+.dark-mode .ant-tabs {
+  color: var(--text-primary) !important;
+}
+
 .dark-mode .ant-tabs-tab {
-  color: var(--text-secondary);
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-tabs-tab:hover {
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-tabs-tab-active {
@@ -153,92 +264,553 @@
 }
 
 .dark-mode .ant-tabs-ink-bar {
-  background: var(--primary-500);
+  background: var(--primary-500) !important;
 }
 
-/* Dropdowns */
+.dark-mode .ant-tabs-content-holder {
+  background: var(--bg-primary) !important;
+}
+
+/* ===== Dropdowns ===== */
 .dark-mode .ant-select-dropdown,
-.dark-mode .ant-dropdown-menu {
-  background: var(--bg-primary);
-  border-color: var(--border);
+.dark-mode .ant-dropdown-menu,
+.dark-mode .ant-picker-dropdown {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 8px 32px var(--shadow-xl) !important;
 }
 
 .dark-mode .ant-select-item {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-select-item:hover,
 .dark-mode .ant-select-item-option-selected {
-  background: var(--bg-tertiary);
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-dropdown-menu-item {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .ant-dropdown-menu-item:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Tooltips */
+/* ===== Tooltips ===== */
 .dark-mode .ant-tooltip-inner {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg) !important;
 }
 
 .dark-mode .ant-tooltip-arrow::before {
-  background: var(--bg-tertiary);
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
 }
 
-/* Messages */
+/* ===== Messages & Notifications ===== */
 .dark-mode .ant-message-notice-content {
-  background: var(--bg-primary);
-  border-color: var(--border);
-  color: var(--text-primary);
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 8px 32px var(--shadow-xl) !important;
 }
 
-/* Scrollbar */
+.dark-mode .ant-notification-notice {
+  background: var(--bg-primary) !important;
+  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+}
+
+.dark-mode .ant-notification-notice-message {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-notification-notice-description {
+  color: var(--text-secondary) !important;
+}
+
+/* ===== Scrollbar ===== */
+.dark-mode ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
 .dark-mode ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--bg-secondary) !important;
 }
 
 .dark-mode ::-webkit-scrollbar-thumb {
-  background: var(--gray-600);
+  background: var(--border) !important;
+  border-radius: 6px;
+  border: 2px solid var(--bg-secondary);
 }
 
 .dark-mode ::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-500);
+  background: var(--border-hover) !important;
 }
 
-/* Statistics Cards */
+/* ===== Statistics Cards ===== */
 .dark-mode .stat-card,
 .dark-mode .stats-card {
-  background: var(--bg-primary);
-  border-left-color: var(--primary-500);
-  color: var(--text-primary);
+  background: var(--bg-primary) !important;
+  border-left-color: var(--primary-500) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 4px 16px var(--shadow-lg) !important;
 }
 
 .dark-mode .stat-card-value,
 .dark-mode .stats-card-value {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 .dark-mode .stat-card-label,
 .dark-mode .stats-card-label {
-  color: var(--text-secondary);
+  color: var(--text-secondary) !important;
 }
 
-/* Charts */
+/* ===== Charts ===== */
 .dark-mode .chart-container {
-  background: var(--bg-primary);
-  border-color: var(--border);
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
 }
 
 .dark-mode .chart-title {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
-/* Smooth transition */
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+/* ===== Tags & Badges ===== */
+.dark-mode .ant-tag {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-badge-count {
+  background: var(--error) !important;
+  color: var(--text-inverse) !important;
+  box-shadow: 0 0 0 2px var(--bg-primary) !important;
+}
+
+/* ===== Empty States ===== */
+.dark-mode .ant-empty {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-empty-description {
+  color: var(--text-tertiary) !important;
+}
+
+/* ===== Dividers ===== */
+.dark-mode .ant-divider {
+  border-color: var(--border) !important;
+}
+
+/* ===== Drawers ===== */
+.dark-mode .ant-drawer-content {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-drawer-header {
+  background: var(--bg-elevated) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.dark-mode .ant-drawer-title {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-drawer-mask {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ===== Popovers ===== */
+.dark-mode .ant-popover-inner {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 8px 32px var(--shadow-xl) !important;
+}
+
+.dark-mode .ant-popover-inner-content {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-popover-arrow::before {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ===== Alerts ===== */
+.dark-mode .ant-alert {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-alert-success {
+  background: rgba(52, 211, 153, 0.15) !important;
+  border-color: var(--success) !important;
+  color: var(--success) !important;
+}
+
+.dark-mode .ant-alert-warning {
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: var(--warning) !important;
+  color: var(--warning) !important;
+}
+
+.dark-mode .ant-alert-error {
+  background: rgba(248, 113, 113, 0.15) !important;
+  border-color: var(--error) !important;
+  color: var(--error) !important;
+}
+
+.dark-mode .ant-alert-info {
+  background: rgba(96, 165, 250, 0.15) !important;
+  border-color: var(--info) !important;
+  color: var(--info) !important;
+}
+
+/* ===== Radio & Checkbox ===== */
+.dark-mode .ant-radio-inner {
+  border-color: var(--border) !important;
+  background: var(--bg-elevated) !important;
+}
+
+.dark-mode .ant-radio-checked .ant-radio-inner {
+  border-color: var(--primary-500) !important;
+}
+
+.dark-mode .ant-checkbox-inner {
+  border-color: var(--border) !important;
+  background: var(--bg-elevated) !important;
+}
+
+.dark-mode .ant-checkbox-checked .ant-checkbox-inner {
+  background: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+/* ===== Timeline ===== */
+.dark-mode .ant-timeline-item-head {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-timeline-item-content {
+  color: var(--text-primary) !important;
+}
+
+/* ===== Steps ===== */
+.dark-mode .ant-steps-item-title {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-steps-item-description {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-steps-item-icon {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== Pagination ===== */
+.dark-mode .ant-pagination-item {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-pagination-item a {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-pagination-item-active {
+  background: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+.dark-mode .ant-pagination-item-active a {
+  color: var(--text-inverse) !important;
+}
+
+/* ===== Date Picker ===== */
+.dark-mode .ant-picker-calendar {
+  background: var(--bg-primary) !important;
+}
+
+.dark-mode .ant-picker-calendar-date {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-picker-calendar-date-selected {
+  background: var(--primary-500) !important;
+}
+
+/* ===== Transfer ===== */
+.dark-mode .ant-transfer-list {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== Tree ===== */
+.dark-mode .ant-tree {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-tree-node-selected {
+  background: var(--bg-hover) !important;
+}
+
+/* ===== List ===== */
+.dark-mode .ant-list {
+  background: var(--bg-primary) !important;
+}
+
+.dark-mode .ant-list-item {
+  border-bottom-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== Descriptions ===== */
+.dark-mode .ant-descriptions-item-label {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-descriptions-item-content {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-descriptions-bordered .ant-descriptions-item-label,
+.dark-mode .ant-descriptions-bordered .ant-descriptions-item-content {
+  border-color: var(--border) !important;
+}
+
+/* ===== Skeleton ===== */
+.dark-mode .ant-skeleton-content .ant-skeleton-title,
+.dark-mode .ant-skeleton-content .ant-skeleton-paragraph > li {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%) !important;
+}
+
+/* ===== Rate ===== */
+.dark-mode .ant-rate-star {
+  color: var(--border) !important;
+}
+
+.dark-mode .ant-rate-star-full .ant-rate-star-first,
+.dark-mode .ant-rate-star-full .ant-rate-star-second {
+  color: var(--warning) !important;
+}
+
+/* ===== Switch ===== */
+.dark-mode .ant-switch {
+  background: var(--border) !important;
+}
+
+.dark-mode .ant-switch-checked {
+  background: var(--primary-500) !important;
+}
+
+/* ===== Slider ===== */
+.dark-mode .ant-slider-rail {
+  background: var(--bg-elevated) !important;
+}
+
+.dark-mode .ant-slider-track {
+  background: var(--primary-500) !important;
+}
+
+.dark-mode .ant-slider-handle {
+  background: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+/* ===== Progress ===== */
+.dark-mode .ant-progress-bg {
+  background: var(--primary-500) !important;
+}
+
+.dark-mode .ant-progress-inner {
+  background: var(--bg-elevated) !important;
+}
+
+/* ===== Spin ===== */
+.dark-mode .ant-spin-dot-item {
+  background: var(--primary-500) !important;
+}
+
+/* ===== Anchor ===== */
+.dark-mode .ant-anchor-link {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-anchor-link-active {
+  color: var(--primary-400) !important;
+}
+
+/* ===== Back Top ===== */
+.dark-mode .ant-back-top {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== Breadcrumb ===== */
+.dark-mode .ant-breadcrumb-link {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-breadcrumb-link:hover {
+  color: var(--primary-400) !important;
+}
+
+/* ===== Collapse ===== */
+.dark-mode .ant-collapse {
+  background: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-collapse-item {
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-collapse-header {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-collapse-content {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== Menu ===== */
+.dark-mode .ant-menu {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-menu-item {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-menu-item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-menu-item-selected {
+  background: var(--bg-elevated) !important;
+  color: var(--primary-400) !important;
+}
+
+/* ===== Form ===== */
+.dark-mode .ant-form-item-label > label {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-form-item-explain-error {
+  color: var(--error) !important;
+}
+
+.dark-mode .ant-form-item-explain-success {
+  color: var(--success) !important;
+}
+
+/* ===== Upload ===== */
+.dark-mode .ant-upload {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-upload-drag {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+}
+
+.dark-mode .ant-upload-drag:hover {
+  border-color: var(--border-hover) !important;
+}
+
+/* ===== Avatar ===== */
+.dark-mode .ant-avatar {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== Comment ===== */
+.dark-mode .ant-comment-content-author-name {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-comment-content-detail {
+  color: var(--text-secondary) !important;
+}
+
+/* ===== Result ===== */
+.dark-mode .ant-result-title {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-result-subtitle {
+  color: var(--text-secondary) !important;
+}
+
+/* ===== Statistic ===== */
+.dark-mode .ant-statistic-title {
+  color: var(--text-secondary) !important;
+}
+
+.dark-mode .ant-statistic-content {
+  color: var(--text-primary) !important;
+}
+
+/* ===== Typography ===== */
+.dark-mode .ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode h1.ant-typography,
+.dark-mode h2.ant-typography,
+.dark-mode h3.ant-typography,
+.dark-mode h4.ant-typography,
+.dark-mode h5.ant-typography,
+.dark-mode h6.ant-typography {
+  color: var(--text-primary) !important;
+}
+
+/* ===== Custom Components ===== */
+.dark-mode .visit-details-modal .ant-modal-content {
+  background: var(--bg-primary) !important;
+}
+
+.dark-mode .dashboard-content {
+  background: var(--bg-secondary) !important;
+}
+
+.dark-mode .empty-state {
+  color: var(--text-tertiary) !important;
+}
+
+/* ===== Smooth Transitions ===== */
+.dark-mode * {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .dark-mode {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border: #e2e8f0;
+  }
 }

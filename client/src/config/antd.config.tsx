@@ -23,6 +23,15 @@ export const antdTheme: ThemeConfig = {
     colorError: '#ef4444',
     colorInfo: '#3b82f6',
     
+    // Dark mode support
+    colorBgContainer: 'var(--bg-primary-light, #ffffff)',
+    colorBgElevated: 'var(--bg-elevated, #ffffff)',
+    colorBgLayout: 'var(--bg-secondary-light, #f8fafc)',
+    colorText: 'var(--text-primary-light, #0f172a)',
+    colorTextSecondary: 'var(--text-secondary-light, #475569)',
+    colorBorder: 'var(--border-light, #e2e8f0)',
+    colorBorderSecondary: 'var(--border-light, #e2e8f0)',
+    
     // Border Radius - More rounded, modern look
     borderRadius: 12,
     borderRadiusLG: 16,
