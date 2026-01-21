@@ -492,7 +492,7 @@ router.put('/:id', authenticateToken, requireRole('inquiry', 'admin'), async (re
   }
 });
 
-// Delete patient (soft delete by setting is_active = 0)
+// Delete patient and all related records (visits, lab results, prescriptions, diagnoses, etc.)
 router.delete('/:id', authenticateToken, requireRole('inquiry', 'admin'), async (req, res) => {
   try {
     const patientId = parseInt(req.params.id);
@@ -512,19 +512,100 @@ router.delete('/:id', authenticateToken, requireRole('inquiry', 'admin'), async 
       return res.status(404).json({ error: 'المريض غير موجود' });
     }
 
-    // Soft delete - set is_active = 0 instead of deleting
+    // Delete all related records using transaction
     if (db.prisma) {
-      await db.prisma.patient.update({
-        where: { id: patientId },
-        data: { isActive: 0 }
+      await db.prisma.$transaction(async (tx) => {
+        // Get all visits for this patient
+        const visits = await tx.visit.findMany({
+          where: { patientId: patientId },
+          select: { id: true }
+        });
+        
+        const visitIds = visits.map(v => v.id);
+        
+        if (visitIds.length > 0) {
+          // Delete visit attachments
+          await tx.visitAttachment.deleteMany({
+            where: { visitId: { in: visitIds } }
+          });
+          
+          // Delete visit status history
+          await tx.visitStatusHistory.deleteMany({
+            where: { visitId: { in: visitIds } }
+          });
+          
+          // Delete diagnoses
+          await tx.diagnosis.deleteMany({
+            where: { visitId: { in: visitIds } }
+          });
+          
+          // Delete pharmacy prescriptions
+          await tx.pharmacyPrescription.deleteMany({
+            where: { visitId: { in: visitIds } }
+          });
+          
+          // Delete lab results
+          await tx.labResult.deleteMany({
+            where: { visitId: { in: visitIds } }
+          });
+          
+          // Delete visits
+          await tx.visit.deleteMany({
+            where: { patientId: patientId }
+          });
+        }
+        
+        // Finally, delete the patient
+        await tx.patient.delete({
+          where: { id: patientId }
+        });
       });
     } else {
-      const { runQuery } = require('../database/db');
-      await runQuery('UPDATE patients SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+      // SQLite fallback - use transactions
+      const { runQuery, allQuery } = require('../database/db');
+      
+      try {
+        // Get all visits for this patient
+        const visits = await allQuery('SELECT id FROM visits WHERE patient_id = ?', [patientId]);
+        const visitIds = visits.map(v => v.id);
+        
+        if (visitIds.length > 0) {
+          const placeholders = visitIds.map(() => '?').join(',');
+          
+          // Delete visit attachments
+          await runQuery(`DELETE FROM visit_attachments WHERE visit_id IN (${placeholders})`, visitIds);
+          
+          // Delete visit status history
+          await runQuery(`DELETE FROM visit_status_history WHERE visit_id IN (${placeholders})`, visitIds);
+          
+          // Delete diagnoses
+          await runQuery(`DELETE FROM diagnoses WHERE visit_id IN (${placeholders})`, visitIds);
+          
+          // Delete pharmacy prescriptions
+          await runQuery(`DELETE FROM pharmacy_prescriptions WHERE visit_id IN (${placeholders})`, visitIds);
+          
+          // Delete lab results
+          await runQuery(`DELETE FROM lab_results WHERE visit_id IN (${placeholders})`, visitIds);
+        }
+        
+        // Delete visits
+        await runQuery('DELETE FROM visits WHERE patient_id = ?', [patientId]);
+        
+        // Finally, delete the patient
+        await runQuery('DELETE FROM patients WHERE id = ?', [patientId]);
+        
+        await logActivity(req.user.id, 'delete_patient', 'patient', req.params.id, `تم حذف المريض وجميع السجلات المرتبطة: ${patient.name}`);
+        res.json({ message: 'تم حذف المريض وجميع السجلات المرتبطة بنجاح' });
+      } catch (error) {
+        console.error('Error deleting patient:', error);
+        res.status(500).json({ error: 'حدث خطأ أثناء حذف المريض' });
+      }
+      
+      return; // Exit early for SQLite
     }
     
-    await logActivity(req.user.id, 'delete_patient', 'patient', req.params.id, `تم إلغاء تفعيل المريض: ${patient.name}`);
-    res.json({ message: 'تم إلغاء تفعيل المريض بنجاح' });
+    await logActivity(req.user.id, 'delete_patient', 'patient', req.params.id, `تم حذف المريض وجميع السجلات المرتبطة: ${patient.name}`);
+    res.json({ message: 'تم حذف المريض وجميع السجلات المرتبطة بنجاح' });
   } catch (error) {
     console.error('Error deleting patient:', error);
     res.status(500).json({ error: 'حدث خطأ أثناء حذف المريض' });
