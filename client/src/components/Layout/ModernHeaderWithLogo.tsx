@@ -78,12 +78,6 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
           </div>
         </div>
         
-        {centerActions && (
-          <div className="modern-header-center">
-            {centerActions}
-          </div>
-        )}
-        
         <div className="modern-header-right">
           {centerActions && (
             <div className="modern-header-center-actions">
