@@ -169,6 +169,7 @@ export const AntdConfig: React.FC<AntdConfigProps> = ({ children }) => {
     <ConfigProvider
       locale={arEG}
       direction="rtl"
+      getPopupContainer={(triggerNode) => triggerNode?.parentElement ?? document.body}
       theme={{
         ...antdTheme,
         algorithm: antdThemeApi.defaultAlgorithm,

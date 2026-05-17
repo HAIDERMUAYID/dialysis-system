@@ -666,7 +666,7 @@ const DialysisDashboard: React.FC = () => {
           <Space wrap align="center">
             <MedicineBoxOutlined style={{ fontSize: 24, color: '#722ed1' }} />
             <Title level={4} style={{ margin: 0 }}>
-              نظام الغسل الكلوي — مسارات متكاملة
+              نظام الغسل الكلوي
             </Title>
             <Text type="secondary" style={{ fontSize: 12 }}>
               نظرة عامة، إعداد القاعات والشفتات والأجهزة والمخزون، التشغيل الميداني والسجل السريري، الملفات، المطابقة

@@ -22,6 +22,16 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = new URL(event.request.url);
 
+  // Never intercept webpack dev server / HMR assets
+  if (
+    reqUrl.pathname.includes('hot-update') ||
+    reqUrl.pathname.startsWith('/sockjs-node') ||
+    reqUrl.pathname.endsWith('.hot-update.js') ||
+    reqUrl.pathname.endsWith('.hot-update.json')
+  ) {
+    return;
+  }
+
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)

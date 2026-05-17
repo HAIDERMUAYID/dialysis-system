@@ -28,6 +28,7 @@ import {
   DeleteOutlined,
   PlusOutlined,
   PrinterOutlined,
+  DownloadOutlined,
   FileExcelOutlined,
   CalendarOutlined,
   TeamOutlined,
@@ -72,6 +73,8 @@ import {
   Area,
 } from 'recharts';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -336,6 +339,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
   const [entryForm] = Form.useForm();
   const [sessionRows, setSessionRows] = useState<SessionReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [reportDateFrom, setReportDateFrom] = useState<Dayjs>(() => dayjs().startOf('month'));
   const [reportDateTo, setReportDateTo] = useState<Dayjs>(() => dayjs().endOf('day'));
   const [filterHall, setFilterHall] = useState<string>('');
@@ -1263,7 +1267,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     </>
   );
 
-  const printReport = () => {
+  const printReport = (openPrintDialog = true) => {
     const printedAt = dayjs().format('YYYY-MM-DD HH:mm');
     const topRowsHtml = topPatients
       .map((r, idx) => `<tr><td>${idx + 1}</td><td>${esc(r.name)}</td><td>${r.count}</td></tr>`)
@@ -1406,9 +1410,40 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .print-signature{display:none}
 .print-footer{display:none}
+.preview-tools{
+  position:sticky;
+  top:0;
+  z-index:9999;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:space-between;
+  margin:0 0 12px;
+  padding:9px 10px;
+  border:1px solid #dbeaf5;
+  border-radius:10px;
+  background:#f8fbff;
+}
+.preview-tools__meta{font-size:11px;color:#334155;font-weight:700}
+.preview-tools__actions{display:flex;gap:6px}
+.preview-tools button{
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#0f172a;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:700;
+}
+.preview-tools button.primary{
+  background:#157c67;
+  border-color:#157c67;
+  color:#fff;
+}
 @media print{
   @page{size:A4;margin:7mm 7mm 18mm 7mm}
   body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .no-print{display:none !important}
   .print-signature{
     display:block;
     position:fixed;
@@ -1439,6 +1474,13 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
   }
 }
 </style></head><body>
+<div class="preview-tools no-print">
+  <div class="preview-tools__meta">وضع المعاينة للطباعة/PDF</div>
+  <div class="preview-tools__actions">
+    <button onclick="window.print()">طباعة / حفظ PDF</button>
+    <button class="primary" onclick="window.close()">رجوع للنظام</button>
+  </div>
+</div>
 <div class="print-signature" aria-hidden="true">
   <svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -1515,7 +1557,59 @@ ${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(() => w.print(), 250);
+    if (openPrintDialog) {
+      setTimeout(() => w.print(), 250);
+    }
+  };
+
+  const downloadReportPdf = async () => {
+    const reportRoot = document.querySelector('.d-report-print') as HTMLElement | null;
+    if (!reportRoot) {
+      message.error('تعذر تحديد محتوى التقرير للتنزيل.');
+      return;
+    }
+
+    setPdfLoading(true);
+    reportRoot.classList.add('d-report-exporting-pdf');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      const canvas = await html2canvas(reportRoot, {
+        scale: Math.min(window.devicePixelRatio || 2, 2.2),
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const imageHeight = (canvas.height * usableWidth) / canvas.width;
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
+
+      let remainingHeight = imageHeight;
+      pdf.addImage(imageData, 'JPEG', margin, margin, usableWidth, imageHeight, undefined, 'FAST');
+      remainingHeight -= usableHeight;
+
+      while (remainingHeight > 0) {
+        pdf.addPage();
+        const offsetY = margin - (imageHeight - remainingHeight);
+        pdf.addImage(imageData, 'JPEG', margin, offsetY, usableWidth, imageHeight, undefined, 'FAST');
+        remainingHeight -= usableHeight;
+      }
+
+      const filename = `dialysis-report-${reportDateFrom.format('YYYYMMDD')}-${reportDateTo.format('YYYYMMDD')}.pdf`;
+      pdf.save(filename);
+      message.success('تم تنزيل PDF بنجاح');
+    } catch (error) {
+      console.error('Dialysis report PDF export failed:', error);
+      message.error('فشل تنزيل PDF. حاول مرة أخرى.');
+    } finally {
+      reportRoot.classList.remove('d-report-exporting-pdf');
+      setPdfLoading(false);
+    }
   };
 
 
@@ -1566,7 +1660,10 @@ ${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (
                           <Button icon={<FileExcelOutlined />} onClick={exportReportExcel}>
                             Excel
                           </Button>
-                          <Button type="primary" ghost icon={<PrinterOutlined />} onClick={printReport}>
+                          <Button icon={<DownloadOutlined />} onClick={downloadReportPdf} loading={pdfLoading}>
+                            PDF
+                          </Button>
+                          <Button type="primary" ghost icon={<PrinterOutlined />} onClick={() => printReport()}>
                             طباعة
                           </Button>
                           <Button onClick={resetReportFilters}>مسح</Button>
@@ -1627,7 +1724,10 @@ ${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (
                     <Button icon={<FileExcelOutlined />} onClick={exportReportExcel}>
                       Excel
                     </Button>
-                    <Button icon={<PrinterOutlined />} onClick={printReport}>
+                    <Button icon={<DownloadOutlined />} onClick={downloadReportPdf} loading={pdfLoading}>
+                      PDF
+                    </Button>
+                    <Button icon={<PrinterOutlined />} onClick={() => printReport()}>
                       طباعة
                     </Button>
                   </div>

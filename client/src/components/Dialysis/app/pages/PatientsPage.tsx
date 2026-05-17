@@ -130,7 +130,7 @@ const PatientsPage: React.FC = () => {
       <div className="d-page-header d-patients-hero">
         <h2>المرضى</h2>
         <Text className="sub">
-          قائمة مرضى وحدة الغسل؛ البحث السريع، وبطاقات تعرض أيام الغسل والمواعيد على الهاتف.
+          قائمة مرضى وحدة الغسل مع عرض أيام الغسل والمواعيد.
         </Text>
       </div>
 

@@ -38,17 +38,17 @@ const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) 
     {
       icon: <TeamOutlined />,
       title: 'إدارة المرضى',
-      description: 'نظام شامل لإدارة بيانات المرضى والسجلات الطبية'
+      description: 'إدارة بيانات المرضى والسجلات الطبية'
     },
     {
       icon: <ExperimentOutlined />,
       title: 'المختبر',
-      description: 'إدارة التحاليل المخبرية والنتائج بشكل احترافي'
+      description: 'إدارة التحاليل المخبرية والنتائج'
     },
     {
       icon: <ShoppingOutlined />,
       title: 'الصيدلية',
-      description: 'نظام متكامل لإدارة الأدوية والوصفات الطبية'
+      description: 'إدارة الأدوية والوصفات الطبية'
     },
     {
       icon: <HeartOutlined />,
@@ -63,7 +63,7 @@ const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) 
     {
       icon: <SecurityScanOutlined />,
       title: 'الأمان والحماية',
-      description: 'نظام آمن ومشفر لحماية البيانات الحساسة'
+      description: 'حماية بيانات المستخدمين'
     }
   ];
 
@@ -161,12 +161,10 @@ const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) 
                   <RocketOutlined />
                 </div>
                 <Title level={4} className="description-title">
-                  نظام إدارة طبي متكامل
+                  نظام إدارة المستشفى
                 </Title>
                 <Paragraph className="description-text">
-                  نظام متطور وشامل لإدارة جميع العمليات الطبية في المستشفى، 
-                  من تسجيل المرضى إلى إدارة التحاليل والصيدلية والتشخيصات الطبية. 
-                  يوفر النظام واجهة سهلة الاستخدام وأمان عالي لحماية البيانات الحساسة.
+                  إدارة بيانات المرضى، التحاليل، الأدوية، والتشخيصات ضمن نظام واحد.
                 </Paragraph>
               </div>
 
@@ -306,7 +304,7 @@ const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) 
                     </div>
                     <div className="security-badge">
                       <MedicineBoxOutlined />
-                      <Text>احترافي</Text>
+                      <Text>طبي</Text>
                     </div>
                   </Space>
                 </div>
@@ -318,7 +316,7 @@ const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) 
                   © 2026 مستشفى الحكيم العام - جميع الحقوق محفوظة
                 </Text>
                 <Text className="footer-version">
-                  نظام إدارة طبي متكامل v2.0
+                  نظام إدارة المستشفى v2.0
                 </Text>
               </div>
             </div>

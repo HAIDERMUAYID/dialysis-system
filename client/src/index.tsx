@@ -21,24 +21,39 @@ const standalone =
 document.documentElement.classList.add('mobile-app-shell');
 if (standalone) document.documentElement.classList.add('is-standalone');
 
-// Configure axios base URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+// Dev: relative /api → CRA dev server (setupProxy.js) → backend :5001
+// Prod: same origin unless REACT_APP_API_URL is set (e.g. Render)
+const API_URL =
+  process.env.REACT_APP_API_URL ??
+  (process.env.NODE_ENV === 'production' ? '' : '');
 axios.defaults.baseURL = API_URL;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 console.log('API Base URL:', API_URL);
 
-// Register Service Worker for PWA
+// PWA service worker — production only (in dev it breaks HMR and causes reload loops)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then((registration) => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch((error) => {
-        console.log('Service Worker registration failed:', error);
+  if (process.env.NODE_ENV === 'production') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration);
+        })
+        .catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+    });
+  } else {
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        void registration.unregister();
       });
-  });
+    });
+    if ('caches' in window) {
+      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+    }
+  }
 }
 
 const root = ReactDOM.createRoot(

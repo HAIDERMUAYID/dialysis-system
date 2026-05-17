@@ -286,6 +286,39 @@
   .ant-picker {
     min-height: 46px;
   }
+
+  /* ثبات أعلى على الهاتف: نمنع حركة الحقول عند التركيز */
+  .ant-input:focus,
+  .ant-input-focused,
+  .ant-input-number-focused,
+  .ant-select-focused .ant-select-selector,
+  .ant-picker-focused,
+  .ant-input-affix-wrapper-focused {
+    transform: none !important;
+  }
+
+  /* قوائم التاريخ/الاختيار: تمرير داخلي بدون شد الصفحة كاملة */
+  .ant-select-dropdown,
+  .ant-picker-dropdown,
+  .ant-cascader-dropdown {
+    max-height: min(52vh, 420px);
+    max-width: calc(100vw - 14px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .ant-picker-panel-container,
+  .ant-select-dropdown .rc-virtual-list,
+  .ant-cascader-dropdown .rc-virtual-list {
+    max-height: min(48vh, 360px) !important;
+  }
+
+  /* عند فتح قائمة إدخال على الهاتف نثبّت تمرير الخلفية */
+  html.mobile-app-shell body.mobile-overlay-open {
+    overflow: hidden;
+    touch-action: none;
+  }
 }
 
 /* ===== Animations for Modals ===== */

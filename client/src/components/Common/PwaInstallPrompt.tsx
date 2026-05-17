@@ -101,7 +101,7 @@ const PwaInstallPrompt: React.FC = () => {
             في iPhone: اضغط زر المشاركة <ShareAltOutlined /> ثم اختر "Add to Home Screen".
           </span>
         ) : (
-          <span>ثبّت D-IRS للوصول السريع، شاشة كاملة، وتجربة مشابهة لتطبيق الموبايل.</span>
+          <span>ثبّت D-IRS للوصول المباشر من شاشة الهاتف وتشغيله بملء الشاشة.</span>
         )}
       </div>
       {!isIosHint && (

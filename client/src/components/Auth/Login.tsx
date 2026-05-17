@@ -75,7 +75,7 @@ const Login: React.FC = () => {
               color="blue" 
               style={{ marginTop: '12px' }}
             >
-              نظام إدارة طبي متكامل
+              نظام إدارة المستشفى
             </Tag>
           </div>
 
@@ -213,7 +213,7 @@ const Login: React.FC = () => {
 
           <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              نظام آمن ومشفر • جميع الحقوق محفوظة © 2024
+              جميع الحقوق محفوظة © 2024
             </Text>
           </div>
         </Card>

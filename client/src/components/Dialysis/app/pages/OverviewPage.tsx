@@ -95,7 +95,7 @@ const OverviewPage: React.FC = () => {
     <Spin spinning={loading}>
       <div className="d-page-header">
         <h2>نظرة عامة</h2>
-        <Text className="sub">حركة وحدة الغسل الكلوي اللحظية وتحديث تلقائي كل 30 ثانية.</Text>
+        <Text className="sub">ملخص بيانات وحدة الغسل الكلوي. يتم تحديث البيانات كل 30 ثانية.</Text>
       </div>
 
       <div className="d-stat-grid">

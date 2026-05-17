@@ -79,7 +79,7 @@ const LivePage: React.FC = () => {
     <>
       <div className="d-page-header">
         <h2>القاعة الآن</h2>
-        <Text className="sub">جلسات قيد التشغيل — تحديث تلقائي كل 15 ثانية.</Text>
+        <Text className="sub">جلسات قيد التشغيل. يتم تحديث البيانات كل 15 ثانية.</Text>
       </div>
 
       <div className="d-toolbar">

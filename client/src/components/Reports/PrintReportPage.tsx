@@ -4,7 +4,9 @@ import { Button, Spin, message } from 'antd';
 import { PrinterOutlined, ArrowLeftOutlined, DownloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { formatBaghdadDate, formatBaghdadTime } from '../../utils/dayjs-config';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { formatBaghdadDate } from '../../utils/dayjs-config';
 import { PatientFullReport } from '../../types';
 import './PrintReportPage.css';
 
@@ -13,6 +15,7 @@ const PrintReportPage: React.FC = () => {
   const navigate = useNavigate();
   const [report, setReport] = useState<PatientFullReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
   useEffect(() => {
     if (patientId) {
@@ -37,17 +40,61 @@ const PrintReportPage: React.FC = () => {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/');
+  };
+
+  const handleDownloadPDF = async () => {
     if (!patientId) return;
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-      message.error('يجب تسجيل الدخول أولاً');
-      navigate('/login');
+    const reportElement = document.querySelector('.print-content') as HTMLElement | null;
+    if (!reportElement) {
+      message.error('تعذر تجهيز محتوى التقرير للتصدير.');
       return;
     }
 
-    window.open(`/api/medical-reports/patient/${patientId}/pdf`, '_blank');
+    setPdfExporting(true);
+    try {
+      const canvas = await html2canvas(reportElement, {
+        scale: Math.min(window.devicePixelRatio || 2, 2.4),
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const imageHeight = (canvas.height * usableWidth) / canvas.width;
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
+
+      let remainingHeight = imageHeight;
+      let positionY = margin;
+      pdf.addImage(imageData, 'JPEG', margin, positionY, usableWidth, imageHeight, undefined, 'FAST');
+      remainingHeight -= usableHeight;
+
+      while (remainingHeight > 0) {
+        pdf.addPage();
+        positionY = margin - (imageHeight - remainingHeight);
+        pdf.addImage(imageData, 'JPEG', margin, positionY, usableWidth, imageHeight, undefined, 'FAST');
+        remainingHeight -= usableHeight;
+      }
+
+      const timestamp = dayjs().format('YYYY-MM-DD-HH-mm');
+      pdf.save(`patient-report-${patientId}-${timestamp}.pdf`);
+      message.success('تم تنزيل ملف PDF بنجاح');
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      message.error('فشل تصدير PDF، حاول مرة أخرى.');
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   if (loading) {
@@ -62,7 +109,7 @@ const PrintReportPage: React.FC = () => {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
         <p>لا توجد بيانات متاحة</p>
-        <Button onClick={() => navigate(-1)}>العودة</Button>
+        <Button onClick={handleBack}>العودة</Button>
       </div>
     );
   }
@@ -78,7 +125,7 @@ const PrintReportPage: React.FC = () => {
         <div className="controls-content">
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="control-btn back-btn"
           >
             العودة
@@ -96,12 +143,24 @@ const PrintReportPage: React.FC = () => {
             type="default"
             icon={<DownloadOutlined />}
             onClick={handleDownloadPDF}
+            loading={pdfExporting}
             size="large"
             className="control-btn download-btn"
           >
             تحميل PDF
           </Button>
         </div>
+      </div>
+      <div className="mobile-quick-actions no-print">
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack} className="mobile-quick-btn">
+          رجوع للنظام
+        </Button>
+        <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} className="mobile-quick-btn">
+          طباعة
+        </Button>
+        <Button icon={<DownloadOutlined />} onClick={handleDownloadPDF} loading={pdfExporting} className="mobile-quick-btn">
+          PDF
+        </Button>
       </div>
 
       {/* Report Content */}

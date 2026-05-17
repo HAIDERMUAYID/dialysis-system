@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AntdConfig } from './config/antd.config';
 import Login from './components/Auth/LoginModern';
@@ -73,6 +73,54 @@ const AppRoutes: React.FC = () => {
 
   // Global keyboard shortcuts
   useGlobalShortcuts();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (!isMobileViewport && !isTouchDevice) return;
+
+    const applyMobileInputSafety = (root: ParentNode) => {
+      const pickerInputs = root.querySelectorAll<HTMLInputElement>('.ant-picker-input > input');
+      pickerInputs.forEach((input) => {
+        input.readOnly = true;
+        input.setAttribute('inputmode', 'none');
+        input.setAttribute('autocomplete', 'off');
+      });
+
+      const selectNodes = root.querySelectorAll<HTMLElement>('.ant-select');
+      selectNodes.forEach((node) => {
+        const input = node.querySelector<HTMLInputElement>('.ant-select-selection-search-input');
+        if (!input) return;
+        const allowSearch = node.classList.contains('ant-select-show-search');
+        input.readOnly = !allowSearch;
+        if (!allowSearch) {
+          input.setAttribute('inputmode', 'none');
+        }
+      });
+    };
+
+    const syncOverlayScrollLock = () => {
+      const hasOpenOverlay = Boolean(
+        document.querySelector(
+          '.ant-select-dropdown:not(.ant-select-dropdown-hidden), .ant-picker-dropdown:not(.ant-picker-dropdown-hidden), .ant-cascader-dropdown:not(.ant-cascader-dropdown-hidden)'
+        )
+      );
+      document.body.classList.toggle('mobile-overlay-open', hasOpenOverlay);
+    };
+
+    applyMobileInputSafety(document);
+    syncOverlayScrollLock();
+    const observer = new MutationObserver(() => {
+      applyMobileInputSafety(document);
+      syncOverlayScrollLock();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove('mobile-overlay-open');
+    };
+  }, []);
 
   return (
     <>

@@ -3,6 +3,12 @@
   padding: 12px;
 }
 
+.d-report-exporting-pdf .d-report-mobile-sticky,
+.d-report-exporting-pdf .d-toolbar,
+.d-report-exporting-pdf .d-report-filters-drawer {
+  display: none !important;
+}
+
 .d-report-page--mobile .d-page-header {
   margin-bottom: 12px;
 }
@@ -44,7 +50,7 @@
 .d-report-mobile-actions .d-report-mobile-actions__wide {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 

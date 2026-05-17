@@ -92,6 +92,10 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
+.mobile-quick-actions {
+  display: none;
+}
+
 /* ===== Header - Official Design ===== */
 .report-header {
   text-align: center;
@@ -1415,6 +1419,10 @@
 }
 
 @media (max-width: 768px) {
+  .print-report-container {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
   .print-content {
     padding: 20px 24px;
   }
@@ -1426,6 +1434,29 @@
 
   .control-btn {
     width: 100%;
+  }
+
+  .mobile-quick-actions {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 1400;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    background: rgba(248, 250, 252, 0.96);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  }
+
+  .mobile-quick-btn {
+    min-height: 42px;
+    font-weight: 700;
+    font-size: 12px;
   }
 
   .ministry-name {
