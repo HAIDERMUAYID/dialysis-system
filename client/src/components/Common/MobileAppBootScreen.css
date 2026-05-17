@@ -16,6 +16,27 @@
   padding: 24px 18px;
   text-align: center;
   animation: bootCardLift 240ms ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-app-boot__card::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    rgba(21, 124, 103, 0.06),
+    rgba(14, 165, 233, 0.05),
+    rgba(21, 124, 103, 0.06)
+  );
+  animation: bootAuraSpin 6s linear infinite;
+  pointer-events: none;
+}
+
+.mobile-app-boot__card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .mobile-app-boot__logo {
@@ -54,6 +75,8 @@
   border-radius: inherit;
   background: linear-gradient(90deg, #157c67, #0ea5e9);
   transition: width 280ms ease;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes bootCardLift {
@@ -74,5 +97,19 @@
   }
   50% {
     transform: scale(1.04);
+  }
+}
+
+@keyframes bootAuraSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-app-boot__card,
+  .mobile-app-boot__card::after,
+  .mobile-app-boot__logo {
+    animation: none !important;
   }
 }

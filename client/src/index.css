@@ -133,6 +133,25 @@ html.is-standalone body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* تجربة كتابة موبايل أفضل: ثبات التكبير وحركة لوحة المفاتيح */
+@media (max-width: 768px) {
+  html.mobile-app-shell,
+  html.mobile-app-shell body {
+    height: 100%;
+  }
+
+  html.mobile-app-shell body {
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html.mobile-app-shell input,
+  html.mobile-app-shell textarea,
+  html.mobile-app-shell select {
+    font-size: 16px;
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 10px;

@@ -25,6 +25,7 @@
   background: rgba(21, 124, 103, 0.28);
   color: #86efac;
   font-size: 16px;
+  animation: pwaIconGlow 2s ease-in-out infinite;
 }
 
 .pwa-install-prompt__content {
@@ -46,6 +47,14 @@
   line-height: 1.35;
 }
 
+.pwa-install-prompt .ant-btn-primary {
+  box-shadow: 0 6px 16px rgba(21, 124, 103, 0.34);
+}
+
+.pwa-install-prompt .ant-btn:active {
+  transform: scale(0.96);
+}
+
 @keyframes pwaPromptRise {
   from {
     opacity: 0;
@@ -57,9 +66,29 @@
   }
 }
 
+@keyframes pwaIconGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(134, 239, 172, 0);
+  }
+}
+
 @media (min-width: 900px) {
   .pwa-install-prompt {
     inset-inline: auto 18px;
     max-width: 460px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pwa-install-prompt,
+  .pwa-install-prompt__icon,
+  .pwa-install-prompt .ant-btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }
