@@ -163,6 +163,17 @@
   border-color: var(--border-hover) !important;
 }
 
+/* نص القيمة المعروضة داخل Select — بدونه يبقى بلون الغامق فوق الخلفية الداكنة */
+.dark-mode .ant-select-selection-item,
+.dark-mode .ant-select-selection-placeholder,
+.dark-mode .ant-select-selection-search-input {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode .ant-select-arrow {
+  color: var(--text-secondary) !important;
+}
+
 /* ===== Buttons ===== */
 .dark-mode .ant-btn-default {
   background: var(--bg-elevated) !important;
@@ -383,11 +394,8 @@
 }
 
 /* ===== Tags & Badges ===== */
-.dark-mode .ant-tag {
-  background: var(--bg-elevated) !important;
-  border-color: var(--border) !important;
-  color: var(--text-primary) !important;
-}
+/* لا تُستخدم هنا !important على كل .ant-tag — كان يغلب ألوان المكون ومع darkAlgorithm يظهر سواد/أقراص فارغة.
+   Tag الافتراضية: defaultBg / defaultColor في AntdConfig. الوسوم الملوّنة تحتفظ بأنماط Ant Design. */
 
 .dark-mode .ant-badge-count {
   background: var(--error) !important;

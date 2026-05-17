@@ -362,6 +362,14 @@ const DoctorDashboardModern: React.FC = () => {
         centerActions={
           <>
             <button
+              type="button"
+              className="modern-header-action-btn"
+              onClick={() => navigate('/dialysis')}
+            >
+              <MedicineBoxOutlined />
+              <span>الغسل الكلوي</span>
+            </button>
+            <button
               className="modern-header-action-btn"
               onClick={() => setFullReportSearchVisible(true)}
             >

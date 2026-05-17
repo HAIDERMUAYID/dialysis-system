@@ -9,10 +9,10 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Strict rate limiter for auth endpoints
+// Strict rate limiter for POST /login only (see routes/auth.js). Do not mount on all /api/auth — GET /me 401s would count.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login requests per windowMs
+  max: 20, // failed login attempts per IP per window (successful logins are skipped below)
   message: 'تم تجاوز الحد المسموح من محاولات تسجيل الدخول. يرجى المحاولة بعد 15 دقيقة.',
   skipSuccessfulRequests: true,
   standardHeaders: true,

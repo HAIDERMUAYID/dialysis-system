@@ -3,7 +3,7 @@
  * يدعم التخزين المؤقت والوضع غير المتصل
  */
 
-const CACHE_NAME = 'al-hakeem-hospital-v1';
+const CACHE_NAME = 'al-hakeem-hospital-v2';
 const urlsToCache = [
   '/',
   '/static/css/main.css',
@@ -44,19 +44,27 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event — للمسارات (SPA): الشبكة أولاً ثم الصفحة الرئيسية من الكاش؛ للثابتات: كاش ثم شبكة
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // If both fail, return offline page
-        if (event.request.destination === 'document') {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.ok) return response;
           return caches.match('/');
-        }
-      })
+        })
+        .catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    }).catch(() => {
+      if (event.request.destination === 'document') {
+        return caches.match('/');
+      }
+    })
   );
 });

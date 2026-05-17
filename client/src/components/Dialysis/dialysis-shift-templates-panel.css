@@ -1,0 +1,135 @@
+/* شفتات الغسل — جوال ببطاقات، مكتب بجدول */
+
+.d-shift-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.d-shift-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.d-shift-toolbar__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark-mode .d-shift-toolbar__title {
+  color: #f1f5f9;
+}
+
+.d-shift-help {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.dark-mode .d-shift-help {
+  color: #94a3b8;
+}
+
+.d-shift-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-shift-card {
+  text-align: start;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  padding: 14px 16px;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+}
+
+.dark-mode .d-shift-card {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.d-shift-card__week {
+  margin-bottom: 8px;
+}
+
+.d-shift-card__name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.dark-mode .d-shift-card__name {
+  color: #f1f5f9;
+}
+
+.d-shift-card__time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0d9488;
+  margin-bottom: 6px;
+}
+
+.dark-mode .d-shift-card__time {
+  color: #5eead4;
+}
+
+.d-shift-card__meta {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.dark-mode .d-shift-card__meta {
+  color: #94a3b8;
+}
+
+.d-shift-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.dark-mode .d-shift-card__actions {
+  border-top-color: rgba(148, 163, 184, 0.2);
+}
+
+.d-shift-card__actions .ant-btn {
+  flex: 1 1 auto;
+  min-width: min(100%, 120px);
+}
+
+.d-shift-table-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.d-shift-table-wrap .ant-table {
+  width: 100%;
+}
+
+@media (max-width: 991px) {
+  .d-shift-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-shift-toolbar .ant-btn {
+    width: 100%;
+  }
+}

@@ -1,0 +1,1364 @@
+/* السجل الطبي — وحدة الغسل D-IRS (تصميم محسّن) */
+
+.d-medical-record {
+  --med-accent: #4f46e5;
+  --med-accent-soft: #e0e7ff;
+  --med-surface: #ffffff;
+  --med-muted: #64748b;
+  --med-text: #0f172a;
+  --med-radius: 16px;
+  --med-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 12px 28px -8px rgba(15, 23, 42, 0.08);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 14px 36px;
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(99, 102, 241, 0.09), transparent 55%),
+    linear-gradient(165deg, #f1f5f9 0%, #f8fafc 38%, #eef2ff 100%);
+  border-radius: 0 0 22px 22px;
+}
+
+/* عناوين أقسام الطباعة — مخفية على الشاشة */
+.d-print-section-heading {
+  display: none;
+}
+
+.d-print-section-note {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.d-medical-tab-panel {
+  min-width: 0;
+}
+
+/* ——— لوحات المحتوى ——— */
+.d-medical-panel {
+  background: var(--med-surface);
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: var(--med-shadow);
+  padding: 18px 20px 20px;
+  margin-bottom: 4px;
+}
+
+.d-medical-panel .d-medical-section-title:first-child {
+  margin-top: 0;
+}
+
+.d-medical-panel--flush {
+  padding: 14px 16px;
+}
+
+.d-medical-panel .ant-descriptions-bordered .ant-descriptions-view {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.d-medical-desc.ant-descriptions-bordered .ant-descriptions-item-label {
+  background: #f8fafc !important;
+  font-weight: 600;
+  color: #475569 !important;
+}
+
+.d-medical-desc.ant-descriptions-bordered .ant-descriptions-item-content {
+  color: var(--med-text) !important;
+}
+
+/* ——— بطاقة الترويسة ——— */
+.d-medical-hero {
+  position: relative;
+  border-radius: var(--med-radius);
+  padding: 26px 28px;
+  margin-bottom: 22px;
+  background:
+    linear-gradient(145deg, #3730a3 0%, #5b21b6 42%, #7c3aed 85%, #a78bfa 120%);
+  color: #fff;
+  box-shadow:
+    0 4px 6px rgba(30, 27, 75, 0.15),
+    0 20px 50px -12px rgba(76, 29, 149, 0.45);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.d-medical-hero-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.d-medical-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 100% 0%, rgba(255, 255, 255, 0.2), transparent 52%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, rgba(167, 139, 250, 0.35), transparent 45%);
+  pointer-events: none;
+}
+
+.d-medical-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.d-medical-hero-main {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.d-medical-hero-eyebrow {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.d-medical-avatar.ant-avatar {
+  flex-shrink: 0;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.d-medical-hero-titles h1 {
+  margin: 0 0 10px;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.2;
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.d-medical-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.d-medical-hero-meta .ant-tag {
+  margin-inline-end: 0;
+  border: none;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 8px;
+}
+
+/* الجنس — بدون الخلفية الداكنة الافتراضية لـ Tag */
+.d-medical-hero-gender-tag.ant-tag {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #4338ca !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+.d-medical-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.d-medical-hero-actions .ant-btn-default {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #312e81;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.d-medical-hero-actions .ant-btn-primary {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.d-medical-hero-actions .ant-btn-primary:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* ——— بطاقات المؤشرات ——— */
+.d-medical-kpi-row {
+  margin-bottom: 20px;
+}
+
+.d-medical-kpi-card.ant-card {
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.d-medical-kpi-card.ant-card::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+
+.d-medical-kpi-card--a.ant-card::before {
+  background: linear-gradient(180deg, #6366f1, #4f46e5);
+}
+
+.d-medical-kpi-card--b.ant-card::before {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+}
+
+.d-medical-kpi-card--c.ant-card::before {
+  background: linear-gradient(180deg, #14b8a6, #0d9488);
+}
+
+.d-medical-kpi-card--d.ant-card::before {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+
+.d-medical-kpi-card--e.ant-card::before {
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
+}
+
+.d-medical-kpi-card--f.ant-card::before {
+  background: linear-gradient(180deg, #157c67, #0f766e);
+}
+
+/* ——— غلاف الملف (شاشة + طباعة) ——— */
+.d-medical-dossier-cover {
+  position: relative;
+  margin-bottom: 22px;
+  border-radius: var(--med-radius);
+  overflow: hidden;
+  border: 1px solid rgba(21, 124, 103, 0.35);
+  box-shadow: var(--med-shadow);
+  background: #fff;
+}
+
+.d-medical-dossier-cover-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 280px at 100% -40%, rgba(21, 124, 103, 0.12), transparent 55%),
+    radial-gradient(700px 240px at 0% 100%, rgba(79, 70, 229, 0.08), transparent 50%),
+    linear-gradient(180deg, #f0fdf9 0%, #fff 55%);
+  pointer-events: none;
+}
+
+.d-medical-dossier-cover-stripe {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #157c67, #4f46e5, #157c67);
+}
+
+.d-medical-dossier-cover-inner {
+  position: relative;
+  z-index: 1;
+  padding: 22px 24px 24px;
+}
+
+.d-medical-dossier-cover-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.d-medical-dossier-cover-ministry {
+  font-size: 12px;
+  font-weight: 800;
+  color: #157c67;
+  letter-spacing: 0.02em;
+}
+
+.d-medical-dossier-cover-system {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0c4a6e;
+}
+
+.d-medical-dossier-cover-title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.d-medical-dossier-cover-sub {
+  margin: 0 0 16px;
+  max-width: 52rem;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.d-medical-dossier-cover-patient {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ecfdf5, #f5f3ff);
+  border: 1px solid rgba(21, 124, 103, 0.2);
+}
+
+.d-medical-dossier-cover-patient-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.d-medical-dossier-cover-patient-name {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #134e4a;
+}
+
+.d-medical-dossier-cover-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.d-medical-dossier-cover-meta dt {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.d-medical-dossier-cover-meta dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ——— خط زمني للجلسات (موبايل) ——— */
+.d-dossier-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.d-dossier-timeline-card {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+.d-dossier-timeline-rail {
+  position: relative;
+  width: 18px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.d-dossier-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #6366f1, #4f46e5);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.d-dossier-timeline-line {
+  flex: 1;
+  width: 2px;
+  margin-top: 4px;
+  background: linear-gradient(180deg, #c7d2fe, #e2e8f0);
+  min-height: 24px;
+}
+
+.d-dossier-timeline-body {
+  flex: 1;
+  min-width: 0;
+  background: var(--med-surface);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+.d-dossier-timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.d-dossier-timeline-head time {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--med-text);
+}
+
+.d-dossier-timeline-shift {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--med-muted);
+}
+
+.d-dossier-timeline-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 0 0 10px;
+}
+
+.d-dossier-timeline-metrics dt {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.d-dossier-timeline-metrics dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--med-text);
+}
+
+.d-dossier-timeline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.d-dossier-session-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.d-dossier-session-detail-block {
+  margin-bottom: 10px;
+}
+
+.d-dossier-session-detail-block h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #4338ca;
+}
+
+.d-dossier-treatment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.d-dossier-treatment-list li {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.d-dossier-treatment-list li strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.d-dossier-treatment-instr {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.d-dossier-session-notes {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.d-dossier-treatment-kpis {
+  margin-bottom: 14px;
+}
+
+.d-medical-print-table .ant-table-expanded-row > td {
+  background: #f8fafc !important;
+}
+
+.d-medical-kpi-card.ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.15);
+}
+
+.d-medical-kpi-card .ant-card-body {
+  padding: 16px 18px;
+}
+
+.d-medical-kpi-card .ant-statistic-title {
+  color: var(--med-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.d-medical-kpi-card .ant-statistic-content-value {
+  font-weight: 800;
+  color: var(--med-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.d-medical-kpi-card .ant-statistic-prefix {
+  margin-inline-end: 8px;
+  color: var(--med-accent);
+  opacity: 0.85;
+}
+
+/* ——— التبويبات ——— */
+.d-medical-tabs.ant-tabs-card > .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.d-medical-tabs.ant-tabs-card > .ant-tabs-nav::before {
+  border-bottom-color: transparent;
+}
+
+.d-medical-tabs.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  border-radius: 12px 12px 0 0;
+  margin: 0 0 0 8px !important;
+  padding: 10px 16px !important;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.d-medical-tabs.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: #c7d2fe !important;
+  border-bottom-color: #fff !important;
+  color: #3730a3 !important;
+}
+
+.d-medical-tabs .ant-tabs-content-holder {
+  background: var(--med-surface);
+  border: 1px solid #e2e8f0;
+  border-radius: 0 14px 14px 14px;
+  padding: 20px;
+  box-shadow: var(--med-shadow);
+}
+
+/* ——— عناوين الأقسام ——— */
+.d-medical-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding-inline-start: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+.d-medical-section-title::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.12em;
+  bottom: 0.12em;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 55%, #c4b5fd 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.d-medical-section-title--spaced {
+  margin-top: 22px;
+}
+
+/* ——— مخطط النشاط ——— */
+.d-medical-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 128px;
+  padding: 14px 10px 0;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.d-medical-chart-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.d-medical-chart-bar {
+  width: 100%;
+  max-width: 40px;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #a78bfa 0%, #6d28d9 55%, #5b21b6 100%);
+  min-height: 5px;
+  transition: height 0.25s ease;
+  box-shadow: 0 -2px 12px rgba(91, 33, 182, 0.25);
+}
+
+.d-medical-chart-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.d-medical-notes-box {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* ========= هاتف وتابلت ضيق (يتوافق مع useDialysisMobile ≤991px) ========= */
+
+.d-medical-record--mobile {
+  padding: 8px 8px 28px;
+  min-width: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+.d-medical-record--mobile .d-medical-panel {
+  padding: 14px 14px 16px;
+  border-radius: 12px;
+}
+
+.d-medical-record--mobile .d-medical-hero-eyebrow {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+.d-medical-hero--mobile {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+}
+
+.d-medical-record--mobile .d-medical-hero-inner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.d-medical-record--mobile .d-medical-hero-main {
+  gap: 12px;
+  min-width: 0;
+}
+
+.d-medical-record--mobile .d-medical-hero-titles {
+  min-width: 0;
+}
+
+.d-medical-record--mobile .d-medical-hero-titles h1 {
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+
+.d-medical-record--mobile .d-medical-hero-meta {
+  gap: 6px;
+}
+
+.d-medical-record--mobile .d-medical-hero-meta .ant-tag {
+  margin-inline-end: 0;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.d-medical-record--mobile .d-medical-hero-actions {
+  width: 100% !important;
+}
+
+.d-medical-record--mobile .d-medical-hero-actions.ant-space-vertical {
+  width: 100%;
+}
+
+.d-medical-record--mobile .d-medical-hero-actions .ant-btn {
+  min-height: 42px;
+  font-size: 14px;
+}
+
+.d-medical-record--mobile .d-medical-kpi-card .ant-statistic-title {
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.d-medical-record--mobile .d-medical-kpi-card .ant-statistic-content {
+  font-size: 18px;
+}
+
+.d-medical-tabs--mobile .ant-tabs-content-holder {
+  padding: 12px;
+  border-radius: 0 10px 10px 10px;
+}
+
+.d-medical-tabs--mobile.ant-tabs-card > .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.d-medical-tabs--mobile .ant-tabs-nav-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+}
+
+.d-medical-tabs--mobile .ant-tabs-nav-list {
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.d-medical-tabs--mobile.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  padding: 6px 10px;
+  font-size: 12px;
+  margin: 0 0 0 6px;
+  white-space: nowrap;
+}
+
+.d-medical-tabs--mobile .ant-tabs-tab .anticon {
+  margin-inline-end: 4px;
+}
+
+.d-medical-record--mobile .d-medical-section-title {
+  font-size: 14px;
+}
+
+.d-medical-record--mobile .d-medical-tab-panel {
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.d-medical-record--mobile .ant-table-wrapper {
+  min-width: 0;
+}
+
+.d-medical-record--mobile .d-medical-chart {
+  height: 100px;
+  padding: 8px 4px 0;
+  gap: 4px;
+}
+
+.d-medical-record--mobile .d-medical-chart-label {
+  font-size: 9px;
+}
+
+/* ========= طباعة ========= */
+
+.d-print-only {
+  display: none !important;
+}
+
+@media print {
+  /* صفحة عمودية — تنظيم هيكلي من الأعلى للأسفل */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 16mm;
+  }
+
+  html,
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .d-print-only {
+    display: block !important;
+  }
+
+  /* إخفاء غلاف التطبيق والعناصر العائمة */
+  .d-app-sider,
+  .d-bottom-nav,
+  .d-app-header,
+  .no-print,
+  .ant-modal-root,
+  .ant-drawer,
+  .ant-message,
+  .ant-notification,
+  .ant-float-btn,
+  .ant-back-top {
+    display: none !important;
+  }
+
+  .d-app-content {
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    max-width: none !important;
+  }
+
+  .d-app-content.has-bottom-nav {
+    padding-bottom: 0 !important;
+  }
+
+  .d-app-body.ant-layout {
+    margin: 0 !important;
+  }
+
+  .d-medical-dossier-cover {
+    page-break-after: avoid;
+    break-after: avoid-page;
+    margin-bottom: 14px;
+    border-width: 1.5px;
+  }
+
+  .d-medical-dossier-cover-inner {
+    padding: 14px 16px;
+  }
+
+  .d-medical-dossier-cover-title {
+    font-size: 14pt;
+  }
+
+  .d-dossier-timeline-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ترويسة تقرير الطباعة */
+  .d-medical-print-banner {
+    position: relative;
+    margin-bottom: 16px;
+    padding: 0;
+    border: 2px solid #1e293b;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    page-break-after: avoid;
+    break-after: avoid-page;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+
+  .d-medical-print-banner-accent {
+    height: 6px;
+    background: linear-gradient(90deg, #312e81 0%, #5b21b6 35%, #6366f1 65%, #a78bfa 100%);
+  }
+
+  .d-medical-print-banner-brand {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 16px 10px;
+    background: linear-gradient(180deg, #f0fdf9 0%, #fff 100%);
+    border-bottom: 1px solid #a7f3d0;
+  }
+
+  .d-medical-print-banner-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 9pt;
+    color: #334155;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .d-medical-print-banner-ministry {
+    font-size: 8pt;
+    font-weight: 800;
+    color: #157c67;
+  }
+
+  .d-medical-print-banner-title {
+    padding: 12px 16px 4px;
+    font-size: 17pt;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+
+  .d-medical-print-banner-sub {
+    padding: 0 16px 12px;
+    font-size: 9.5pt;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .d-medical-print-banner-meta {
+    display: block;
+    margin: 0;
+    padding: 8px 16px 12px;
+  }
+
+  .d-medical-print-banner-meta > div {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    align-items: start;
+    font-size: 9.5pt;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    page-break-inside: avoid;
+  }
+
+  .d-medical-print-banner-meta > div:last-child {
+    border-bottom: none;
+  }
+
+  .d-medical-print-banner-meta dt {
+    margin: 0;
+    font-weight: 800;
+    color: #475569;
+    white-space: nowrap;
+  }
+
+  .d-medical-print-banner-meta dd {
+    margin: 0;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+  }
+
+  .d-medical-print-footer {
+    margin-top: 20px;
+    padding-top: 12px;
+    page-break-inside: avoid;
+  }
+
+  .d-medical-print-footer-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #cbd5e1 15%, #cbd5e1 85%, transparent);
+    margin-bottom: 10px;
+  }
+
+  .d-medical-print-footer-main {
+    margin: 0 0 6px;
+    font-size: 8.5pt;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  .d-medical-print-footer-note {
+    margin: 0;
+    font-size: 8pt;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+
+  /* البطاقة البنفسجية — وضوح على الورق والأبيض والأسود */
+  .d-medical-hero-grid {
+    display: none !important;
+  }
+
+  .d-medical-hero {
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    box-shadow: none;
+    border: 2px solid #4338ca;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  }
+
+  .d-medical-hero-inner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .d-medical-hero-main {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+
+  .d-medical-hero::after {
+    display: none;
+  }
+
+  .d-medical-hero-eyebrow {
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .d-medical-avatar.ant-avatar {
+    width: 56px !important;
+    height: 56px !important;
+    line-height: 56px !important;
+    border-width: 2px;
+    flex-shrink: 0;
+  }
+
+  .d-medical-hero-titles h1 {
+    font-size: 16pt;
+    margin-bottom: 6px !important;
+  }
+
+  .d-medical-hero-meta {
+    gap: 6px !important;
+  }
+
+  /* KPI — عمودي: بطاقة تحت الأخرى */
+  .d-medical-kpi-row.ant-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .d-medical-kpi-row .ant-col {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .d-medical-kpi-row {
+    margin-bottom: 14px;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .d-medical-kpi-card.ant-card {
+    box-shadow: none;
+    border: 1px solid #cbd5e1;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .d-medical-kpi-card .ant-card-body {
+    padding: 10px 14px !important;
+  }
+
+  .d-medical-kpi-card .ant-statistic-title {
+    font-size: 9pt !important;
+    margin-bottom: 4px !important;
+  }
+
+  .d-medical-kpi-card .ant-statistic-content-value {
+    font-size: 15pt !important;
+  }
+
+  .d-medical-kpi-card .ant-statistic-prefix {
+    display: none !important;
+  }
+
+  /* صفوف التخطيط داخل الملخص — عمود واحد */
+  .d-medical-print-root .d-medical-tab-panel > .ant-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .d-medical-print-root .d-medical-tab-panel > .ant-row > .ant-col {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* التبويبات: إخفاء الشريط وعرض كل اللوحات */
+  .d-medical-print-root .ant-tabs-nav {
+    display: none !important;
+  }
+
+  .d-medical-print-root .ant-tabs-content-holder {
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .d-medical-print-root .ant-tabs-content {
+    height: auto !important;
+  }
+
+  .d-medical-print-root .ant-tabs-tabpane {
+    padding: 0 !important;
+  }
+
+  .d-medical-print-root .ant-tabs-tabpane.ant-tabs-tabpane-hidden {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* فصل بصري بين الأقسام المطبوعة */
+  .d-medical-print-root .ant-tabs-tabpane {
+    margin-bottom: 18px;
+    padding-bottom: 14px !important;
+    border-bottom: 1px solid #e2e8f0;
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  .d-medical-print-root .ant-tabs-tabpane:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0 !important;
+  }
+
+  .d-print-section-heading {
+    display: block !important;
+    margin: 16px 0 10px;
+    padding: 0 0 8px;
+    font-size: 12pt;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 2px solid #334155;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .d-medical-print-root .ant-tabs-tabpane:first-child .d-print-section-heading {
+    margin-top: 0;
+  }
+
+  /* الرسم الشهري يستهلك مساحة؛ إخفاؤه في الطباعة مع الإبقاء على الأرقام في الملخص */
+  .d-print-hide-chart,
+  .d-print-hide-chart-title {
+    display: none !important;
+  }
+
+  /* ملخص حالة الجلسات السطر */
+  .d-medical-tab-panel > .ant-typography-secondary {
+    font-size: 9pt;
+    color: #475569 !important;
+  }
+
+  /* الجداول */
+  .d-medical-print-table.ant-table-wrapper {
+    margin-bottom: 0;
+  }
+
+  .d-medical-print-table .ant-table {
+    font-size: 6.5pt;
+    color: #1e293b;
+    table-layout: auto !important;
+    width: 100% !important;
+  }
+
+  .d-medical-print-table colgroup col {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .d-medical-print-table th.ant-table-cell,
+  .d-medical-print-table td.ant-table-cell {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .d-medical-print-table .ant-table-wrapper,
+  .d-medical-print-table .ant-spin-nested-loading,
+  .d-medical-print-table .ant-spin-container,
+  .d-medical-print-table .ant-table,
+  .d-medical-print-table .ant-table-container,
+  .d-medical-print-table .ant-table-content,
+  .d-medical-print-table .ant-table-body,
+  .d-medical-print-table .ant-table-body-outer,
+  .d-medical-print-table .ant-table-header {
+    overflow: visible !important;
+  }
+
+  .d-medical-print-table .ant-table-thead > tr > th,
+  .d-medical-print-table .ant-table-tbody > tr > td {
+    white-space: normal !important;
+    word-break: break-word;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .d-medical-print-table .ant-table-container {
+    border: 1px solid #94a3b8 !important;
+    border-radius: 6px;
+  }
+
+  .d-medical-print-table .ant-table-thead > tr > th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 700;
+    padding: 3px 5px !important;
+    border-color: #94a3b8 !important;
+    font-size: 6.5pt !important;
+    line-height: 1.25 !important;
+  }
+
+  .d-medical-print-table .ant-table-tbody > tr > td {
+    padding: 3px 5px !important;
+    border-color: #cbd5e1 !important;
+    font-size: 6.5pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .d-medical-print-table .ant-table-pagination {
+    display: none !important;
+  }
+
+  .d-medical-print-table .ant-pagination {
+    display: none !important;
+  }
+
+  /* تجنّب قطع الجداول الواسعة بشكل سيء */
+  .d-medical-print-table .ant-table-wrapper {
+    page-break-inside: auto;
+  }
+
+  .d-medical-print-table thead {
+    display: table-header-group;
+  }
+
+  .d-medical-print-table .ant-tag {
+    margin: 0 !important;
+    font-size: 7pt !important;
+    line-height: 1.25 !important;
+    padding: 0 5px !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .d-medical-print-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Descriptions */
+  .d-medical-tab-panel .ant-descriptions-bordered .ant-descriptions-item-label {
+    background: #f8fafc !important;
+    font-weight: 600;
+    color: #334155 !important;
+    width: 28%;
+    font-size: 9pt;
+  }
+
+  .d-medical-tab-panel .ant-descriptions-bordered .ant-descriptions-item-content {
+    font-size: 9.5pt;
+    color: #0f172a !important;
+  }
+
+  .d-medical-tab-panel .ant-descriptions-bordered .ant-descriptions-row > th,
+  .d-medical-tab-panel .ant-descriptions-bordered .ant-descriptions-row > td {
+    border-color: #cbd5e1 !important;
+    padding: 6px 10px !important;
+  }
+
+  /* الفيروسات والـ Empty */
+  .d-medical-tab-panel .ant-empty {
+    margin: 8px 0;
+  }
+
+  .d-medical-notes-box {
+    border: 1px solid #ca8a04;
+    background: #fffbeb;
+    font-size: 9.5pt;
+  }
+
+  /* Spin */
+  .d-medical-spin-wrap .ant-spin-blur {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  .d-medical-spin-wrap .ant-spin-spinning::after {
+    display: none !important;
+  }
+
+  /* العلامات — حدود أوضح */
+  .d-medical-hero .ant-tag {
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .d-medical-hero-gender-tag.ant-tag {
+    background: rgba(255, 255, 255, 0.96) !important;
+    color: #4338ca !important;
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .d-medical-record {
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    background: #fff !important;
+    border-radius: 0 !important;
+  }
+
+  .d-medical-panel {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 12px 14px !important;
+    margin-bottom: 10px !important;
+    background: #fff !important;
+  }
+
+  .d-medical-section-title::before {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

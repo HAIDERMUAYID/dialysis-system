@@ -5,8 +5,10 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:alt": "concurrently \"npm run server\" \"npm run client:3001\"",
     "server": "nodemon server/index.js",
     "client": "cd client && npm start",
+    "client:3001": "cd client && PORT=3001 npm start",
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install",
     "start": "node server/index.js",
@@ -19,6 +21,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
+    "dialysis:smoke": "node scripts/dialysis-smoke.js",
     "postinstall": "npx prisma generate"
   },
   "keywords": ["hospital", "management", "system"],

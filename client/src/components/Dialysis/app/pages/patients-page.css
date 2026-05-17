@@ -1,0 +1,179 @@
+/* قائمة مرضى الغسل — بطاقات جوال */
+
+/* عرض كامل داخل منطقة المحتوى — كان 900px يترك فراغاً كبيراً على الشاشات العريضة */
+.d-patients-page {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 992px) {
+  .d-patients-page .d-toolbar-input-grow {
+    max-width: min(560px, 100%);
+  }
+}
+
+.d-patients-page .d-toolbar--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.d-patients-page .d-toolbar--stack .d-toolbar-input-grow,
+.d-patients-page .d-toolbar--stack .ant-btn {
+  width: 100%;
+}
+
+.d-patients-hero {
+  margin-bottom: 16px;
+}
+
+.d-patients-hero h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-weight: 800;
+}
+
+.d-patients-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-patient-card {
+  text-align: start;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(15, 23, 42, 0.06);
+  padding: 14px 16px;
+  transition: box-shadow 0.2s ease, border-color 0.2s;
+}
+
+.d-patient-card:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+}
+
+.dark-mode .d-patient-card {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.d-patient-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.d-patient-card-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.dark-mode .d-patient-card-name {
+  color: #f1f5f9;
+}
+
+.d-patient-card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.d-patient-card-meta dt {
+  margin: 0;
+  color: var(--text-secondary, #64748b);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.d-patient-card-meta dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  color: var(--text-primary, #334155);
+}
+
+.dark-mode .d-patient-card-meta dd {
+  color: #e2e8f0;
+}
+
+.d-patient-card-schedule {
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.d-patient-card-schedule-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.dark-mode .d-patient-card-schedule-title {
+  color: #94a3b8;
+}
+
+.d-patient-card-schedule-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.d-patient-card-schedule-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.12), rgba(99, 102, 241, 0.1));
+  border: 1px solid rgba(13, 148, 136, 0.22);
+  color: #0f766e;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.dark-mode .d-patient-card-schedule-chip {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.28);
+  color: #5eead4;
+}
+
+.d-patient-card-schedule-empty {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.d-patient-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.dark-mode .d-patient-card-actions {
+  border-top-color: rgba(148, 163, 184, 0.2);
+}
+
+.d-patient-card-actions .ant-btn {
+  border-radius: 10px;
+  flex: 1 1 auto;
+  min-width: min(100%, 140px);
+}
+
+.d-patients-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}

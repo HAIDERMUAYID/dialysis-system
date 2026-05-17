@@ -1,6 +1,7 @@
 import React from 'react';
-import { ConfigProvider, ThemeConfig } from 'antd';
+import { ConfigProvider, ThemeConfig, theme as antdThemeApi } from 'antd';
 import arEG from 'antd/locale/ar_EG';
+import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -94,10 +95,11 @@ export const antdTheme: ThemeConfig = {
     },
     Table: {
       borderRadius: 16,
-      headerBg: '#f8fafc',
-      headerColor: '#0f172a',
-      headerSortHoverBg: '#f1f5f9',
-      rowHoverBg: '#f8fafc',
+      // يجب أن تتبع متغيرات الوضع الفاتح/الداكن — القيم الثابتة كانت تسبب نصاً غامقاً على خلفية داكنة
+      headerBg: 'var(--bg-tertiary-light, #f1f5f9)',
+      headerColor: 'var(--text-primary-light, #0f172a)',
+      headerSortHoverBg: 'var(--bg-secondary-light, #f1f5f9)',
+      rowHoverBg: 'var(--bg-secondary-light, #f8fafc)',
     },
     Input: {
       borderRadius: 10,
@@ -158,11 +160,28 @@ interface AntdConfigProps {
 }
 
 export const AntdConfig: React.FC<AntdConfigProps> = ({ children }) => {
+  const { theme: colorMode } = useTheme();
+  const isDark = colorMode === 'dark';
+
+  /** يمنع خلفية Tag الافتراضية من أن تصبح شبه سوداء (FastColor.onBackground + darkAlgorithm على بعض المتصفحات/ RTL). */
+  const tagSafeTokens = {
+    ...(antdTheme.components?.Tag ?? {}),
+    defaultBg: isDark ? 'rgba(167, 139, 250, 0.2)' : 'rgba(102, 126, 234, 0.14)',
+    defaultColor: isDark ? '#f5f3ff' : '#4338ca',
+  };
+
   return (
     <ConfigProvider
       locale={arEG}
-      theme={antdTheme}
       direction="rtl"
+      theme={{
+        ...antdTheme,
+        algorithm: isDark ? antdThemeApi.darkAlgorithm : antdThemeApi.defaultAlgorithm,
+        components: {
+          ...antdTheme.components,
+          Tag: tagSafeTokens,
+        },
+      }}
     >
       {children}
     </ConfigProvider>

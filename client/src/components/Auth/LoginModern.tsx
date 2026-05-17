@@ -16,11 +16,17 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
+import { resolveAppHomeRoute } from '../../utils/appHomeRoute';
 import './LoginModern.css';
 
 const { Title, Text, Paragraph } = Typography;
 
-const LoginModern: React.FC = () => {
+export interface LoginModernProps {
+  /** بعد نجاح الدخول: الانتقال مباشرة (مثلاً `/dialysis` لوحدة الغسيل فقط) */
+  redirectAfterLogin?: string | null;
+}
+
+const LoginModern: React.FC<LoginModernProps> = ({ redirectAfterLogin = null }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login, user } = useAuth();
@@ -73,32 +79,11 @@ const LoginModern: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(values.username, values.password);
-      
-      // Get dashboard route based on user role
-      const getDashboardRoute = (role: string): string => {
-        switch (role) {
-          case 'admin':
-            return '/admin';
-          case 'inquiry':
-            return '/inquiry';
-          case 'lab':
-          case 'lab_manager':
-            return '/lab';
-          case 'pharmacist':
-          case 'pharmacy_manager':
-            return '/pharmacist';
-          case 'doctor':
-            return '/doctor';
-          default:
-            return '/login';
-        }
-      };
+      const loggedIn = await login(values.username, values.password);
+      const home = redirectAfterLogin || resolveAppHomeRoute(loggedIn);
 
-      // Wait a bit for state to update, then navigate
       setTimeout(() => {
-        // Navigate to root, which will redirect based on user state
-        navigate('/', { replace: true });
+        navigate(home, { replace: true });
       }, 100);
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول. تحقق من بيانات الاعتماد');

@@ -214,13 +214,13 @@
 }
 
 /* ===== Tags in Modal ===== */
+/* تجنّب border: none مع خلفية Tag الافتراضية — كان يظهر ككتلة داكنة على Safari/iOS. الألوان من AntdConfig (Tag defaultBg/defaultColor). */
 .ant-modal .ant-tag {
   border-radius: var(--radius-full);
   padding: var(--space-1) var(--space-3);
   font-weight: var(--font-semibold);
   font-size: var(--text-xs);
-  border: none;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 /* ===== Empty States in Modal ===== */

@@ -1,0 +1,808 @@
+/* =========================================================
+   D-IRS — App shell styling
+   - Sidebar (desktop) + drawer (mobile) + bottom navigation bar
+   - Mobile-first touch targets, safe area aware
+   ========================================================= */
+
+.d-app-root {
+  min-height: 100vh;
+  background: #f5f7fb;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* يمنع التمرير الأفقي على مستوى الصفحة أثناء استخدام وحدة الغسل */
+html.d-app-html,
+body.d-app-body-lock {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.d-app-root.ant-layout {
+  min-width: 0;
+}
+
+.d-app-body.ant-layout {
+  min-width: 0 !important;
+  flex: 1;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.d-app-sider {
+  border-inline-end: 1px solid #eef0f4;
+  background: #fff !important;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.d-app-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+}
+
+.d-app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+  border-bottom: 1px solid #d1fae5;
+  background: linear-gradient(135deg, #157c67 0%, #28b2e1 55%, #0d9488 100%);
+  color: #fff;
+}
+
+.d-brand-icon {
+  font-size: 28px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.d-brand-text { line-height: 1.2; }
+.d-brand-title { font-weight: 700; font-size: 18px; }
+.d-brand-sub { font-size: 12px; opacity: 0.85; }
+
+.d-app-menu.ant-menu {
+  border-inline-end: 0;
+  padding: 8px 0;
+  flex: 1;
+}
+
+.d-app-menu .ant-menu-item-group-title {
+  padding-inline-start: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 12px;
+}
+
+.d-app-menu .ant-menu-item {
+  margin: 4px 12px;
+  border-radius: 10px;
+  height: 44px;
+  line-height: 44px;
+}
+
+.d-app-menu .ant-menu-item-selected {
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%) !important;
+  color: #fff !important;
+}
+
+.d-app-menu .ant-menu-item-selected .anticon {
+  color: #fff !important;
+}
+
+/* Header */
+.d-app-body {
+  background: transparent;
+}
+
+.d-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff !important;
+  border-bottom: 1px solid #eef0f4;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 8px 16px;
+  min-height: 60px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.d-app-header--mobile {
+  padding: 8px 10px;
+}
+
+.d-app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.d-app-header-row--main {
+  min-height: 44px;
+}
+
+.d-app-header-row--bar {
+  padding-top: 6px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.d-app-hospital-select {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.d-app-header-actions {
+  flex-shrink: 0;
+}
+
+.d-app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.d-app-page-title {
+  font-size: 16px;
+  margin-inline-start: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-app-user-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Content */
+.d-app-content {
+  padding: 20px 24px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.d-app-content.has-bottom-nav {
+  padding: 14px 12px calc(76px + env(safe-area-inset-bottom));
+}
+
+.d-empty {
+  background: #fff;
+  border: 1px dashed #d8def0;
+  border-radius: 16px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+/* =========================================================
+   Mobile bottom navigation
+   ========================================================= */
+.d-bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.d-bottom-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  font-size: 11px;
+  color: #6b7280;
+  background: transparent;
+  border: 0;
+  text-decoration: none;
+  min-height: 56px;
+  cursor: pointer;
+}
+
+.d-bottom-item.active {
+  color: #6c5ce7;
+}
+
+.d-bottom-icon {
+  font-size: 20px;
+}
+
+.d-bottom-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Page-level helpers (cards, page header)
+   ========================================================= */
+.d-report-scope-banner {
+  margin-bottom: 16px;
+  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, #f0fdf9 0%, #fff 55%, #f8fafc 100%);
+  border-radius: 14px;
+}
+
+.d-report-scope-banner__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.d-report-scope-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-report-scope-banner__ministry {
+  font-size: 11px;
+  font-weight: 700;
+  color: #157c67 !important;
+}
+
+.d-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.d-page-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.d-page-header .sub {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.d-card {
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+}
+
+.d-card + .d-card {
+  margin-top: 16px;
+}
+
+.d-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.d-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.d-stat {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.d-stat-info { display: flex; flex-direction: column; gap: 4px; }
+.d-stat-label { color: #6b7280; font-size: 12px; }
+.d-stat-value { font-size: 22px; font-weight: 700; color: #111827; }
+
+.d-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+}
+
+.d-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.d-toolbar .grow { flex: 1; min-width: 0; }
+
+.d-toolbar-input-grow {
+  max-width: 360px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* تبويبات — تمرير أفقي عند الضيق بدل قص العناوين */
+.d-tabs-responsive .ant-tabs-nav {
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+}
+.d-tabs-responsive .ant-tabs-nav::before,
+.d-tabs-responsive .ant-tabs-nav::after { display: none; }
+.d-tabs-responsive .ant-tabs-tab { flex-shrink: 0; }
+
+/* بطاقات Ant داخل وحدة الغسل: عنوان + إجراءات لا تخرج عن الشاشة */
+.d-app-content .ant-card .ant-card-head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.d-app-content .ant-card .ant-card-head-title {
+  min-width: 0;
+}
+@media (max-width: 576px) {
+  .d-app-content .ant-card .ant-card-extra {
+    width: 100%;
+    margin-inline-start: 0 !important;
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  .d-app-content .ant-card .ant-card-extra .ant-select {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+}
+
+/* صف أدوات عمودي على الشاشات الصغيرة جداً */
+@media (max-width: 576px) {
+  .d-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .d-toolbar .grow {
+    width: 100%;
+    flex: none;
+  }
+  .d-toolbar-input-grow {
+    max-width: none !important;
+    width: 100%;
+  }
+}
+
+/* صفوف نظرة عامة / قائمة جلسات نشطة */
+.d-active-summary-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.d-active-summary-row > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* نموذج إضافة استهلاك داخل درج الجلسة — حقول بعرض الشاشة على الهاتف */
+.d-cons-add-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+@media (max-width: 576px) {
+  .d-cons-add-stack .ant-select,
+  .d-cons-add-stack .ant-input-number {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .d-cons-add-stack .ant-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .d-app-header { padding: 8px 10px; }
+  .d-app-page-title { font-size: 14px; }
+  .d-card { padding: 14px; border-radius: 12px; }
+  .d-page-header h2 { font-size: 18px; }
+  .d-app-content {
+    padding: 14px 12px;
+  }
+  .d-app-content.has-bottom-nav {
+    padding: 12px 10px calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
+/* جداول Ant Design — لا تُقطع على الهاتف */
+.d-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.d-table-scroll .ant-table {
+  min-width: 520px;
+}
+
+/* جداول ضيقة على الهاتف عندما لا حاجة لعرض ثابت كبير */
+.d-table-scroll--compact .ant-table {
+  min-width: 420px;
+}
+
+@media (max-width: 768px) {
+  .d-table-scroll .d-sessions-table-mobile .ant-table {
+    min-width: 420px;
+  }
+
+  .d-table-scroll .d-sessions-table-mobile .ant-btn {
+    padding-inline: 8px;
+  }
+
+  .d-session-mobile-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .d-session-mobile-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .d-session-mobile-created-by {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(148, 163, 184, 0.35);
+  }
+}
+
+/* تبويبات صفحة إدارة الوصول */
+.d-access-tabs .ant-tabs-nav {
+  margin-bottom: 12px;
+}
+
+/* وسيم نوع الإجراء بجانب المعرّف التقني — span وليس ant Tag لتفادي سواد الرصاص من الخوارزمية الداكنة */
+.d-access-perm-hint {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  font-weight: 600;
+  background: rgba(102, 126, 234, 0.14);
+  color: #4338ca;
+  border: 1px solid rgba(102, 126, 234, 0.28);
+  vertical-align: middle;
+}
+
+.dark-mode .d-access-perm-hint {
+  background: rgba(167, 139, 250, 0.22);
+  color: #f5f3ff;
+  border-color: rgba(196, 181, 253, 0.45);
+}
+
+/* إدارة الوصول (وجداول D-IRS): preset Tag + darkAlgorithm يعطي أحياناً نصاً داكناً على خلفية داكنة = «كتل سوداء» */
+.d-access-tag {
+  margin-inline-end: 0;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.d-access-tag--hospital {
+  background: rgba(6, 182, 212, 0.12);
+  color: #0e7490;
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+.d-access-tag--perm-role {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.d-access-tag--perm-direct {
+  background: rgba(139, 92, 246, 0.14);
+  color: #5b21b6;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.d-access-tag--ok {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.d-access-tag--muted {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* خصوصية أعلى من `.dark-mode .ant-tag` في dark-mode.css */
+.dark-mode .ant-tag.d-access-tag--hospital {
+  background: rgba(6, 182, 212, 0.22) !important;
+  color: #a5f3fc !important;
+  border-color: rgba(34, 211, 238, 0.4) !important;
+}
+
+.dark-mode .ant-tag.d-access-tag--perm-role {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #bfdbfe !important;
+  border-color: rgba(96, 165, 250, 0.45) !important;
+}
+
+.dark-mode .ant-tag.d-access-tag--perm-direct {
+  background: rgba(139, 92, 246, 0.3) !important;
+  color: #ddd6fe !important;
+  border-color: rgba(167, 139, 250, 0.5) !important;
+}
+
+.dark-mode .ant-tag.d-access-tag--ok {
+  background: rgba(34, 197, 94, 0.22) !important;
+  color: #bbf7d0 !important;
+  border-color: rgba(74, 222, 128, 0.45) !important;
+}
+
+.dark-mode .ant-tag.d-access-tag--muted {
+  background: rgba(148, 163, 184, 0.2) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+/* وسيم يوم الأسبوع في الجداول — Tag بلون صريح يضمن ظهور النص مع أي ثيم */
+.d-table-scroll .d-weekday-tag.ant-tag {
+  margin-inline-end: 0;
+}
+
+[data-theme='dark'] .d-table-scroll .d-weekday-tag.ant-tag-blue {
+  background: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+/* Dark mode (optional — picks up parent color-scheme attribute) */
+[data-theme='dark'] .d-app-root { background: #0f172a; }
+[data-theme='dark'] .d-app-header,
+[data-theme='dark'] .d-app-sider,
+[data-theme='dark'] .d-card,
+[data-theme='dark'] .d-bottom-nav,
+[data-theme='dark'] .d-stat {
+  background: #111827;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+[data-theme='dark'] .d-stat-value { color: #f3f4f6; }
+[data-theme='dark'] .d-stat-label,
+[data-theme='dark'] .d-bottom-item { color: #94a3b8; }
+[data-theme='dark'] .d-app-menu .ant-menu-item { color: #cbd5e1; }
+
+/* ——— تقارير الغسل: لوحة حديثة ——— */
+.d-report-dashboard {
+  margin-top: 4px;
+}
+
+.d-report-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 22px;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.11) 0%,
+    rgba(139, 92, 246, 0.08) 45%,
+    rgba(20, 184, 166, 0.09) 100%
+  );
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+}
+
+.d-report-hero-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.d-report-hero-progress {
+  flex: 0 1 280px;
+  min-width: 200px;
+}
+
+.d-report-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.d-report-kpi-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 22px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.d-report-kpi-card::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  background: var(--accent, #6366f1);
+}
+
+.d-report-kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent, #6366f1);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.d-report-kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.d-report-kpi-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.d-report-chart-card.ant-card {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.d-report-chart-card .ant-card-head {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  min-height: 44px;
+}
+
+.d-report-chart-card .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.d-report-user-cell {
+  font-weight: 600;
+  color: #334155;
+  font-size: 13px;
+}
+
+.dark-mode .d-report-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.15) 0%,
+    rgba(139, 92, 246, 0.1) 50%,
+    rgba(20, 184, 166, 0.12) 100%
+  );
+  border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: none;
+}
+
+.dark-mode .d-report-kpi-card {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.15);
+  box-shadow: none;
+}
+
+.dark-mode .d-report-kpi-value {
+  color: #f1f5f9;
+}
+
+.dark-mode .d-report-kpi-label {
+  color: #94a3b8;
+}
+
+.dark-mode .d-report-kpi-icon {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.dark-mode .d-report-chart-card.ant-card {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+.dark-mode .d-report-chart-card .ant-card-head-title {
+  color: #e2e8f0;
+}
+
+.dark-mode .d-report-user-cell {
+  color: #cbd5e1;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  /* تقارير الغسل + السجل الطبي للمريض — استثناء من إخفاء الطباعة العام */
+  .d-report-print,
+  .d-report-print *,
+  .d-medical-print-root,
+  .d-medical-print-root * {
+    visibility: visible !important;
+  }
+  .d-report-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: #fff;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .d-medical-print-root {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    color: #0f172a;
+  }
+}

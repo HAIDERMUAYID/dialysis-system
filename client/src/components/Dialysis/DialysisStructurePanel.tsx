@@ -1,0 +1,212 @@
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Table, Button, Modal, Form, InputNumber, Input, message, Typography, Empty, Spin } from 'antd';
+import { PlusOutlined, ApartmentOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import { useDialysisMobile } from './app/useDialysisMobile';
+import './dialysis-structure-panel.css';
+
+const { Text } = Typography;
+
+interface LocationRow {
+  id: number;
+  hallName: string;
+  bedCode: string;
+  displayOrder: number;
+}
+
+interface Props {
+  hospitalId: number | null;
+  canManage: boolean;
+}
+
+const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
+  const [locations, setLocations] = useState<LocationRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hallModalOpen, setHallModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const isMobile = useDialysisMobile();
+
+  const load = useCallback(async () => {
+    if (!hospitalId) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.get<LocationRow[]>('/api/dialysis/locations', {
+        params: { hospital_id: hospitalId },
+      });
+      setLocations(data);
+    } catch {
+      message.error('تعذر تحميل قائمة القاعات. تأكد من الاتصال ثم أعد فتح هذه الصفحة.');
+    } finally {
+      setLoading(false);
+    }
+  }, [hospitalId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const grouped = useMemo(() => {
+    const m = new Map<string, LocationRow[]>();
+    for (const loc of locations) {
+      const arr = m.get(loc.hallName) ?? [];
+      arr.push(loc);
+      m.set(loc.hallName, arr);
+    }
+    return Array.from(m.entries()).map(([hallName, beds]) => ({
+      hallName,
+      beds: beds.sort((a, b) => a.displayOrder - b.displayOrder || a.bedCode.localeCompare(b.bedCode)),
+      count: beds.length,
+    }));
+  }, [locations]);
+
+  const submitHall = async (values: { hall_name: string; bed_count: number }) => {
+    if (!hospitalId) return;
+    const n = Math.min(80, Math.max(1, values.bed_count));
+    const locationsPayload = Array.from({ length: n }, (_, i) => ({
+      hall_name: values.hall_name.trim(),
+      bed_code: String(i + 1),
+      display_order: i + 1,
+    }));
+    try {
+      await axios.post('/api/dialysis/locations/bulk', {
+        hospital_id: hospitalId,
+        locations: locationsPayload,
+      });
+      message.success(`تمت إضافة القاعة مع ${n} سريراً بأرقام متتابعة.`);
+      setHallModalOpen(false);
+      form.resetFields();
+      load();
+    } catch {
+      message.error('لم يتم حفظ القاعة. حاول مرة أخرى أو راجع الصلاحيات.');
+    }
+  };
+
+  if (!hospitalId) {
+    return (
+      <div className="d-structure-panel">
+        <Text type="secondary">اختر المستشفى من أعلى الشاشة لعرض قاعاته وأسرته.</Text>
+      </div>
+    );
+  }
+
+  const tableColumns = [
+    { title: 'اسم القاعة', dataIndex: 'hallName', key: 'h', ellipsis: true },
+    {
+      title: 'عدد الأسرة',
+      dataIndex: 'count',
+      key: 'c',
+      width: 110,
+      align: 'right' as const,
+    },
+    {
+      title: 'أرقام الأسرة',
+      key: 'beds',
+      ellipsis: false,
+      render: (_: unknown, r: (typeof grouped)[0]) => (
+        <span style={{ fontSize: 13, lineHeight: 1.6, wordBreak: 'break-word' }}>
+          {r.beds.map((b) => b.bedCode).join('، ')}
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="d-structure-panel">
+      <div className="d-structure-toolbar">
+        <h3 className="d-structure-toolbar__title">
+          <ApartmentOutlined aria-hidden />
+          قاعات الغسل والأسرة
+        </h3>
+        {canManage ? (
+          <Button type="primary" icon={<PlusOutlined />} size={isMobile ? 'large' : 'middle'} onClick={() => setHallModalOpen(true)}>
+            إضافة قاعة وأسرة
+          </Button>
+        ) : null}
+      </div>
+
+      <Text type="secondary" className="d-structure-help">
+        كل قاعة تظهر مع عدد أسرتها وأرقامها. عند إضافة قاعة جديدة تُدخل اسم القاعة وعدد الأسرة؛ يُرتّب
+        النظام أرقام الأسرة تلقائياً (١، ٢، ٣…) لتسهيل الجدولة لاحقاً.
+      </Text>
+
+      {isMobile ? (
+        <div className="d-structure-cards">
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+              <Spin size="large" />
+              <div style={{ marginTop: 12 }}>
+                <Text type="secondary">جاري التحميل…</Text>
+              </div>
+            </div>
+          ) : grouped.length === 0 ? (
+            <Empty description="لا توجد قاعات مسجّلة بعد. يمكن إضافة أول قاعة من الزر أعلاه إن وُجدت صلاحية التعديل." />
+          ) : (
+            grouped.map((g) => (
+              <article key={g.hallName} className="d-structure-hall-card">
+                <div className="d-structure-hall-card__name">{g.hallName}</div>
+                <div className="d-structure-hall-card__count">
+                  {g.count} {g.count === 1 ? 'سرير' : 'أسرة'}
+                </div>
+                <div className="d-structure-hall-card__label">أرقام الأسرة</div>
+                <div className="d-structure-bed-chips">
+                  {g.beds.map((b) => (
+                    <span key={b.id} className="d-structure-bed-chip">
+                      {b.bedCode}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="d-structure-table-wrap d-table-scroll d-table-scroll--compact">
+          <Table
+            loading={loading}
+            rowKey={(r) => r.hallName}
+            pagination={false}
+            dataSource={grouped}
+            columns={tableColumns}
+            locale={{
+              emptyText: (
+                <Empty description="لا توجد قاعات مسجّلة بعد. استخدم «إضافة قاعة وأسرة» لبدء التهيئة." />
+              ),
+            }}
+          />
+        </div>
+      )}
+
+      <Modal
+        title="إضافة قاعة جديدة"
+        open={hallModalOpen}
+        onCancel={() => setHallModalOpen(false)}
+        footer={null}
+        destroyOnClose
+        width={isMobile ? 'calc(100vw - 24px)' : 440}
+        centered
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          أدخل اسم القاعة كما تود ظهوره في الجداول والشاشات، ثم عدد الأسرة المراد إنشاؤها دفعة واحدة.
+        </Text>
+        <Form form={form} layout="vertical" onFinish={submitHall}>
+          <Form.Item name="hall_name" label="اسم القاعة" rules={[{ required: true, message: 'يرجى إدخال اسم القاعة' }]}>
+            <Input placeholder="مثال: القاعة أ — الطابق الأول" size="large" />
+          </Form.Item>
+          <Form.Item
+            name="bed_count"
+            label="عدد الأسرة في هذه القاعة"
+            rules={[{ required: true, message: 'يرجى تحديد العدد' }]}
+            initialValue={5}
+          >
+            <InputNumber min={1} max={80} style={{ width: '100%' }} size="large" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block size="large">
+            حفظ وإنشاء الأسرة
+          </Button>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default DialysisStructurePanel;

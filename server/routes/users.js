@@ -191,6 +191,28 @@ router.post('/', authenticateToken, requireRole('admin'), activityLogger('create
         }
       });
       result = { lastID: newUser.id };
+
+      if (role === 'dialysis_staff') {
+        const viewPerm = await db.prisma.permission.findUnique({
+          where: { name: 'dialysis:view' },
+        });
+        if (viewPerm) {
+          await db.prisma.userPermission.upsert({
+            where: {
+              userId_permissionId: {
+                userId: newUser.id,
+                permissionId: viewPerm.id,
+              },
+            },
+            create: {
+              userId: newUser.id,
+              permissionId: viewPerm.id,
+              grantedById: req.user.id,
+            },
+            update: {},
+          });
+        }
+      }
     } else {
       const { runQuery } = require('../database/db');
       result = await runQuery(

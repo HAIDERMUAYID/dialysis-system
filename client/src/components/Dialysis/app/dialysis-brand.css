@@ -1,0 +1,82 @@
+/* شعار وزارة الصحة — حركة خفيفة في واجهة الغسل */
+@keyframes d-brand-logo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes d-brand-logo-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(21, 124, 103, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(21, 124, 103, 0);
+  }
+}
+
+.d-brand-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.d-brand-logo__ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  animation: d-brand-logo-glow 2.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.d-brand-logo__img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  object-fit: contain;
+  animation: d-brand-logo-pulse 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.12));
+}
+
+.d-brand-logo--sm .d-brand-logo__img {
+  width: 32px;
+  height: 32px;
+}
+
+.d-brand-logo--md .d-brand-logo__img {
+  width: 44px;
+  height: 44px;
+}
+
+.d-brand-logo--lg .d-brand-logo__img {
+  width: 56px;
+  height: 56px;
+}
+
+.d-brand-logo--xl .d-brand-logo__img {
+  width: 72px;
+  height: 72px;
+}
+
+.d-app-brand .d-brand-logo {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.d-app-header-logo {
+  margin-inline-end: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-brand-logo__img,
+  .d-brand-logo__ring {
+    animation: none;
+  }
+}

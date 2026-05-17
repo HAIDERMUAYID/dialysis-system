@@ -1,0 +1,621 @@
+/* ============================================================
+   صيدلية الغسل — تصميم تجربة مستخدم حديثة + جوال (app-like)
+   ============================================================ */
+
+.d-pharmacy-page {
+  --ph-accent: #0d9488;
+  --ph-accent-2: #14b8a6;
+  --ph-accent-soft: rgba(13, 148, 136, 0.12);
+  --ph-surface: #ffffff;
+  --ph-surface-2: #f8fafc;
+  --ph-border: rgba(15, 23, 42, 0.08);
+  --ph-text: #0f172a;
+  --ph-muted: #64748b;
+  --ph-radius-lg: 18px;
+  --ph-radius-md: 14px;
+  --ph-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --ph-shadow-hover: 0 12px 40px rgba(15, 23, 42, 0.1);
+  --ph-safe-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: calc(12px + var(--ph-safe-bottom));
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.d-pharmacy-page.d-pharmacy-page--pick-hospital {
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
+}
+
+.dark-mode .d-pharmacy-page {
+  --ph-surface: rgba(30, 41, 59, 0.85);
+  --ph-surface-2: rgba(15, 23, 42, 0.65);
+  --ph-border: rgba(148, 163, 184, 0.15);
+  --ph-text: #f1f5f9;
+  --ph-muted: #94a3b8;
+  --ph-accent-soft: rgba(45, 212, 191, 0.15);
+  --ph-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --ph-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* ----- Hero ----- */
+.d-ph-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--ph-radius-lg);
+  padding: 22px 22px 26px;
+  margin-bottom: 18px;
+  background: linear-gradient(
+    135deg,
+    #0f766e 0%,
+    #0d9488 38%,
+    #2dd4bf 100%
+  );
+  color: #fff;
+  box-shadow: var(--ph-shadow);
+}
+
+.d-ph-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 100% 0%,
+    rgba(255, 255, 255, 0.22),
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
+.d-ph-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.d-ph-hero-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.25;
+}
+
+.d-ph-hero-title .anticon {
+  font-size: 1.5rem;
+  opacity: 0.95;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.d-ph-hero-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  opacity: 0.92;
+  max-width: 52ch;
+}
+
+/* ----- Warehouse banner ----- */
+.d-ph-warehouse-banner.ant-alert {
+  border-radius: var(--ph-radius-md);
+  border: 1px solid var(--ph-border);
+  background: var(--ph-surface) !important;
+  box-shadow: var(--ph-shadow);
+}
+
+.d-ph-warehouse-banner .ant-alert-message {
+  color: var(--ph-text);
+  font-weight: 600;
+}
+
+.dark-mode .d-ph-warehouse-banner.ant-alert {
+  background: var(--ph-surface-2) !important;
+}
+
+/* ----- KPI rail (horizontal scroll on narrow) ----- */
+.d-ph-kpi-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 18px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.d-ph-kpi-scroll .d-stat {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  min-width: min(160px, 78vw);
+}
+
+@media (min-width: 992px) {
+  .d-ph-kpi-scroll {
+    display: contents;
+  }
+
+  .d-ph-kpi-scroll .d-stat {
+    min-width: 0;
+    flex: unset;
+  }
+}
+
+.d-pharmacy-page .d-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 991px) {
+  .d-pharmacy-page .d-ph-kpi-scroll-wrap .d-stat-grid {
+    display: none;
+  }
+}
+
+@media (min-width: 992px) {
+  .d-pharmacy-page .d-ph-kpi-scroll-wrap .d-ph-kpi-scroll {
+    display: none;
+  }
+}
+
+.d-pharmacy-page .d-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--ph-radius-md);
+  background: var(--ph-surface);
+  border: 1px solid var(--ph-border);
+  box-shadow: var(--ph-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.d-pharmacy-page .d-stat:active {
+  transform: scale(0.98);
+}
+
+.d-pharmacy-page .d-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.d-pharmacy-page .d-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ph-muted);
+  letter-spacing: 0.02em;
+}
+
+.d-pharmacy-page .d-stat-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--ph-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.d-pharmacy-page .d-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* ----- Intake chips card ----- */
+.d-ph-intake-card {
+  border-radius: var(--ph-radius-md);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--ph-surface);
+  border: 1px solid var(--ph-border);
+  box-shadow: var(--ph-shadow);
+}
+
+/* ----- Main panel ----- */
+.d-ph-main-panel {
+  border-radius: var(--ph-radius-lg);
+  border: 1px solid var(--ph-border);
+  background: var(--ph-surface);
+  box-shadow: var(--ph-shadow);
+  padding: 16px;
+  overflow: hidden;
+}
+
+@media (max-width: 991px) {
+  .d-ph-main-panel {
+    padding: 12px;
+    border-radius: var(--ph-radius-md);
+  }
+}
+
+/* Toolbar */
+.d-ph-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.d-ph-toolbar-row--filters {
+  align-items: stretch;
+}
+
+.d-ph-grow {
+  flex: 1;
+  min-width: 8px;
+}
+
+.d-ph-segmented-wrap {
+  flex: 1;
+  min-width: min(100%, 280px);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.d-ph-segmented-wrap .ant-segmented {
+  width: 100%;
+}
+
+.d-ph-stock-link.ant-btn {
+  border-radius: 12px;
+  height: auto;
+  padding: 8px 14px;
+  border-color: var(--ph-border);
+}
+
+/* Filters collapse (mobile) */
+.d-ph-filters-collapse.ant-collapse {
+  background: transparent;
+  border: none;
+  margin-bottom: 12px;
+}
+
+.d-ph-filters-collapse .ant-collapse-item {
+  border: 1px solid var(--ph-border) !important;
+  border-radius: var(--ph-radius-md) !important;
+  overflow: hidden;
+  background: var(--ph-surface-2);
+}
+
+.d-ph-filters-collapse .ant-collapse-header {
+  font-weight: 700 !important;
+  align-items: center !important;
+}
+
+.d-ph-filters-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.d-ph-filters-inner .ant-select,
+.d-ph-filters-inner .ant-input-search {
+  flex: 1 1 140px;
+  min-width: min(100%, 160px);
+}
+
+.d-ph-toolbar-input-grow {
+  flex: 2 1 200px;
+  min-width: min(100%, 200px);
+}
+
+/* Table area */
+.d-pharmacy-page .d-table-scroll {
+  margin: 0 -4px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.d-pharmacy-page .ant-table {
+  border-radius: 12px;
+}
+
+.d-pharmacy-page .ant-pagination {
+  margin-top: 16px !important;
+}
+
+/* ----- Session cards (mobile) ----- */
+.d-ph-session-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-ph-session-card {
+  display: block;
+  width: 100%;
+  text-align: start;
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius-md);
+  padding: 14px 16px;
+  background: var(--ph-surface-2);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.d-ph-session-card:hover {
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: var(--ph-shadow-hover);
+}
+
+.d-ph-session-card:active {
+  transform: scale(0.992);
+}
+
+.d-ph-session-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.d-ph-session-name {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--ph-text);
+  line-height: 1.35;
+}
+
+.d-ph-session-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--ph-muted);
+}
+
+.d-ph-session-meta span strong {
+  color: var(--ph-text);
+  font-weight: 600;
+}
+
+.d-ph-session-card-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ph-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.d-ph-session-preview {
+  font-size: 11px;
+  color: var(--ph-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-ph-pagination-mobile {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding-bottom: 8px;
+}
+
+/* ----- Modal / Drawer ----- */
+.d-pharmacy-modal .ant-modal-content {
+  border-radius: var(--ph-radius-lg);
+  overflow: hidden;
+}
+
+.d-pharmacy-drawer.ant-drawer-content-wrapper {
+  border-radius: 20px 20px 0 0 !important;
+  overflow: hidden;
+}
+
+.d-pharmacy-drawer .ant-drawer-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--ph-border);
+}
+
+.d-pharmacy-drawer .ant-drawer-title {
+  font-weight: 800;
+}
+
+.d-pharmacy-drawer .ant-drawer-body {
+  padding: 12px 16px;
+}
+
+.d-pharmacy-drawer .ant-drawer-footer {
+  border-top: 1px solid var(--ph-border);
+  padding: 12px 16px calc(12px + var(--ph-safe-bottom));
+}
+
+.d-ph-drawer-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.d-ph-drawer-footer-inner .ant-btn-primary {
+  flex: 1 1 auto;
+  min-width: min(100%, 200px);
+  height: 46px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 575px) {
+  .d-ph-drawer-footer-inner {
+    flex-direction: column-reverse;
+  }
+
+  .d-ph-drawer-footer-inner .ant-btn {
+    width: 100%;
+    height: 46px;
+    border-radius: 14px;
+  }
+}
+
+/* Line editor cards */
+.d-ph-line-card {
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius-md);
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--ph-surface-2);
+}
+
+.d-ph-line-card .ant-space {
+  width: 100%;
+}
+
+.d-ph-line-card .ant-select,
+.d-ph-line-card .ant-input-number {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.d-ph-field-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.d-ph-field-mini-label {
+  font-size: 11px !important;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .d-ph-line-card .ant-select {
+    max-width: 280px;
+  }
+
+  .d-ph-line-card .ant-input-number {
+    max-width: 200px;
+  }
+}
+
+/* Existing utilities */
+.d-pharmacy-page .d-pharmacy-toolbar {
+  margin-bottom: 16px;
+}
+
+.d-pharmacy-set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.d-pharmacy-set-row .ant-typography {
+  flex-shrink: 0;
+}
+
+.d-pharmacy-line {
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+/* حالة الصرف */
+.d-pharmacy-page .d-pharmacy-dispense-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  border: 1px solid transparent;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.d-pharmacy-page .d-pharmacy-dispense-pill--none {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.d-pharmacy-page .d-pharmacy-dispense-pill--draft {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+
+.d-pharmacy-page .d-pharmacy-dispense-pill--done {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.d-pharmacy-page .d-pharmacy-dispense-pill--raw {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.dark-mode .d-pharmacy-page .d-pharmacy-dispense-pill--none {
+  background: rgba(148, 163, 184, 0.22) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.dark-mode .d-pharmacy-page .d-pharmacy-dispense-pill--draft {
+  background: rgba(56, 189, 248, 0.22) !important;
+  color: #7dd3fc !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+}
+
+.dark-mode .d-pharmacy-page .d-pharmacy-dispense-pill--done {
+  background: rgba(34, 197, 94, 0.24) !important;
+  color: #86efac !important;
+  border-color: rgba(34, 197, 94, 0.45) !important;
+}
+
+.dark-mode .d-pharmacy-page .d-pharmacy-dispense-pill--raw {
+  background: rgba(251, 191, 36, 0.22) !important;
+  color: #fcd34d !important;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+}
+
+.d-pharmacy-page .ant-table-tbody > tr > td {
+  background: transparent !important;
+}
+
+.d-pharmacy-drugs-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.d-pharmacy-modal-completed-table {
+  margin-bottom: 8px;
+}
+
+.d-ph-bridge-alert.ant-alert {
+  border-radius: var(--ph-radius-md);
+}

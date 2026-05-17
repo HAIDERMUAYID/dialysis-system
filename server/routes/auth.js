@@ -4,9 +4,11 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../database/db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
+const { buildDialysisHospitalAuthFields } = require('../utils/dialysisScope');
+const { authLimiter } = require('../utils/rateLimiter');
 
-// Login
-router.post('/login', async (req, res) => {
+// Login (rate-limited; GET /me must stay unrestricted so session bootstrap does not exhaust the limit)
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -80,7 +82,39 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    let permissions = [];
+    if (db.prisma) {
+      try {
+        const roleNames = [];
+        if (user.roleId) {
+          const rps = await db.prisma.rolePermission.findMany({
+            where: { roleId: user.roleId },
+            include: { permission: true },
+          });
+          rps.forEach((rp) => roleNames.push(rp.permission.name));
+        }
+        const directs = await db.prisma.userPermission.findMany({
+          where: { userId: user.id },
+          include: { permission: true },
+        });
+        const directNames = directs.map((up) => up.permission.name);
+        const { mergeRoleAndDirectPermissionArray } = require('../utils/mergeUserPermissions');
+        permissions = mergeRoleAndDirectPermissionArray(roleNames, directNames);
+      } catch (permErr) {
+        console.warn('Could not load permissions:', permErr.message);
+      }
+    }
+
     console.log('Login successful for user:', username, 'role:', user.role);
+
+    let dialysisAuth = {};
+    if (db.prisma) {
+      try {
+        dialysisAuth = await buildDialysisHospitalAuthFields(db.prisma, user);
+      } catch (dErr) {
+        console.warn('Dialysis scope on login:', dErr.message);
+      }
+    }
 
     res.json({
       token,
@@ -88,8 +122,10 @@ router.post('/login', async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
-        name: user.name
-      }
+        name: user.name,
+        permissions,
+        ...dialysisAuth,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -156,6 +192,63 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'حدث خطأ أثناء تغيير كلمة المرور: ' + error.message });
+  }
+});
+
+/** المستخدم الحالي + صلاحيات الدور (للواجهة بعد تحديث البذور دون إعادة تسجيل دخول) */
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    if (!db.prisma) {
+      return res.json({
+        id: uid,
+        username: req.user.username,
+        role: req.user.role,
+        name: req.user.name,
+        permissions: [],
+      });
+    }
+
+    const user = await db.prisma.user.findUnique({
+      where: { id: uid },
+      include: {
+        roleRef: {
+          include: {
+            permissions: { include: { permission: true } },
+          },
+        },
+        directPermissions: { include: { permission: true } },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'المستخدم غير موجود' });
+    }
+
+    const roleNames =
+      user.roleRef?.permissions?.map((rp) => rp.permission.name) ?? [];
+    const directNames = user.directPermissions?.map((up) => up.permission.name) ?? [];
+    const { mergeRoleAndDirectPermissionArray } = require('../utils/mergeUserPermissions');
+    const permissions = mergeRoleAndDirectPermissionArray(roleNames, directNames);
+
+    let dialysisAuth = {};
+    try {
+      dialysisAuth = await buildDialysisHospitalAuthFields(db.prisma, user);
+    } catch (dErr) {
+      console.warn('Dialysis scope on /me:', dErr.message);
+    }
+
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      name: user.name,
+      permissions,
+      ...dialysisAuth,
+    });
+  } catch (error) {
+    console.error('GET /me error:', error);
+    res.status(500).json({ error: 'فشل تحميل المستخدم' });
   }
 });
 

@@ -190,7 +190,8 @@ const AdminDashboardModern: React.FC = () => {
       lab_manager: 'cyan',
       pharmacist: 'orange',
       pharmacy_manager: 'gold',
-      doctor: 'purple'
+      doctor: 'purple',
+      dialysis_staff: 'geekblue',
     };
     return colors[role] || 'default';
   };
@@ -203,7 +204,8 @@ const AdminDashboardModern: React.FC = () => {
       lab_manager: 'مدير المختبر',
       pharmacist: 'صيدلية',
       pharmacy_manager: 'مدير الصيدلية',
-      doctor: 'طبيب'
+      doctor: 'طبيب',
+      dialysis_staff: 'وحدة الغسيل (D-IRS)',
     };
     return texts[role] || role;
   };
@@ -464,7 +466,8 @@ const AdminDashboardModern: React.FC = () => {
       'pharmacy_manager': 'مدير الصيدلية',
       'doctor': 'الطبيب',
       'inquiry': 'موظف الاستعلامات',
-      'admin': 'المدير'
+      'admin': 'المدير',
+      dialysis_staff: 'موظف وحدة الغسل الكلوي',
     };
     return roleNames[role || ''] || role || 'مستخدم';
   };
@@ -478,6 +481,14 @@ const AdminDashboardModern: React.FC = () => {
         className="admin-header"
         centerActions={
           <>
+            <button
+              type="button"
+              className="modern-header-action-btn"
+              onClick={() => navigate('/dialysis')}
+            >
+              <MedicineBoxOutlined />
+              <span>الغسل الكلوي (D-IRS)</span>
+            </button>
             <button
               className="modern-header-action-btn"
               onClick={() => setPatientSearchVisible(true)}
@@ -946,6 +957,9 @@ const AdminDashboardModern: React.FC = () => {
                 <Select.Option value="pharmacist">صيدلية</Select.Option>
                 <Select.Option value="pharmacy_manager">مدير الصيدلية</Select.Option>
                 <Select.Option value="doctor">طبيب</Select.Option>
+                <Select.Option value="dialysis_staff">
+                  موظف وحدة الغسيل (D-IRS) — دخول مباشر لوحدة الغسل
+                </Select.Option>
               </Select>
             </Form.Item>
             {!selectedUser && (

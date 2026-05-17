@@ -1,0 +1,152 @@
+/* مستودع الغسل — جوال ببطاقات */
+
+.d-inv-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.d-inv-section {
+  margin-bottom: 20px;
+}
+
+.d-inv-section:last-child {
+  margin-bottom: 0;
+}
+
+.d-inv-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.d-inv-section-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.dark-mode .d-inv-section-head h3 {
+  color: #f1f5f9;
+}
+
+.d-inv-help {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.dark-mode .d-inv-help {
+  color: #94a3b8;
+}
+
+.d-inv-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.d-inv-toolbar .ant-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-inv-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-inv-card {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  padding: 14px 16px;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+  text-align: start;
+}
+
+.dark-mode .d-inv-card {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.d-inv-card__title {
+  font-weight: 800;
+  font-size: 1.02rem;
+  margin: 0 0 8px;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.dark-mode .d-inv-card__title {
+  color: #f1f5f9;
+}
+
+.d-inv-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.d-inv-card__label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.dark-mode .d-inv-card__label {
+  color: #94a3b8;
+}
+
+.d-inv-card__value {
+  font-weight: 600;
+  text-align: end;
+  color: #334155;
+}
+
+.dark-mode .d-inv-card__value {
+  color: #e2e8f0;
+}
+
+.d-inv-table-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 991px) {
+  .d-inv-section-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-inv-toolbar .ant-btn {
+    flex: 1 1 auto;
+  }
+
+  .d-inv-toolbar .ant-btn-primary {
+    width: 100%;
+  }
+}
+
+.d-packaging-editor .d-packaging-row {
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.d-packaging-editor .d-packaging-row:last-of-type {
+  border-bottom: none;
+}
+
+.d-packaging-row-card .d-packaging-connector {
+  text-align: center;
+  color: var(--ant-color-text-secondary, #888);
+  margin-bottom: 4px;
+}

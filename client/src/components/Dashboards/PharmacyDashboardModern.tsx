@@ -18,7 +18,8 @@ import {
   message,
   Empty,
   Spin,
-  Statistic
+  Statistic,
+  Alert,
 } from 'antd';
 import {
   UserOutlined,
@@ -59,8 +60,9 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import NotificationBell from '../Notifications/NotificationBell';
 import WelcomeMessage from '../Welcome/WelcomeMessage';
 import PatientSearchModal from '../Common/PatientSearchModal';
@@ -79,6 +81,10 @@ const { RangePicker } = DatePicker;
 const PharmacyDashboardModern: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const permPharmView = usePermission('dialysis:pharmacy:view');
+  const permPharmDisp = usePermission('dialysis:pharmacy:dispense');
+  const permPharmInv = usePermission('dialysis:pharmacy:inventory');
+  const showDialysisPharmacyLink = permPharmView || permPharmDisp || permPharmInv;
   const [loading, setLoading] = useState(false);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
@@ -376,6 +382,18 @@ const PharmacyDashboardModern: React.FC = () => {
 
       <Content className="pharmacy-dashboard-content">
         <WelcomeMessage />
+        {showDialysisPharmacyLink && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={
+              <Link to="/dialysis/pharmacy">
+                صيدلية الغسل الكلوي — صرف العلاج للجلسات ومتابعة المخزون
+              </Link>
+            }
+          />
+        )}
         <Card
           title={
             <Space>

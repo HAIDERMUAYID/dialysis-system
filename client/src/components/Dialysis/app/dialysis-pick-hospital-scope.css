@@ -1,0 +1,74 @@
+.d-pick-hospital-scope {
+  width: 100%;
+  max-width: 100%;
+}
+
+.d-pick-hospital-scope__card {
+  width: 100%;
+  border-radius: 16px;
+  background: var(--ph-surface, #fff);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dark-mode .d-pick-hospital-scope__card {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.d-pick-hospital-scope__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  min-height: 200px;
+}
+
+.d-pick-hospital-scope__head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.d-pick-hospital-scope__icon {
+  font-size: 36px;
+  color: #0d9488;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.dark-mode .d-pick-hospital-scope__icon {
+  color: #5eead4;
+}
+
+.d-pick-hospital-scope__title {
+  margin: 0 0 8px !important;
+}
+
+.d-pick-hospital-scope__desc {
+  margin-bottom: 8px !important;
+}
+
+.d-pick-hospital-scope__hint {
+  display: block;
+  font-size: 13px;
+}
+
+.d-pick-hospital-scope__select {
+  width: 100%;
+  max-width: 640px;
+  margin-bottom: 8px;
+}
+
+.d-pick-hospital-scope__grid {
+  margin-top: 20px;
+}
+
+.d-pick-hospital-scope__many {
+  margin: 16px 0 0 !important;
+  font-size: 13px;
+}

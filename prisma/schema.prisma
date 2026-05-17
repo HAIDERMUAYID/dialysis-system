@@ -33,6 +33,7 @@ model Permission {
   createdAt     DateTime  @default(now()) @map("created_at")
   
   roles         RolePermission[]
+  userGrants    UserPermission[]
   
   @@map("permissions")
 }
@@ -48,6 +49,23 @@ model RolePermission {
   
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+/// منح مباشر لصلاحية لمستخدم بعينه (يضاف فوق صلاحيات دوره). يُستخدم لمنح صلاحيات الغسل الكلوي لأي موظف.
+model UserPermission {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  permissionId  Int       @map("permission_id")
+  grantedById   Int?      @map("granted_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user          User       @relation("UserDirectPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy     User?      @relation("UserPermissionGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@map("user_permissions")
 }
 
 model User {
@@ -68,6 +86,9 @@ model User {
   roleRef       Role?     @relation(fields: [roleId], references: [id])
   creator       User?     @relation("UserCreator", fields: [createdBy], references: [id])
   createdUsers  User[]    @relation("UserCreator")
+  directPermissions UserPermission[] @relation("UserDirectPermissions")
+  grantedPermissions UserPermission[] @relation("UserPermissionGranter")
+  userHospitalAccess UserHospitalAccess[]
   patients      Patient[]
   visits        Visit[]
   labResults    LabResult[]
@@ -81,6 +102,7 @@ model User {
   drugsCatalog  DrugCatalog[]
   prescriptionSets PrescriptionSet[]
   attachments   VisitAttachment[]
+  dialysisPharmacyDispensesCompleted DialysisSessionDispense[] @relation("DialysisPharmacyDispenseCompletedBy")
   
   @@map("users")
 }
@@ -116,6 +138,7 @@ model Patient {
   
   creator                 User?     @relation(fields: [createdBy], references: [id])
   visits                  Visit[]
+  dialysisProfiles       DialysisPatient[]
   
   @@index([name])
   @@index([nationalId])
@@ -335,7 +358,9 @@ model DrugCatalog {
   creator          User?     @relation(fields: [createdBy], references: [id])
   prescriptions    PharmacyPrescription[]
   setItems         PrescriptionSetItem[]
-  
+  dialysisItems    DialysisItem[]
+  sessionDispenseLines DialysisSessionDispenseLine[]
+
   @@map("drugs_catalog")
 }
 
@@ -351,7 +376,8 @@ model PrescriptionSet {
   
   creator         User?     @relation(fields: [createdBy], references: [id])
   items           PrescriptionSetItem[]
-  
+  dispenseLineSources DialysisSessionDispenseLine[]
+
   @@map("prescription_sets")
 }
 
@@ -386,4 +412,609 @@ model VisitAttachment {
   uploader        User?     @relation(fields: [uploadedBy], references: [id])
   
   @@map("visit_attachments")
+}
+
+// =============================================================================
+// D-IRS — Dialysis Intelligence & Reconciliation (subsystem on same DB / Supabase)
+// Multi-tenant: every business table below includes hospital_id (FK → hospitals).
+// Audit: created_by_user_id / updated_by_user_id reference users.id (enforce in app or DB FK).
+// =============================================================================
+
+enum DialysisPatientKind {
+  PERSISTENT
+  EMERGENCY
+}
+
+enum DialysisShift {
+  MORNING
+  EVENING
+}
+
+enum DialysisWarehouseType {
+  GENERAL_MEDICAL
+  PHARMACY
+}
+
+enum DialysisItemMeasureKind {
+  COUNT
+  WEIGHT_VOLUME
+}
+
+enum DialysisSessionStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// تصنيف إدخال الجلسة: مجدول حسب جدول المريض / خارج الجدول / طارئ
+enum DialysisSessionIntakeKind {
+  SCHEDULED
+  OFF_SCHEDULE
+  EMERGENCY
+}
+
+enum DialysisInventoryTxnType {
+  RECEIPT
+  ADJUSTMENT
+  SESSION_CONSUMPTION
+  PHARMACY_DISPENSE
+  EXPIRED_WASTE
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+enum DialysisSessionDispenseStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+/// Tenant root for all D-IRS data (does not carry hospital_id).
+model Hospital {
+  id              Int      @id @default(autoincrement())
+  name            String
+  code            String?  @unique
+  province        String?
+  directorate     String?
+  address         String?  @db.Text
+  isActive        Int      @default(1) @map("is_active")
+  createdByUserId Int?     @map("created_by_user_id")
+  updatedByUserId Int?     @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  userAccess           UserHospitalAccess[]
+  dialysisPatients     DialysisPatient[]
+  locations            DialysisLocation[]
+  machines             DialysisMachine[]
+  warehouses           DialysisWarehouse[]
+  items                DialysisItem[]
+  batches              DialysisInventoryBatch[]
+  inventoryTxns        DialysisInventoryLedger[]
+  sessions             DialysisSession[]
+  statisticalEntries   DialysisStatisticalEntry[]
+  statisticalConsumptions DialysisStatisticalConsumption[]
+  schedules            DialysisPatientSchedule[]
+  sessionConsumptions  DialysisSessionConsumption[]
+  machineHourLogs      DialysisMachineHourLog[]
+  shiftSlots           DialysisShiftSlot[]
+  sessionDispenses       DialysisSessionDispense[]
+
+  @@index([isActive])
+  @@map("hospitals")
+}
+
+/// Maps application users to hospitals (super-admin / department user can have many rows; app switches context).
+model UserHospitalAccess {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  hospitalId   Int      @map("hospital_id")
+  isPrimary    Int      @default(0) @map("is_primary")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospital     Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hospitalId])
+  @@index([hospitalId])
+  @@map("user_hospital_access")
+}
+
+/// D-IRS patient registry; optional link to core HMS `patients` after “promote” or if shared record exists.
+model DialysisPatient {
+  id                Int                 @id @default(autoincrement())
+  hospitalId        Int                 @map("hospital_id")
+  patientId         Int?                @map("patient_id")
+  kind              DialysisPatientKind @default(EMERGENCY)
+  fullName          String              @map("full_name")
+  /// ذكر / أنثى / غير محدد — يُخزَّن كـ MALE | FEMALE | OTHER
+  gender            String?
+  phone             String?
+  nationalId        String?             @map("national_id")
+  biometricId       String?             @map("biometric_id")
+  companionName     String?             @map("companion_name")
+  companionPhone    String?             @map("companion_phone")
+  countryCode       String?             @default("IQ") @map("country_code")
+  provinceCode      String?             @map("province_code")
+  city              String?
+  addressLine       String?             @map("address_line") @db.Text
+  bloodGroup        String?             @map("blood_group")
+  viralMarkersJson  Json?               @map("viral_markers_json")
+  notes             String?             @db.Text
+  birthDate         DateTime?           @map("birth_date") @db.Date
+  internalRecordNumber String?          @map("internal_record_number")
+  /// تاريخ بداية برنامج الغسيل
+  dialysisStartDate DateTime?           @map("dialysis_start_date") @db.Date
+  kidneyFailureCause String?            @map("kidney_failure_cause") @db.Text
+  vascularAccessType String?            @map("vascular_access_type")
+  vascularAccessSite String?            @map("vascular_access_site")
+  vascularAccessNote String?            @map("vascular_access_note") @db.Text
+  targetDryWeightKg Decimal?            @map("target_dry_weight_kg") @db.Decimal(8, 3)
+  sessionsPerWeek   Int?                @map("sessions_per_week")
+  sessionDurationMinutes Int?           @map("session_duration_minutes")
+  dialyzerModelDefault String?         @map("dialyzer_model_default")
+  bloodFlowTargetMlMin Int?            @map("blood_flow_target_ml_min")
+  anticoagulantStandard String?        @map("anticoagulant_standard")
+  /// مصفوفة JSON: [{ \"measured_at\": \"2026-01-01\", \"hemoglobin\": 10.2, \"creatinine\": 5.1, ... }]
+  labsFollowUpJson Json?               @map("labs_follow_up_json")
+  /// مسار نسبي تحت /uploads — صورة شخصية للمريض
+  photoUrl          String?             @map("photo_url")
+  promotedAt        DateTime?           @map("promoted_at")
+  createdByUserId   Int?                @map("created_by_user_id")
+  updatedByUserId   Int?                @map("updated_by_user_id")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  hospital          Hospital            @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  patient           Patient?            @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  schedules         DialysisPatientSchedule[]
+  sessions          DialysisSession[]
+  statisticalEntries DialysisStatisticalEntry[]
+
+  @@index([hospitalId])
+  @@index([patientId])
+  @@index([nationalId])
+  @@index([phone])
+  @@index([kind])
+  @@unique([hospitalId, biometricId])
+  @@map("d_irs_patients")
+}
+
+/// Hall + bed (or chair) within a hospital.
+model DialysisLocation {
+  id              Int      @id @default(autoincrement())
+  hospitalId      Int      @map("hospital_id")
+  hallName        String   @map("hall_name")
+  bedCode         String   @map("bed_code")
+  displayOrder    Int      @default(0) @map("display_order")
+  isActive        Int      @default(1) @map("is_active")
+  createdByUserId Int?     @map("created_by_user_id")
+  updatedByUserId Int?     @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  hospital        Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  schedules       DialysisPatientSchedule[]
+  sessions        DialysisSession[]
+  machines        DialysisMachine[]
+
+  @@unique([hospitalId, hallName, bedCode])
+  @@index([hospitalId, isActive])
+  @@map("d_irs_locations")
+}
+
+/// شفت غسيل مُعرَّف لكل يوم (وقت البدء/الانتهاء، الاسم، سعة تقريبية).
+model DialysisShiftSlot {
+  id               Int      @id @default(autoincrement())
+  hospitalId       Int      @map("hospital_id")
+  /// يوم الأسبوع حسب JavaScript: 0 = الأحد … 6 = السبت
+  weekday          Int      @map("weekday")
+  name             String
+  startMinutes     Int      @map("start_minutes")
+  endMinutes       Int      @map("end_minutes")
+  capacityApprox   Int?     @map("capacity_approx")
+  displayOrder     Int      @default(0) @map("display_order")
+  isActive         Int      @default(1) @map("is_active")
+  createdByUserId  Int?     @map("created_by_user_id")
+  updatedByUserId  Int?     @map("updated_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  hospital         Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  patientSchedules DialysisPatientSchedule[]
+  sessions         DialysisSession[]
+
+  @@unique([hospitalId, weekday, name])
+  @@index([hospitalId, weekday])
+  @@map("d_irs_shift_slots")
+}
+
+/// Dialysis machine with hour meter for maintenance alerts.
+model DialysisMachine {
+  id                     Int      @id @default(autoincrement())
+  hospitalId             Int      @map("hospital_id")
+  locationId             Int?     @map("location_id")
+  assetTag               String?  @map("asset_tag")
+  model                  String?
+  serialNumber           String?  @map("serial_number")
+  totalHours             Decimal  @default(0) @map("total_hours") @db.Decimal(12, 2)
+  maintenanceThresholdHours Decimal? @map("maintenance_threshold_hours") @db.Decimal(12, 2)
+  lastMaintenanceAt      DateTime? @map("last_maintenance_at")
+  isActive               Int      @default(1) @map("is_active")
+  createdByUserId        Int?     @map("created_by_user_id")
+  updatedByUserId        Int?     @map("updated_by_user_id")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  hospital               Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  location               DialysisLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  sessions               DialysisSession[]
+  hourLogs               DialysisMachineHourLog[]
+
+  @@index([hospitalId])
+  @@index([assetTag])
+  @@map("d_irs_machines")
+}
+
+model DialysisMachineHourLog {
+  id              Int      @id @default(autoincrement())
+  hospitalId      Int      @map("hospital_id")
+  machineId       Int      @map("machine_id")
+  sessionId       Int?     @map("session_id")
+  hoursAdded      Decimal  @map("hours_added") @db.Decimal(12, 2)
+  note            String?  @db.Text
+  createdByUserId Int?     @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  hospital        Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  machine         DialysisMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  session         DialysisSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([hospitalId])
+  @@index([machineId])
+  @@map("d_irs_machine_hour_logs")
+}
+
+/// Two logical warehouses per hospital: general supplies vs pharmacy.
+model DialysisWarehouse {
+  id              Int                   @id @default(autoincrement())
+  hospitalId      Int                   @map("hospital_id")
+  type            DialysisWarehouseType
+  name            String
+  isActive        Int                   @default(1) @map("is_active")
+  createdByUserId Int?                  @map("created_by_user_id")
+  updatedByUserId Int?                  @map("updated_by_user_id")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  hospital        Hospital              @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  batches         DialysisInventoryBatch[]
+  inventoryTxns   DialysisInventoryLedger[]
+  sessionConsumptions DialysisSessionConsumption[]
+
+  @@unique([hospitalId, type])
+  @@index([hospitalId])
+  @@map("d_irs_warehouses")
+}
+
+/// Item master per hospital; stock tracked in chosen inventory unit (see unit definitions).
+model DialysisItem {
+  id               Int                   @id @default(autoincrement())
+  hospitalId       Int                   @map("hospital_id")
+  sku              String?
+  name             String
+  /// ربط اختياري بكتالوج الأدواء — لصرف صيدلية الغسل وخصم المخزون
+  drugCatalogId    Int?                 @map("drug_catalog_id")
+  measureKind      DialysisItemMeasureKind @map("measure_kind")
+  /// تسمية وحدة المخزون (مطابقة لـ inventoryBaseUnitCode)
+  baseUnitLabel    String                @map("base_unit_label")
+  /// رمز وحدة المخزون والحساب — يُختار من سلم التعبئة (مثلاً شريط أو حبة)
+  inventoryBaseUnitCode String?          @map("inventory_base_unit_code")
+  isActive         Int                   @default(1) @map("is_active")
+  createdByUserId  Int?                  @map("created_by_user_id")
+  updatedByUserId  Int?                  @map("updated_by_user_id")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  hospital         Hospital              @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  drugCatalog      DrugCatalog?          @relation(fields: [drugCatalogId], references: [id], onDelete: SetNull)
+  units            DialysisItemUnit[]
+  batches          DialysisInventoryBatch[]
+  inventoryTxns    DialysisInventoryLedger[]
+  sessionConsumptions DialysisSessionConsumption[]
+  statConsumptions DialysisStatisticalConsumption[]
+  sessionDispenseLines DialysisSessionDispenseLine[]
+
+  @@index([hospitalId])
+  @@index([hospitalId, name])
+  @@index([hospitalId, drugCatalogId])
+  @@map("d_irs_items")
+}
+
+/// سلم التعبئة: multiplierToBase = كم «وحدة المخزون» في وحدة واحدة من هذا المستوى
+model DialysisItemUnit {
+  id               Int      @id @default(autoincrement())
+  itemId           Int      @map("item_id")
+  unitCode         String   @map("unit_code")
+  label            String
+  levelOrder       Int      @default(0) @map("level_order")
+  multiplierToBase Decimal  @map("multiplier_to_base") @db.Decimal(24, 8)
+  parentUnitId     Int?     @map("parent_unit_id")
+  createdByUserId  Int?     @map("created_by_user_id")
+  updatedByUserId  Int?     @map("updated_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  item             DialysisItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  parentUnit       DialysisItemUnit? @relation("DialysisUnitTree", fields: [parentUnitId], references: [id], onDelete: SetNull)
+  childUnits       DialysisItemUnit[] @relation("DialysisUnitTree")
+
+  @@unique([itemId, unitCode])
+  @@index([itemId])
+  @@map("d_irs_item_units")
+}
+
+/// Batch/lot with expiry for alerts (red/yellow in UI).
+model DialysisInventoryBatch {
+  id                 Int      @id @default(autoincrement())
+  hospitalId         Int      @map("hospital_id")
+  warehouseId        Int      @map("warehouse_id")
+  itemId             Int      @map("item_id")
+  lotNumber          String?  @map("lot_number")
+  expiryDate         DateTime? @map("expiry_date") @db.Date
+  quantityRemainingBase Decimal @map("quantity_remaining_base") @db.Decimal(24, 6)
+  /// سعر شراء الوحدة الأساسية (تسعير وارد — اختياري)
+  unitCostPerBase    Decimal? @map("unit_cost_per_base") @db.Decimal(16, 6)
+  supplierName       String?  @map("supplier_name")
+  invoiceReference   String?  @map("invoice_reference")
+  receiptNotes       String?  @map("receipt_notes") @db.Text
+  receivedAt         DateTime? @map("received_at")
+  createdByUserId    Int?     @map("created_by_user_id")
+  updatedByUserId    Int?     @map("updated_by_user_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  hospital           Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  warehouse          DialysisWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  item               DialysisItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  inventoryTxns      DialysisInventoryLedger[]
+  sessionConsumptions DialysisSessionConsumption[]
+
+  @@index([hospitalId, itemId])
+  @@index([warehouseId, expiryDate])
+  @@map("d_irs_inventory_batches")
+}
+
+/// Append-only ledger for stock movements (optional but recommended for auditor-grade integrity).
+model DialysisInventoryLedger {
+  id              Int                     @id @default(autoincrement())
+  hospitalId      Int                     @map("hospital_id")
+  warehouseId     Int                     @map("warehouse_id")
+  itemId          Int                     @map("item_id")
+  batchId         Int?                    @map("batch_id")
+  txnType         DialysisInventoryTxnType @map("txn_type")
+  quantityDeltaBase Decimal               @map("quantity_delta_base") @db.Decimal(24, 6)
+  refType         String?                 @map("ref_type")
+  refId           Int?                    @map("ref_id")
+  note            String?                 @db.Text
+  createdByUserId Int?                    @map("created_by_user_id")
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  hospital        Hospital                @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  warehouse       DialysisWarehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  item            DialysisItem            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batch           DialysisInventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([hospitalId, createdAt])
+  @@index([warehouseId, itemId])
+  @@index([refType, refId])
+  @@map("d_irs_inventory_ledger")
+}
+
+/// Fixed weekly pattern + default slot (hall/bed/shift template).
+model DialysisPatientSchedule {
+  id                Int            @id @default(autoincrement())
+  hospitalId        Int            @map("hospital_id")
+  dialysisPatientId Int            @map("dialysis_patient_id")
+  dayOfWeek         Int            @map("day_of_week")
+  shiftSlotId       Int            @map("shift_slot_id")
+  locationId        Int            @map("location_id")
+  isActive          Int            @default(1) @map("is_active")
+  createdByUserId   Int?           @map("created_by_user_id")
+  updatedByUserId   Int?           @map("updated_by_user_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  hospital          Hospital        @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  dialysisPatient   DialysisPatient @relation(fields: [dialysisPatientId], references: [id], onDelete: Cascade)
+  shiftSlot         DialysisShiftSlot @relation(fields: [shiftSlotId], references: [id], onDelete: Cascade)
+  location          DialysisLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([dialysisPatientId, dayOfWeek, shiftSlotId])
+  @@index([hospitalId])
+  @@map("d_irs_patient_schedules")
+}
+
+/// Source A — field session log (nurse mobile).
+model DialysisSession {
+  id                Int                   @id @default(autoincrement())
+  hospitalId        Int                   @map("hospital_id")
+  dialysisPatientId Int                   @map("dialysis_patient_id")
+  sessionDate       DateTime              @map("session_date") @db.Date
+  shift             DialysisShift
+  shiftSlotId       Int?                  @map("shift_slot_id")
+  status            DialysisSessionStatus @default(ACTIVE)
+  /// مجدولة حسب جدول الأسبوع / غير مجدولة / طارئة
+  intakeKind        DialysisSessionIntakeKind? @map("intake_kind")
+  startedAt         DateTime?             @map("started_at")
+  endedAt           DateTime?             @map("ended_at")
+  locationId        Int?                  @map("location_id")
+  machineId         Int?                  @map("machine_id")
+  preSystolic       Int?                  @map("pre_systolic")
+  preDiastolic      Int?                  @map("pre_diastolic")
+  postSystolic      Int?                  @map("post_systolic")
+  postDiastolic     Int?                  @map("post_diastolic")
+  weightPreKg       Decimal?              @map("weight_pre_kg") @db.Decimal(8, 3)
+  weightPostKg      Decimal?              @map("weight_post_kg") @db.Decimal(8, 3)
+  ufGoalMl          Int?                  @map("uf_goal_ml")
+  heartRatePre      Int?                  @map("heart_rate_pre")
+  heartRatePost     Int?                  @map("heart_rate_post")
+  temperaturePreC   Decimal?              @map("temperature_pre_c") @db.Decimal(4, 1)
+  temperaturePostC  Decimal?              @map("temperature_post_c") @db.Decimal(4, 1)
+  bloodFlowMlMin    Int?                  @map("blood_flow_ml_min")
+  ktV               Decimal?              @map("kt_v") @db.Decimal(5, 2)
+  complicationsNote String?               @map("complications_note") @db.Text
+  nursingNote       String?               @map("nursing_note") @db.Text
+  notes             String?               @db.Text
+  createdByUserId   Int?                  @map("created_by_user_id")
+  updatedByUserId   Int?                  @map("updated_by_user_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  hospital          Hospital              @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  dialysisPatient   DialysisPatient       @relation(fields: [dialysisPatientId], references: [id], onDelete: Cascade)
+  shiftSlot         DialysisShiftSlot?    @relation(fields: [shiftSlotId], references: [id], onDelete: SetNull)
+  location          DialysisLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  machine           DialysisMachine?      @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  consumptions      DialysisSessionConsumption[]
+  machineHourLogs   DialysisMachineHourLog[]
+  pharmacyDispense  DialysisSessionDispense?
+
+  @@index([hospitalId, sessionDate, shift])
+  @@index([dialysisPatientId, sessionDate])
+  @@index([status])
+  @@map("d_irs_sessions")
+}
+
+/// صرف علاج مرتبط بجلسة غسيل (مسودة ثم تأكيد مع خصم مخزون صيدلية).
+model DialysisSessionDispense {
+  id                 Int                         @id @default(autoincrement())
+  hospitalId         Int                         @map("hospital_id")
+  sessionId          Int                         @unique @map("session_id")
+  status             DialysisSessionDispenseStatus @default(DRAFT)
+  notes              String?                     @db.Text
+  completedByUserId  Int?                        @map("completed_by_user_id")
+  completedAt        DateTime?                   @map("completed_at")
+  createdByUserId    Int?                        @map("created_by_user_id")
+  updatedByUserId    Int?                        @map("updated_by_user_id")
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+
+  hospital           Hospital                    @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  session            DialysisSession             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  completedBy        User?                       @relation("DialysisPharmacyDispenseCompletedBy", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  lines              DialysisSessionDispenseLine[]
+
+  @@index([hospitalId])
+  @@index([hospitalId, status])
+  @@map("d_irs_session_dispenses")
+}
+
+enum DialysisDispenseFrequencyKind {
+  PER_SESSION
+  DAILY_TO_NEXT_DIALYSIS
+}
+
+model DialysisSessionDispenseLine {
+  id                  Int                   @id @default(autoincrement())
+  dispenseId          Int                   @map("dispense_id")
+  /// مرجع قديم — السجلات القديمة أو المجموعات المستوردة من وصفات ذات كتالوج
+  drugCatalogId       Int?                  @map("drug_catalog_id")
+  /// الصنف الفعلي في مخزن الغسل (المطلوب للصرف الجديد)
+  dialysisItemId      Int?                  @map("dialysis_item_id")
+  dosage              String?
+  /// صرف يومي حتى موعد الغسلة القادمة في الجدول، أو جرعة عند الغسلة فقط
+  frequencyKind       DialysisDispenseFrequencyKind @default(PER_SESSION) @map("frequency_kind")
+  /// جرعة اليوم الواحد (وحدة أساسية) عند التكرار اليومي
+  dailyUnitQty        Int?                  @map("daily_unit_qty")
+  /// عدد الأيام المحتسب عند الحفظ (من تاريخ الجلسة حتى ما قبل الغسلة القادمة)
+  bridgeDaysSnapshot  Int?                  @map("bridge_days_snapshot")
+  /// كمية بوحدة مخزون الصنف (تُحسب تلقائياً من dispense_unit_*)
+  quantity            Decimal               @db.Decimal(24, 6)
+  /// ما أدخله الصيدلي (مثلاً 2 حبة أو 1 شريط)
+  dispenseUnitCode    String?               @map("dispense_unit_code")
+  dispenseUnitQty     Decimal?              @map("dispense_unit_qty") @db.Decimal(24, 6)
+  instructions        String?               @db.Text
+  prescriptionSetId   Int?                  @map("prescription_set_id")
+  displayOrder        Int                   @default(0) @map("display_order")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  dispense            DialysisSessionDispense @relation(fields: [dispenseId], references: [id], onDelete: Cascade)
+  drugCatalog         DrugCatalog?            @relation(fields: [drugCatalogId], references: [id], onDelete: Restrict)
+  dialysisItem        DialysisItem?           @relation(fields: [dialysisItemId], references: [id], onDelete: Restrict)
+  prescriptionSet     PrescriptionSet?      @relation(fields: [prescriptionSetId], references: [id], onDelete: SetNull)
+
+  @@index([dispenseId])
+  @@index([dialysisItemId])
+  @@map("d_irs_session_dispense_lines")
+}
+
+/// Consumption lines for Source A — quantities stored in smallest unit for the item.
+model DialysisSessionConsumption {
+  id                   Int      @id @default(autoincrement())
+  hospitalId           Int      @map("hospital_id")
+  sessionId            Int      @map("session_id")
+  warehouseId        Int      @map("warehouse_id")
+  itemId               Int      @map("item_id")
+  batchId              Int?     @map("batch_id")
+  quantityBase         Decimal  @map("quantity_base") @db.Decimal(24, 6)
+  displayUnitCode      String?  @map("display_unit_code")
+  createdByUserId      Int?     @map("created_by_user_id")
+  updatedByUserId      Int?     @map("updated_by_user_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  hospital             Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  session              DialysisSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  warehouse            DialysisWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  item                 DialysisItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batch                DialysisInventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([hospitalId, itemId])
+  @@map("d_irs_session_consumptions")
+}
+
+/// Source B — statistical folder bulk entry (one row per patient/date/shift within a hospital).
+model DialysisStatisticalEntry {
+  id                Int            @id @default(autoincrement())
+  hospitalId        Int            @map("hospital_id")
+  dialysisPatientId Int            @map("dialysis_patient_id")
+  sessionDate       DateTime       @map("session_date") @db.Date
+  shift             DialysisShift
+  folderReference   String?        @map("folder_reference")
+  notes             String?        @db.Text
+  createdByUserId   Int?           @map("created_by_user_id")
+  updatedByUserId   Int?           @map("updated_by_user_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  hospital          Hospital       @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  dialysisPatient   DialysisPatient @relation(fields: [dialysisPatientId], references: [id], onDelete: Cascade)
+  consumptions      DialysisStatisticalConsumption[]
+
+  @@unique([hospitalId, dialysisPatientId, sessionDate, shift])
+  @@index([hospitalId, sessionDate])
+  @@map("d_irs_statistical_entries")
+}
+
+model DialysisStatisticalConsumption {
+  id                   Int      @id @default(autoincrement())
+  hospitalId           Int      @map("hospital_id")
+  statisticalEntryId   Int      @map("statistical_entry_id")
+  itemId               Int      @map("item_id")
+  quantityBase         Decimal  @map("quantity_base") @db.Decimal(24, 6)
+  createdByUserId      Int?     @map("created_by_user_id")
+  updatedByUserId      Int?     @map("updated_by_user_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  hospital             Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  entry                DialysisStatisticalEntry @relation(fields: [statisticalEntryId], references: [id], onDelete: Cascade)
+  item                 DialysisItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([statisticalEntryId])
+  @@index([hospitalId, itemId])
+  @@map("d_irs_statistical_consumptions")
 }

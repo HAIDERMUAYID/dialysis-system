@@ -19,7 +19,7 @@ const db = require('./database/db');
 const logger = require('./utils/logger');
 
 // Initialize rate limiters
-const { apiLimiter, authLimiter } = require('./utils/rateLimiter');
+const { apiLimiter } = require('./utils/rateLimiter');
 
 // Flag to track database initialization
 let dbInitialized = false;
@@ -60,6 +60,9 @@ app.use(cors({
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+/** ملفات مرفوعة (صور مرضى الغسل وغيرها) */
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Request logging middleware
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path}`, {
@@ -85,15 +88,30 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running', 
+// Health check endpoint (يشمل فحص اتصال قاعدة البيانات عند توفر Prisma)
+app.get('/api/health', async (req, res) => {
+  let database = 'unknown';
+  if (db.prisma && typeof db.ensureConnection === 'function') {
+    try {
+      const ok = await db.ensureConnection();
+      database = ok ? 'connected' : 'disconnected';
+    } catch {
+      database = 'error';
+    }
+  } else if (dbInitialized) {
+    database = 'initialized';
+  } else {
+    database = 'not_ready';
+  }
+  const httpStatus = database === 'disconnected' || database === 'error' ? 503 : 200;
+  res.status(httpStatus).json({
+    status: httpStatus === 200 ? 'OK' : 'DEGRADED',
+    message: httpStatus === 200 ? 'Server is running' : 'Server up but database unreachable',
+    database,
     dbInitialized,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
@@ -148,9 +166,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply rate limiting to API routes
+// Apply rate limiting to API routes (strict login limiter is on POST /api/auth/login only — see routes/auth.js)
 app.use('/api/', apiLimiter);
-app.use('/api/auth', authLimiter);
 
 // Routes - with error handling
 try {
@@ -170,6 +187,7 @@ try {
   app.use('/api/advanced-reports', require('./routes/advanced-reports'));
   app.use('/api/search', require('./routes/search'));
   app.use('/api/export', require('./routes/export'));
+  app.use('/api/dialysis', require('./routes/dialysis'));
 
   // Enterprise-level routes
   app.use('/api/workflows', require('./routes/workflows'));

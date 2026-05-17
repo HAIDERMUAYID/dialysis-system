@@ -1,0 +1,140 @@
+/* القاعات والأسرة — عرض جوال ببطاقات، سطح مكتب بجدول */
+
+.d-structure-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.d-structure-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.d-structure-toolbar__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark-mode .d-structure-toolbar__title {
+  color: #f1f5f9;
+}
+
+.d-structure-help {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.dark-mode .d-structure-help {
+  color: #94a3b8;
+}
+
+.d-structure-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-structure-hall-card {
+  text-align: start;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  padding: 14px 16px;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+}
+
+.dark-mode .d-structure-hall-card {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.d-structure-hall-card__name {
+  font-weight: 800;
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+  color: var(--text-primary, #0f172a);
+  word-break: break-word;
+}
+
+.dark-mode .d-structure-hall-card__name {
+  color: #f1f5f9;
+}
+
+.d-structure-hall-card__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0d9488;
+  margin-bottom: 10px;
+}
+
+.dark-mode .d-structure-hall-card__count {
+  color: #5eead4;
+}
+
+.d-structure-hall-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.dark-mode .d-structure-hall-card__label {
+  color: #94a3b8;
+}
+
+.d-structure-bed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.d-structure-bed-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: #4338ca;
+}
+
+.dark-mode .d-structure-bed-chip {
+  background: rgba(129, 140, 248, 0.18);
+  border-color: rgba(165, 180, 252, 0.35);
+  color: #e0e7ff;
+}
+
+.d-structure-table-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.d-structure-table-wrap .ant-table {
+  width: 100%;
+}
+
+@media (max-width: 991px) {
+  .d-structure-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-structure-toolbar .ant-btn {
+    width: 100%;
+  }
+}
