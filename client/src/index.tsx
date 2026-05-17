@@ -5,6 +5,22 @@ import './index.css';
 import './styles/theme.css';
 import App from './App';
 
+// النظام يعمل بالوضع الفاتح فقط — إزالة أي بقايا من الوضع الداكن
+document.documentElement.classList.remove('dark-mode', 'light-mode');
+document.documentElement.setAttribute('data-theme', 'light');
+try {
+  localStorage.removeItem('theme');
+} catch {
+  /* ignore */
+}
+
+const standalone =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+document.documentElement.classList.add('mobile-app-shell');
+if (standalone) document.documentElement.classList.add('is-standalone');
+
 // Configure axios base URL
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 axios.defaults.baseURL = API_URL;
@@ -33,3 +49,13 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+const hideSplash = () => {
+  const splash = document.getElementById('app-splash');
+  if (!splash) return;
+  splash.classList.add('app-splash--hide');
+  window.setTimeout(() => splash.remove(), 260);
+};
+
+requestAnimationFrame(() => requestAnimationFrame(hideSplash));
+window.addEventListener('load', hideSplash, { once: true });

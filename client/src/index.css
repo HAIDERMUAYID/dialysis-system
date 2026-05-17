@@ -4,8 +4,6 @@
 @import './styles/modals-forms.css';
 @import './styles/modern-header.css';
 @import './styles/mobile-responsive.css';
-@import './styles/dark-mode.css';
-
 * {
   margin: 0;
   padding: 0;
@@ -31,6 +29,108 @@ code {
 
 body {
   font-family: 'Cairo', 'Segoe UI', 'Arial', 'Tahoma', sans-serif;
+}
+
+#app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f8fafc 0%, #eefaf6 56%, #f0fdf9 100%);
+  transition: opacity 0.24s ease;
+}
+
+.app-splash--hide {
+  opacity: 0;
+}
+
+.app-splash-card {
+  width: min(320px, calc(100vw - 36px));
+  border-radius: 28px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 55px rgba(2, 132, 199, 0.16);
+  text-align: center;
+  padding: 26px 18px 22px;
+  animation: splashCardIn 320ms ease-out;
+}
+
+.app-splash-logo {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  border-radius: 22px;
+  background: #ffffff;
+  margin-bottom: 10px;
+  animation: splashLogoBreath 2.2s ease-in-out infinite;
+}
+
+.app-splash-card h1 {
+  margin: 0;
+  color: #134e4a;
+  font-size: 1.28rem;
+  font-weight: 900;
+}
+
+.app-splash-card p {
+  margin: 6px 0 14px;
+  color: #64748b;
+  font-size: 0.93rem;
+}
+
+.app-splash-loader {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #bfdbfe;
+  border-top-color: #157c67;
+  animation: appSplashSpin 0.9s linear infinite;
+}
+
+@keyframes appSplashSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes splashCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splashLogoBreath {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+html.mobile-app-shell,
+html.mobile-app-shell body,
+html.mobile-app-shell #root {
+  min-height: 100%;
+}
+
+html.mobile-app-shell body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.is-standalone body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Scrollbar styling */

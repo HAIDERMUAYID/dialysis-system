@@ -1,7 +1,6 @@
 import React from 'react';
 import { ConfigProvider, ThemeConfig, theme as antdThemeApi } from 'antd';
 import arEG from 'antd/locale/ar_EG';
-import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -160,14 +159,10 @@ interface AntdConfigProps {
 }
 
 export const AntdConfig: React.FC<AntdConfigProps> = ({ children }) => {
-  const { theme: colorMode } = useTheme();
-  const isDark = colorMode === 'dark';
-
-  /** يمنع خلفية Tag الافتراضية من أن تصبح شبه سوداء (FastColor.onBackground + darkAlgorithm على بعض المتصفحات/ RTL). */
   const tagSafeTokens = {
     ...(antdTheme.components?.Tag ?? {}),
-    defaultBg: isDark ? 'rgba(167, 139, 250, 0.2)' : 'rgba(102, 126, 234, 0.14)',
-    defaultColor: isDark ? '#f5f3ff' : '#4338ca',
+    defaultBg: 'rgba(102, 126, 234, 0.14)',
+    defaultColor: '#4338ca',
   };
 
   return (
@@ -176,7 +171,7 @@ export const AntdConfig: React.FC<AntdConfigProps> = ({ children }) => {
       direction="rtl"
       theme={{
         ...antdTheme,
-        algorithm: isDark ? antdThemeApi.darkAlgorithm : antdThemeApi.defaultAlgorithm,
+        algorithm: antdThemeApi.defaultAlgorithm,
         components: {
           ...antdTheme.components,
           Tag: tagSafeTokens,

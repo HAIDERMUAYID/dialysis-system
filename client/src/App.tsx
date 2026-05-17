@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AntdConfig } from './config/antd.config';
 import Login from './components/Auth/LoginModern';
-import WelcomeMessage from './components/Welcome/WelcomeMessage';
 import InquiryDashboard from './components/Dashboards/InquiryDashboardModern';
 import LabDashboard from './components/Dashboards/LabDashboardModern';
 import PharmacyDashboard from './components/Dashboards/PharmacyDashboardModern';
@@ -16,9 +15,10 @@ import DrugsCatalogManagement from './components/Pharmacy/DrugsCatalogManagement
 import PrescriptionSetsManagement from './components/Pharmacy/PrescriptionSetsManagement';
 import DialysisApp from './components/Dialysis/app/DialysisApp';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
 import { useGlobalShortcuts } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from './components/Common/KeyboardShortcutsHelp';
+import PwaInstallPrompt from './components/Common/PwaInstallPrompt';
+import MobileAppBootScreen from './components/Common/MobileAppBootScreen';
 import './App.css';
 import { resolveAppHomeRoute } from './utils/appHomeRoute';
 
@@ -35,7 +35,7 @@ const PrivateRoute: React.FC<{
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">جاري التحميل...</div>;
+    return <MobileAppBootScreen text="جاري التحقق من حسابك..." />;
   }
 
   if (!user) {
@@ -80,7 +80,7 @@ const AppRoutes: React.FC = () => {
       {/* Root route - redirect to appropriate dashboard */}
       <Route path="/" element={
         loading ? (
-          <div className="loading">جاري التحميل...</div>
+          <MobileAppBootScreen text="جاري تجهيز لوحة النظام..." />
         ) : user ? (
           <Navigate to={resolveAppHomeRoute(user)} replace />
         ) : (
@@ -98,7 +98,7 @@ const AppRoutes: React.FC = () => {
         path="/dialysis-login"
         element={
           loading ? (
-            <div className="loading">جاري التحميل...</div>
+            <MobileAppBootScreen text="جاري فتح وحدة الغسل الكلوي..." />
           ) : user ? (
             <Navigate to={resolveAppHomeRoute(user)} replace />
           ) : (
@@ -246,15 +246,14 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AntdConfig>
-        <AuthProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </AuthProvider>
-      </AntdConfig>
-    </ThemeProvider>
+    <AntdConfig>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+          <PwaInstallPrompt />
+        </Router>
+      </AuthProvider>
+    </AntdConfig>
   );
 };
 

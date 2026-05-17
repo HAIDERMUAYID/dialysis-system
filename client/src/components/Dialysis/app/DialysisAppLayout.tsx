@@ -447,7 +447,9 @@ const DialysisAppLayout: React.FC = () => {
               )}
             </div>
           ) : (
-            <Outlet />
+            <div key={location.pathname} className="d-page-transition">
+              <Outlet />
+            </div>
           )}
         </Content>
 

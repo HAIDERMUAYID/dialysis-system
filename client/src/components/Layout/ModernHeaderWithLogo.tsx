@@ -3,7 +3,6 @@ import { Layout } from 'antd';
 import { LogoutOutlined, UserOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 import NotificationBell from '../Notifications/NotificationBell';
 import ChangePasswordModal from '../Common/ChangePasswordModal';
-import { ThemeToggle } from '../Common/ThemeToggle';
 import { EnhancedTooltip } from '../Common/EnhancedTooltip';
 import './ModernHeaderWithLogo.css';
 
@@ -95,8 +94,6 @@ const ModernHeaderWithLogo: React.FC<ModernHeaderWithLogoProps> = ({
                 {isCollapsed ? <DownOutlined /> : <UpOutlined />}
               </button>
             </EnhancedTooltip>
-            
-            <ThemeToggle />
             
             <div className="modern-header-notification-wrapper">
               <NotificationBell />

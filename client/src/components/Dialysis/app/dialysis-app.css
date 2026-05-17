@@ -226,19 +226,60 @@ body.d-app-body-lock {
   text-decoration: none;
   min-height: 56px;
   cursor: pointer;
+  border-radius: 14px;
+  transition: color 160ms ease, transform 120ms ease, background-color 160ms ease;
+  position: relative;
+}
+
+.d-bottom-item:active {
+  transform: scale(0.97);
+  background: rgba(108, 92, 231, 0.08);
 }
 
 .d-bottom-item.active {
   color: #6c5ce7;
+  background: rgba(108, 92, 231, 0.1);
+}
+
+.d-bottom-item.active::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  inset-inline-start: 50%;
+  width: 22px;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6c5ce7, #7c3aed);
 }
 
 .d-bottom-icon {
   font-size: 20px;
+  transition: transform 160ms ease;
+}
+
+.d-bottom-item.active .d-bottom-icon {
+  transform: translateY(-1px);
 }
 
 .d-bottom-label {
   font-weight: 600;
   white-space: nowrap;
+}
+
+.d-page-transition {
+  animation: dPageSlideIn 200ms ease-out;
+}
+
+@keyframes dPageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* =========================================================

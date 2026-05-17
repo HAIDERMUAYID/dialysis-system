@@ -1,13 +1,18 @@
 {
-  "short_name": "مستشفى الحكيم",
-  "name": "نظام إدارة مستشفى الحكيم - شعبة الكلية الصناعية",
-  "description": "نظام شامل لإدارة المستشفى - إدارة المرضى، الزيارات، التحاليل، الصيدلية والتشخيصات",
+  "short_name": "D-IRS",
+  "name": "D-IRS — نظام وحدة الغسل الكلوي",
+  "description": "تطبيق وحدة الغسل الكلوي — إدارة المرضى، الجلسات، الصيدلية، التقارير",
+  "start_url": "/dialysis",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "theme_color": "#157c67",
+  "background_color": "#f8fafc",
+  "dir": "rtl",
+  "lang": "ar",
+  "categories": ["medical", "health", "productivity"],
   "icons": [
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
     {
       "src": "images/ministry-logo.png",
       "sizes": "192x192",
@@ -21,29 +26,19 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#667eea",
-  "background_color": "#ffffff",
-  "dir": "rtl",
-  "lang": "ar",
-  "categories": ["medical", "health", "productivity"],
-  "screenshots": [],
   "shortcuts": [
     {
-      "name": "لوحة التحكم",
-      "short_name": "Dashboard",
-      "description": "الانتقال إلى لوحة التحكم",
-      "url": "/admin",
+      "name": "جلسات الغسل",
+      "short_name": "الجلسات",
+      "description": "فتح صفحة جلسات الغسل مباشرة",
+      "url": "/dialysis/sessions",
       "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
     },
     {
-      "name": "إضافة مريض",
-      "short_name": "New Patient",
-      "description": "إضافة مريض جديد",
-      "url": "/inquiry?action=new-patient",
+      "name": "الملف الطبي",
+      "short_name": "المرضى",
+      "description": "فتح صفحة المرضى والسجل الطبي",
+      "url": "/dialysis/patients",
       "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
     }
   ]

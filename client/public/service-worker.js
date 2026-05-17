@@ -1,70 +1,56 @@
-/**
- * Service Worker for PWA
- * يدعم التخزين المؤقت والوضع غير المتصل
- */
+const CACHE_NAME = 'd-irs-v3';
+const APP_SHELL = ['/', '/dialysis', '/manifest.json', '/images/ministry-logo.png'];
 
-const CACHE_NAME = 'al-hakeem-hospital-v2';
-const urlsToCache = [
-  '/',
-  '/static/css/main.css',
-  '/static/js/main.js',
-  '/images/ministry-logo.png',
-  '/manifest.json',
-];
-
-// Install event - cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.error('Cache install failed:', error);
-      })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => null)
   );
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  return self.clients.claim();
 });
 
-// Fetch event — للمسارات (SPA): الشبكة أولاً ثم الصفحة الرئيسية من الكاش؛ للثابتات: كاش ثم شبكة
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  const reqUrl = new URL(event.request.url);
+
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response && response.ok) return response;
-          return caches.match('/');
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/dialysis', copy)).catch(() => null);
+          return response;
         })
-        .catch(() => caches.match('/'))
+        .catch(() => caches.match('/dialysis').then((res) => res || caches.match('/')))
     );
     return;
   }
 
+  if (reqUrl.origin !== self.location.origin) {
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    }).catch(() => {
-      if (event.request.destination === 'document') {
-        return caches.match('/');
-      }
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((networkRes) => {
+          if (!networkRes || networkRes.status !== 200) return networkRes;
+          const copy = networkRes.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => null);
+          return networkRes;
+        })
+        .catch(() => caches.match('/'));
     })
   );
 });
