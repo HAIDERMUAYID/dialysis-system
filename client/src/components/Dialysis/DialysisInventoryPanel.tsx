@@ -57,6 +57,14 @@ interface BatchRow {
   item?: { name: string; baseUnitLabel: string };
 }
 
+interface StockSummaryRow {
+  id: number;
+  name: string;
+  totalRemainingBase: string;
+  baseUnitLabel: string;
+  batchCount: number;
+}
+
 interface Props {
   hospitalId: number;
   canManage: boolean;
@@ -67,6 +75,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [batches, setBatches] = useState<BatchRow[]>([]);
+  const [stockByItem, setStockByItem] = useState<Map<number, StockSummaryRow>>(new Map());
   const [warehouseFilter, setWarehouseFilter] = useState<number | undefined>();
   const [itemsLoading, setItemsLoading] = useState(false);
   const [batchesLoading, setBatchesLoading] = useState(false);
@@ -90,6 +99,19 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
     }
   }, [batchItemId, batchReceiptUnits, batchForm]);
 
+  const loadStockSummary = useCallback(async () => {
+    try {
+      const { data } = await axios.get<{ items: StockSummaryRow[] }>('/api/dialysis/inventory/summary', {
+        params: { hospital_id: hospitalId },
+      });
+      const map = new Map<number, StockSummaryRow>();
+      (data.items ?? []).forEach((row) => map.set(row.id, row));
+      setStockByItem(map);
+    } catch {
+      setStockByItem(new Map());
+    }
+  }, [hospitalId]);
+
   const loadWarehousesItems = useCallback(async () => {
     setItemsLoading(true);
     try {
@@ -99,7 +121,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       ]);
       setWarehouses(wh.data);
       setItems(it.data);
-      setWarehouseFilter((prev) => prev ?? wh.data[0]?.id);
+      setWarehouseFilter(wh.data[0]?.id);
     } catch {
       message.error('تعذر تحميل المستودعات أو الأصناف. أعد فتح الصفحة.');
     } finally {
@@ -127,7 +149,8 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
 
   useEffect(() => {
     loadWarehousesItems();
-  }, [loadWarehousesItems]);
+    loadStockSummary();
+  }, [loadWarehousesItems, loadStockSummary]);
 
   useEffect(() => {
     loadBatches();
@@ -155,6 +178,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       itemForm.resetFields();
       setItemModalOpen(false);
       loadWarehousesItems();
+      loadStockSummary();
     } catch (e: unknown) {
       if ((e as { errorFields?: unknown }).errorFields) return;
       message.error('لم يتم حفظ الصنف. تحقق من الحقول وحاول مرة أخرى.');
@@ -177,6 +201,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       batchForm.resetFields();
       setBatchModalOpen(false);
       loadBatches();
+      loadStockSummary();
     } catch (e: unknown) {
       if ((e as { errorFields?: unknown }).errorFields) return;
       message.error('لم يتم تسجيل الدفعة. تحقق من الكمية والمستودع.');
@@ -209,6 +234,25 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       render: (k: string) => measureLabel(k),
     },
     { title: 'وحدة المخزون', dataIndex: 'baseUnitLabel', key: 'u' },
+    {
+      title: 'الرصيد الكلي',
+      key: 'stock',
+      render: (_: unknown, r: ItemRow) => {
+        const s = stockByItem.get(r.id);
+        const qty = s?.totalRemainingBase ?? '0';
+        const batches = s?.batchCount ?? 0;
+        return (
+          <span>
+            <strong>{qty}</strong> {r.baseUnitLabel}
+            {batches > 0 ? (
+              <Text type="secondary" style={{ fontSize: 12, marginInlineStart: 6 }}>
+                ({batches} دفعة)
+              </Text>
+            ) : null}
+          </span>
+        );
+      },
+    },
     {
       title: 'التعبئة',
       key: 'pack',
@@ -313,7 +357,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
             أصناف المستلزمات
           </h3>
           <Space wrap className="d-inv-toolbar">
-            <Button icon={<ReloadOutlined />} onClick={() => loadWarehousesItems()} size={isMobile ? 'large' : 'middle'}>
+            <Button icon={<ReloadOutlined />} onClick={() => { loadWarehousesItems(); loadStockSummary(); }} size={isMobile ? 'large' : 'middle'}>
               تحديث
             </Button>
             {canManage ? (
@@ -358,9 +402,32 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
                     <span className="d-inv-card__value">{measureLabel(it.measureKind)}</span>
                   </div>
                   <div className="d-inv-card__row">
+                    <span className="d-inv-card__label">الرصيد الكلي</span>
+                    <span className="d-inv-card__value">
+                      {stockByItem.get(it.id)?.totalRemainingBase ?? '0'} {it.baseUnitLabel}
+                    </span>
+                  </div>
+                  <div className="d-inv-card__row">
                     <span className="d-inv-card__label">وحدة المخزون</span>
                     <span className="d-inv-card__value">{it.baseUnitLabel}</span>
                   </div>
+                  {canManage && it.units && it.units.length > 1 ? (
+                    <Button
+                      size="small"
+                      type="link"
+                      style={{ padding: 0, marginTop: 4 }}
+                      onClick={() => {
+                        setPackagingItem(it);
+                        packagingForm.setFieldsValue({
+                          packaging_ladder: ladderFromApiForEditor(it.units!, it.inventoryBaseUnitCode),
+                          inventory_base_unit_code: it.inventoryBaseUnitCode ?? undefined,
+                        });
+                        setPackagingModalOpen(true);
+                      }}
+                    >
+                      تعديل التعبئة
+                    </Button>
+                  ) : null}
                 </article>
               ))
             )}
@@ -488,6 +555,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
             message.success('تم حفظ سلم التعبئة');
             setPackagingModalOpen(false);
             loadWarehousesItems();
+            loadStockSummary();
           } catch (e: unknown) {
             if ((e as { errorFields?: unknown }).errorFields) return;
             const msg =
@@ -537,7 +605,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
             rules={[{ required: true, message: 'مطلوب' }]}
           >
             <DialysisUnitQuantityInput
-              units={unitsFromApi(items.find((i) => i.id === batchItemId)?.units)}
+              units={unitsFromApi(batchItem?.units, batchItem?.inventoryBaseUnitCode)}
               quantity={batchForm.getFieldValue('receipt_quantity')}
               unitCode={batchForm.getFieldValue('receipt_unit_code')}
               onQuantityChange={(q) =>

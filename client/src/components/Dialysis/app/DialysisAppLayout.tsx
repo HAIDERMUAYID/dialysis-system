@@ -44,6 +44,7 @@ import { usePermission } from '../../../hooks/usePermission';
 import { ALL_MY_HOSPITALS, useDialysisContext } from './dialysisContext';
 import { DIALYSIS_MOBILE_MQ } from './useDialysisMobile';
 import DialysisBrandLogo from './DialysisBrandLogo';
+import DialysisWelcomeBanner from './DialysisWelcomeBanner';
 import { DIALYSIS_SYSTEM_TITLE, DIALYSIS_SYSTEM_TITLE_SHORT } from './dialysisBrand';
 import './dialysis-brand.css';
 import './dialysis-app.css';
@@ -92,8 +93,8 @@ const ALL_ITEMS: NavItem[] = [
   { key: 'access', to: '/dialysis/access', label: 'إدارة الوصول', icon: <SafetyCertificateOutlined />, permission: 'dialysis:access:manage', group: 'admin' },
 ];
 
-/** عناصر للشريط السفلي على الموبايل — «التقارير» بدل «القاعة النشطة» للوصول السريع */
-const MOBILE_BOTTOM = ['overview', 'patients', 'sessions', 'reports'];
+/** عناصر للشريط السفلي على الموبايل — القاعة النشطة للطاقم اليومي */
+const MOBILE_BOTTOM = ['overview', 'patients', 'sessions', 'live'];
 
 /** أعرض من هذا العرض نعتبر الجهاز هاتفاً/تابلت صغيراً — يتوافق مع useDialysisMobile */
 const MOBILE_MQ = DIALYSIS_MOBILE_MQ;
@@ -447,9 +448,12 @@ const DialysisAppLayout: React.FC = () => {
               )}
             </div>
           ) : (
-            <div key={location.pathname} className="d-page-transition">
-              <Outlet />
-            </div>
+            <>
+              <DialysisWelcomeBanner isMobile={isMobile} />
+              <div key={location.pathname} className="d-page-transition">
+                <Outlet />
+              </div>
+            </>
           )}
         </Content>
 

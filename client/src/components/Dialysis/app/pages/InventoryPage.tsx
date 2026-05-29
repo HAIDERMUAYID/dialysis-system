@@ -9,7 +9,9 @@ const { Text } = Typography;
 
 const InventoryPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
-  const canManage = usePermission('dialysis:location:manage');
+  const canManageLocation = usePermission('dialysis:location:manage');
+  const canManagePharmacyInv = usePermission('dialysis:pharmacy:inventory');
+  const canManage = canManageLocation || canManagePharmacyInv;
   if (hospitalId == null) return null;
   return (
     <>

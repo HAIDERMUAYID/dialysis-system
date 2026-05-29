@@ -96,6 +96,7 @@ async function main() {
     ['GET', '/api/dialysis/machines', q],
     ['GET', '/api/dialysis/warehouses', q],
     ['GET', '/api/dialysis/items', q],
+    ['GET', '/api/dialysis/inventory/summary', q],
     ['GET', '/api/dialysis/sessions', { ...q, limit: 5 }],
     ['GET', '/api/dialysis/sessions/active', q],
     ['GET', '/api/dialysis/access/permissions', {}],

@@ -2118,6 +2118,83 @@ router.put(
   }
 );
 
+/** ملخص الرصيد المتبقي لكل صنف — عبر كل المستودعات أو مستودع واحد */
+router.get(
+  '/inventory/summary',
+  authenticateToken,
+  requireAnyPermission('dialysis:view', 'dialysis:pharmacy:view', 'dialysis:pharmacy:dispense', 'dialysis:pharmacy:inventory'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+      const warehouseIdRaw = req.query.warehouse_id;
+      const warehouseId =
+        warehouseIdRaw !== undefined && warehouseIdRaw !== ''
+          ? parseInt(String(warehouseIdRaw), 10)
+          : null;
+      if (warehouseIdRaw !== undefined && warehouseIdRaw !== '' && Number.isNaN(warehouseId)) {
+        return res.status(400).json({ error: 'warehouse_id غير صالح' });
+      }
+      if (warehouseId) {
+        const wh = await prisma.dialysisWarehouse.findFirst({ where: { id: warehouseId, hospitalId } });
+        if (!wh) return res.status(404).json({ error: 'مستودع غير موجود' });
+      }
+
+      const items = await prisma.dialysisItem.findMany({
+        where: { hospitalId, isActive: 1 },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          baseUnitLabel: true,
+          inventoryBaseUnitCode: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+
+      const batches = await prisma.dialysisInventoryBatch.findMany({
+        where: {
+          hospitalId,
+          ...(warehouseId ? { warehouseId } : {}),
+          quantityRemainingBase: { gt: 0 },
+        },
+        select: { itemId: true, quantityRemainingBase: true },
+      });
+
+      const agg = new Map();
+      for (const b of batches) {
+        const q = new Prisma.Decimal(b.quantityRemainingBase.toString());
+        const prev = agg.get(b.itemId) || { total: new Prisma.Decimal(0), batchCount: 0 };
+        prev.total = prev.total.plus(q);
+        prev.batchCount += 1;
+        agg.set(b.itemId, prev);
+      }
+
+      const itemsOut = items.map((it) => {
+        const a = agg.get(it.id);
+        return {
+          id: it.id,
+          name: it.name,
+          sku: it.sku,
+          baseUnitLabel: it.baseUnitLabel,
+          totalRemainingBase: a ? a.total.toString() : '0',
+          batchCount: a ? a.batchCount : 0,
+        };
+      });
+
+      res.json({
+        warehouse_id: warehouseId,
+        items: itemsOut,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل جلب ملخص المخزون' });
+    }
+  }
+);
+
 router.get(
   '/inventory/batches',
   authenticateToken,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Spin, Typography, Tag, Empty } from 'antd';
+import { Spin, Typography, Tag, Empty, message } from 'antd';
 import {
   TeamOutlined,
   ApartmentOutlined,
@@ -49,16 +49,18 @@ const OverviewPage: React.FC = () => {
   const load = useCallback(async () => {
     if (hospitalId == null) return;
     setLoading(true);
+    const today = dayjs().format('YYYY-MM-DD');
+    const params = { hospital_id: hospitalId };
     try {
-      const today = dayjs().format('YYYY-MM-DD');
-      const params = { hospital_id: hospitalId };
-      const [pat, locs, slots, machs, act, todayS] = await Promise.all([
+      const [pat, locs, slots, machs, act, kpis] = await Promise.all([
         axios.get('/api/dialysis/patients', { params }),
         axios.get('/api/dialysis/locations', { params }),
         axios.get('/api/dialysis/shift-slots', { params }),
         axios.get('/api/dialysis/machines', { params }),
         axios.get('/api/dialysis/sessions/active', { params }),
-        axios.get('/api/dialysis/sessions', { params: { ...params, date: today } }),
+        axios.get<{ total: number; active: number }>('/api/dialysis/sessions/kpis', {
+          params: { ...params, date: today },
+        }),
       ]);
       setStats({
         patients: Array.isArray(pat.data) ? pat.data.length : 0,
@@ -66,11 +68,11 @@ const OverviewPage: React.FC = () => {
         slots: Array.isArray(slots.data) ? slots.data.length : 0,
         machines: Array.isArray(machs.data) ? machs.data.length : 0,
         active: Array.isArray(act.data) ? act.data.length : 0,
-        today: Array.isArray(todayS.data) ? todayS.data.length : 0,
+        today: typeof kpis.data?.total === 'number' ? kpis.data.total : 0,
       });
       setActive(Array.isArray(act.data) ? act.data.slice(0, 6) : []);
     } catch {
-      /* تجاهل، البطاقات تبقى صفرية */
+      message.error('تعذر تحميل ملخص النظام. تحقق من الاتصال وأعد المحاولة.');
     } finally {
       setLoading(false);
     }
