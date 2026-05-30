@@ -52,6 +52,7 @@ import { dialysisHaptic, prefersReducedMotion } from './useDialysisHaptic';
 import { useDialysisPageDirection } from './useDialysisPageDirection';
 import DialysisBrandLogo from './DialysisBrandLogo';
 import DialysisWelcomeBanner from './DialysisWelcomeBanner';
+import DialysisHospitalScopePicker from './DialysisHospitalScopePicker';
 import ChangePasswordModal from '../../Common/ChangePasswordModal';
 import ProfilePhotoModal from '../../Common/ProfilePhotoModal';
 import { DIALYSIS_SYSTEM_TITLE, DIALYSIS_SYSTEM_TITLE_SHORT } from './dialysisBrand';
@@ -652,11 +653,31 @@ const DialysisAppLayout: React.FC = () => {
               title="نطاق العمل"
               className="d-app-hospital-drawer"
               destroyOnClose
+              zIndex={1260}
+              styles={{
+                body: {
+                  padding: 0,
+                  maxHeight: 'min(78dvh, calc(100dvh - 100px))',
+                  overflowY: 'auto',
+                },
+              }}
             >
-              <Text type="secondary" className="d-app-hospital-drawer__current">
-                {currentHospitalLabel}
-              </Text>
-              <div className="d-app-hospital-drawer__body">{hospitalPicker}</div>
+              <div className="d-app-hospital-drawer__body">
+                <DialysisHospitalScopePicker
+                  options={hospitalOptions}
+                  value={hospitalId}
+                  onChange={(v) => {
+                    setHospitalId(v);
+                    setHospitalDrawerOpen(false);
+                  }}
+                  onRefresh={() => refreshHospitals()}
+                  canManageHospital={canManageHospital}
+                  onNewHospital={() => {
+                    setHospitalDrawerOpen(false);
+                    setNewHospitalOpen(true);
+                  }}
+                />
+              </div>
             </Drawer>
 
             <Drawer

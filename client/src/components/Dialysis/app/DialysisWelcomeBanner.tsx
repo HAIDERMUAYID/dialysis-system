@@ -86,17 +86,26 @@ const DialysisWelcomeBanner: React.FC<Props> = ({ isMobile = false }) => {
         <div className="d-welcome__main">
           <p className="d-welcome__greeting">{greeting}</p>
           <h2 className="d-welcome__name">{displayName}</h2>
-          <p className="d-welcome__lead">
-            مرحباً بك في نظام إدارة الغسل الكلوي. يمكنك متابعة الجلسات والمرضى والمخزون من لوحة
-            التحكم.
-          </p>
+          {!isMobile && (
+            <p className="d-welcome__lead">
+              مرحباً بك في نظام إدارة الغسل الكلوي. يمكنك متابعة الجلسات والمرضى والمخزون من لوحة
+              التحكم.
+            </p>
+          )}
           <div className="d-welcome__meta">
             <span className="d-welcome__chip">
               <SafetyCertificateOutlined />
               {roleLabel}
             </span>
-            {hospitalId != null && hospitalId !== ALL_MY_HOSPITALS ? (
+            {!isMobile && hospitalId != null && hospitalId !== ALL_MY_HOSPITALS ? (
               <span className="d-welcome__chip d-welcome__chip--scope">{hospitalLabel}</span>
+            ) : null}
+            {isMobile && hospitalId != null ? (
+              <span className="d-welcome__chip d-welcome__chip--muted">
+                {hospitalId === ALL_MY_HOSPITALS
+                  ? 'جميع المستشفيات'
+                  : hospitals.find((h) => h.id === hospitalId)?.code || 'المستشفى الحالي'}
+              </span>
             ) : null}
             <span className="d-welcome__chip d-welcome__chip--muted">{todayLabel}</span>
           </div>

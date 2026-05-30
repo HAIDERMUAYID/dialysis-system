@@ -56,6 +56,15 @@
   font-size: 22px;
 }
 
+.d-app-mobile .d-stat-grid--refresh .d-stat-value {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.d-app-mobile .d-stat-grid--refresh .d-stat-icon {
+  opacity: 0.7;
+}
+
 .d-app-mobile .d-card {
   padding: 14px;
   border-radius: 16px;

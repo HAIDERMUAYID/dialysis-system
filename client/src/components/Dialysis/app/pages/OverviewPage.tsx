@@ -49,6 +49,11 @@ const OverviewPage: React.FC = () => {
     today: 0,
   });
   const [active, setActive] = useState<ActiveRow[]>([]);
+  const [statsReady, setStatsReady] = useState(false);
+
+  useEffect(() => {
+    setStatsReady(false);
+  }, [hospitalId]);
 
   const load = useCallback(async () => {
     if (hospitalId == null) return;
@@ -79,8 +84,11 @@ const OverviewPage: React.FC = () => {
       message.error('تعذر تحميل ملخص النظام. تحقق من الاتصال وأعد المحاولة.');
     } finally {
       setLoading(false);
+      setStatsReady(true);
     }
   }, [hospitalId]);
+
+  const showMobileSkeleton = isMobile && loading && !statsReady;
 
   useEffect(() => {
     load();
@@ -104,10 +112,12 @@ const OverviewPage: React.FC = () => {
         <Text className="sub">ملخص بيانات وحدة الغسل الكلوي. يتم تحديث البيانات كل 30 ثانية.</Text>
       </div>
 
-      {isMobile && loading ? (
+      {showMobileSkeleton ? (
         <DialysisMobileSkeleton rows={6} variant="stat" />
       ) : (
-        <div className="d-stat-grid">
+        <div
+          className={`d-stat-grid${isMobile && loading ? ' d-stat-grid--refresh' : ''}`}
+        >
           {cards.map((c) => (
             <Link key={c.key} to={c.link} className="d-stat" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="d-stat-info">
