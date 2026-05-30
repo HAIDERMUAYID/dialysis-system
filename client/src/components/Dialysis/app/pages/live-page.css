@@ -1,0 +1,78 @@
+.d-live-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.d-live-page__badge {
+  width: 100%;
+  text-align: center;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+}
+
+.d-live-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-live-card {
+  border-radius: 16px;
+  border: 1px solid #e8ecf4;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+.d-live-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.d-live-card__name {
+  margin: 0 !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.d-live-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.d-live-card__location {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.d-live-card__vitals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.d-live-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-live-card__actions .ant-btn {
+  min-height: 44px;
+}
+
+.d-app-mobile .d-live-page .d-toolbar {
+  margin-bottom: 12px;
+}

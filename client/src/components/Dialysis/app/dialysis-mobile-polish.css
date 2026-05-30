@@ -193,6 +193,8 @@ body.d-app-mobile .d-bottom-nav {
 }
 
 /* ——— بطاقات premium ——— */
+.d-app-mobile .d-live-card,
+.d-app-mobile .d-access-hospital-card,
 .d-app-mobile .d-patient-card,
 .d-app-mobile .d-session-card,
 .d-app-mobile .d-card,
@@ -398,6 +400,10 @@ body.d-app-mobile .d-bottom-nav {
 }
 
 /* ——— دروج ——— */
+.d-app-mobile .d-app-mobile-menu-drawer .ant-drawer-content {
+  border-radius: 16px 0 0 16px;
+}
+
 .d-app-mobile .ant-drawer-bottom .ant-drawer-content {
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -20px 60px rgba(15, 23, 42, 0.15);
@@ -413,6 +419,10 @@ body.d-app-mobile .d-bottom-nav {
 }
 
 /* ——— ترحيب ——— */
+.d-app-mobile .d-live-card:active {
+  transform: scale(0.99);
+}
+
 .d-app-mobile .d-welcome--mobile {
   animation: dMobileWelcomeIn 520ms var(--d-ease-out) both;
   box-shadow:

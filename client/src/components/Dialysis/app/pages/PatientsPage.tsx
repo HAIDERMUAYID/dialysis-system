@@ -152,12 +152,11 @@ const PatientsPage: React.FC = () => {
               تحديث
             </Button>
           )}
-          {canCreate && (
+          {canCreate && !isMobile && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
               disabled={mergedScope}
-              block={isMobile}
               title={
                 mergedScope
                   ? 'لإضافة مريض جديد اختر مستشفى واحداً من القائمة'

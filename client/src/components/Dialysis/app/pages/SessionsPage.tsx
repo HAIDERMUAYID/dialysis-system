@@ -809,7 +809,7 @@ const SessionsPage: React.FC = () => {
               onChange={(r) => r?.[0] && r[1] && setCustomRange([r[0], r[1]])}
               format="YYYY-MM-DD"
               allowClear={false}
-              style={{ minWidth: 260 }}
+              style={isMobile ? { width: '100%', minWidth: 0 } : { minWidth: 260 }}
             />
           )}
           <span className="grow" />

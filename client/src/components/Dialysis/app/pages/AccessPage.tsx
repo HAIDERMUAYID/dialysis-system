@@ -526,6 +526,59 @@ const AccessPage: React.FC = () => {
     },
   ];
 
+  const renderHospitalUsersBlock = (record: HospitalDirectoryRow) => (
+    <>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        block
+        size={isMobile ? 'large' : 'middle'}
+        onClick={() => openMemberModal(record)}
+        style={{ marginBottom: 12 }}
+      >
+        إضافة موظف لهذا المستشفى
+      </Button>
+      {record.users.length === 0 ? (
+        <Text type="secondary">لا يوجد موظف مرتبط بهذا المستشفى في نظام الغسيل.</Text>
+      ) : (
+        record.users.map((u) => (
+          <div key={u.userId} className="d-access-user-card">
+            <div className="d-access-user-card__row">
+              <strong>{u.name}</strong>
+              <Tag className="d-access-tag d-access-tag--perm-role">{u.roleDisplay || u.role}</Tag>
+              {u.isPrimary ? (
+                <Tag className="d-access-tag d-access-tag--ok">افتراضي</Tag>
+              ) : null}
+              {u.isActive ? (
+                <Tag className="d-access-tag d-access-tag--ok">نشط</Tag>
+              ) : (
+                <Tag className="d-access-tag d-access-tag--muted">معطل</Tag>
+              )}
+            </div>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+              @{u.username}
+            </Text>
+            <div className="d-access-user-card__actions">
+              <Button size="small" type="primary" onClick={() => openEditByUserId(u.userId)}>
+                تعديل الصلاحيات
+              </Button>
+              <Popconfirm
+                title="إزالة الموظف من هذا المستشفى؟"
+                okText="نعم"
+                cancelText="إلغاء"
+                onConfirm={() => removeFromHospital(record.id, u.userId)}
+              >
+                <Button size="small" danger icon={<DeleteOutlined />}>
+                  إزالة
+                </Button>
+              </Popconfirm>
+            </div>
+          </div>
+        ))
+      )}
+    </>
+  );
+
   return (
     <>
       <div className="d-page-header">
@@ -559,99 +612,66 @@ const AccessPage: React.FC = () => {
                     تحديث
                   </Button>
                 </div>
+                {isMobile ? (
+                  loadingHospitals ? (
+                    <Text type="secondary">جاري التحميل…</Text>
+                  ) : hospitalDirectory.length === 0 ? (
+                    <Empty description="لا توجد مستشفيات" />
+                  ) : (
+                    <div className="d-access-mobile-hospitals">
+                      {hospitalDirectory.map((h) => (
+                        <article key={h.id} className="d-access-hospital-card">
+                          <div className="d-access-hospital-card__head">
+                            <div>
+                              <p className="d-access-hospital-card__name">{h.name}</p>
+                              <p className="d-access-hospital-card__meta">
+                                {[h.code, h.province, h.directorate].filter(Boolean).join(' · ') ||
+                                  '—'}
+                              </p>
+                            </div>
+                            <Tag className="d-access-tag d-access-tag--perm-role">
+                              {h.user_count} موظف
+                            </Tag>
+                          </div>
+                          <div className="d-access-hospital-card__body">
+                            {renderHospitalUsersBlock(h)}
+                            {canManageHospital && (
+                              <Popconfirm
+                                title="تعطيل هذا المستشفى في النظام؟"
+                                okText="تعطيل"
+                                cancelText="إلغاء"
+                                okButtonProps={{ danger: true }}
+                                onConfirm={() => deactivateHospital(h.id)}
+                              >
+                                <Button
+                                  danger
+                                  block
+                                  size="large"
+                                  icon={<StopOutlined />}
+                                  style={{ marginTop: 12 }}
+                                >
+                                  تعطيل المستشفى
+                                </Button>
+                              </Popconfirm>
+                            )}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )
+                ) : (
                 <div className="d-table-scroll">
                   <Table<HospitalDirectoryRow>
                     rowKey="id"
                     loading={loadingHospitals}
                     dataSource={hospitalDirectory}
-                    size={isMobile ? 'small' : 'middle'}
+                    size="middle"
                     scroll={{ x: 'max-content' }}
                     pagination={{ pageSize: 10, showSizeChanger: false }}
                     expandable={{
                       expandedRowRender: (record) => (
                         <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={() => openMemberModal(record)}
-                          >
-                            إضافة موظف لهذا المستشفى
-                          </Button>
-                          {record.users.length === 0 ? (
-                            <Text type="secondary">
-                              لا يوجد موظف مرتبط بهذا المستشفى في نظام الغسيل.
-                            </Text>
-                          ) : (
-                            <Table
-                              size="small"
-                              rowKey="userId"
-                              pagination={false}
-                              dataSource={record.users}
-                              columns={[
-                                { title: 'الاسم', dataIndex: 'name', key: 'nm' },
-                                { title: 'المستخدم', dataIndex: 'username', key: 'un' },
-                                {
-                                  title: 'الدور',
-                                  key: 'rl',
-                                  render: (_: unknown, u: HospitalDirectoryRow['users'][0]) =>
-                                    u.roleDisplay || u.role,
-                                },
-                                {
-                                  title: 'افتراضي',
-                                  key: 'pr',
-                                  width: 90,
-                                  render: (_: unknown, u: HospitalDirectoryRow['users'][0]) =>
-                                    u.isPrimary ? (
-                                      <Tag className="d-access-tag d-access-tag--ok">افتراضي</Tag>
-                                    ) : (
-                                      '—'
-                                    ),
-                                },
-                                {
-                                  title: 'حالة',
-                                  key: 'ac',
-                                  width: 88,
-                                  render: (_: unknown, u: HospitalDirectoryRow['users'][0]) =>
-                                    u.isActive ? (
-                                      <Tag className="d-access-tag d-access-tag--ok">نشط</Tag>
-                                    ) : (
-                                      <Tag className="d-access-tag d-access-tag--muted">معطل</Tag>
-                                    ),
-                                },
-                                {
-                                  title: '',
-                                  key: 'ed',
-                                  width: 140,
-                                  render: (_: unknown, u: HospitalDirectoryRow['users'][0]) => (
-                                    <Button
-                                      size="small"
-                                      type="primary"
-                                      onClick={() => openEditByUserId(u.userId)}
-                                    >
-                                      تعديل الصلاحيات
-                                    </Button>
-                                  ),
-                                },
-                                {
-                                  title: '',
-                                  key: 'rm',
-                                  width: 100,
-                                  render: (_: unknown, u: HospitalDirectoryRow['users'][0]) => (
-                                    <Popconfirm
-                                      title="إزالة الموظف من هذا المستشفى؟"
-                                      okText="نعم"
-                                      cancelText="إلغاء"
-                                      onConfirm={() => removeFromHospital(record.id, u.userId)}
-                                    >
-                                      <Button size="small" danger icon={<DeleteOutlined />}>
-                                        إزالة
-                                      </Button>
-                                    </Popconfirm>
-                                  ),
-                                },
-                              ]}
-                            />
-                          )}
+                          {renderHospitalUsersBlock(record)}
                         </Space>
                       ),
                     }}
@@ -713,9 +733,12 @@ const AccessPage: React.FC = () => {
                     ]}
                   />
                 </div>
+                )}
+                {!isMobile && (
                 <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
                   وسّع الصف لإضافة موظف أو إدارته. «تعطيل المستشفى» يتطلب صلاحية إدارة مستشفيات الغسيل.
                 </Text>
+                )}
               </div>
             ),
           },

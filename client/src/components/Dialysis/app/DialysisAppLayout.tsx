@@ -41,6 +41,7 @@ import {
   BankOutlined,
   LockOutlined,
   CameraOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
@@ -57,6 +58,7 @@ import { DIALYSIS_SYSTEM_TITLE, DIALYSIS_SYSTEM_TITLE_SHORT } from './dialysisBr
 import './dialysis-brand.css';
 import './dialysis-app.css';
 import './dialysis-mobile-polish.css';
+import './dialysis-mobile-pages.css';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -144,6 +146,7 @@ const DialysisAppLayout: React.FC = () => {
 
   useEffect(() => {
     if (!isMobile) return;
+    setMobileNavOpen(false);
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     dialysisHaptic('nav');
   }, [location.pathname, isMobile]);
@@ -243,24 +246,48 @@ const DialysisAppLayout: React.FC = () => {
       return location.pathname.startsWith(i.to);
     })?.key ?? 'overview';
 
+  const navigateFromMenu = (to: string) => {
+    navigate(to);
+    setMobileNavOpen(false);
+  };
+
   const menuItems: MenuProps['items'] = groups.flatMap((g) => [
     { key: `g-${g.key}`, label: g.title, type: 'group' as const },
     ...g.items.map((it) => ({
       key: it.key,
       icon: it.icon,
       label: it.label,
-      onClick: () => {
-        navigate(it.to);
-        setMobileNavOpen(false);
-      },
+      onClick: () => navigateFromMenu(it.to),
     })),
   ]);
+
+  const mobileNavKeys = canView ? MOBILE_BOTTOM : canPharmacyNav ? ['pharmacy', 'pharmacy-stock'] : MOBILE_BOTTOM;
+
+  const mobileMoreMenuItems: MenuProps['items'] = useMemo(() => {
+    const moreItems = items.filter((i) => !mobileNavKeys.includes(i.key));
+    const moreGroups = [
+      { key: 'main', title: 'أقسام إضافية', items: moreItems.filter((i) => i.group === 'main') },
+      { key: 'setup', title: 'الإعداد', items: moreItems.filter((i) => i.group === 'setup') },
+      { key: 'admin', title: 'الإدارة', items: moreItems.filter((i) => i.group === 'admin') },
+    ].filter((g) => g.items.length > 0);
+
+    return moreGroups.flatMap((g) => [
+      { key: `mg-${g.key}`, label: g.title, type: 'group' as const },
+      ...g.items.map((it) => ({
+        key: it.key,
+        icon: it.icon,
+        label: it.label,
+        onClick: () => {
+          navigate(it.to);
+          setMobileNavOpen(false);
+        },
+      })),
+    ]);
+  }, [items, mobileNavKeys, navigate]);
 
   const userAvatarSrc = user?.photoUrl
     ? `${user.photoUrl}${user.photoUrl.includes('?') ? '&' : '?'}v=${photoVersion}`
     : undefined;
-
-  const mobileNavKeys = canView ? MOBILE_BOTTOM : canPharmacyNav ? ['pharmacy', 'pharmacy-stock'] : MOBILE_BOTTOM;
 
   const hospitalOptions = useMemo(
     () => [
@@ -401,14 +428,6 @@ const DialysisAppLayout: React.FC = () => {
           {hospitalPicker}
         </div>
       )}
-      {isMobile && (
-        <div className="d-app-sidebar-hospital d-app-sidebar-hospital--mobile">
-          <Text type="secondary" className="d-app-hospital-bar__label">
-            نطاق العمل
-          </Text>
-          {hospitalPicker}
-        </div>
-      )}
       <Menu
         mode="inline"
         items={menuItems}
@@ -473,14 +492,66 @@ const DialysisAppLayout: React.FC = () => {
 
       {isMobile && (
         <Drawer
+          className="d-app-mobile-menu-drawer"
           placement="right"
           open={mobileNavOpen}
           onClose={() => setMobileNavOpen(false)}
-          width={280}
-          styles={{ body: { padding: 0 } }}
-          closable={false}
+          width="min(300px, 92vw)"
+          title="المزيد"
+          closable
+          destroyOnClose
+          zIndex={1250}
+          styles={{
+            body: { padding: 0, overflow: 'hidden' },
+            header: { padding: '12px 16px' },
+          }}
         >
-          {sidebar}
+          <div className="d-app-mobile-menu">
+            <button
+              type="button"
+              className="d-app-mobile-menu__scope"
+              onClick={() => {
+                dialysisHaptic('tap');
+                setMobileNavOpen(false);
+                setHospitalDrawerOpen(true);
+              }}
+            >
+              <span className="d-app-mobile-menu__scope-icon" aria-hidden>
+                <BankOutlined />
+              </span>
+              <span className="d-app-mobile-menu__scope-text">
+                <span className="d-app-mobile-menu__scope-label">نطاق العمل</span>
+                <span className="d-app-mobile-menu__scope-value">{currentHospitalShortLabel}</span>
+              </span>
+              <RightOutlined className="d-app-mobile-menu__scope-chevron" aria-hidden />
+            </button>
+
+            <div className="d-app-mobile-menu__scroll">
+              {mobileMoreMenuItems.length > 0 ? (
+                <Menu
+                  mode="inline"
+                  items={mobileMoreMenuItems}
+                  selectedKeys={[activeKey]}
+                  className="d-app-menu d-app-menu--mobile-more"
+                />
+              ) : (
+                <Text type="secondary" className="d-app-mobile-menu__empty">
+                  كل الأقسام الرئيسية في الشريط السفلي. استخدم «نطاق العمل» أعلاه لتغيير المستشفى.
+                </Text>
+              )}
+            </div>
+
+            <div className="d-app-mobile-menu__footer">
+              <Button
+                type="text"
+                block
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigateFromMenu('/')}
+              >
+                العودة للنظام الرئيسي
+              </Button>
+            </div>
+          </div>
         </Drawer>
       )}
 
@@ -488,17 +559,6 @@ const DialysisAppLayout: React.FC = () => {
         <Header className={`d-app-header${isMobile ? ' d-app-header--mobile' : ''}`}>
           <div className="d-app-header-row d-app-header-row--main">
             <div className="d-app-header-left">
-              {isMobile && (
-                <Button
-                  type="text"
-                  icon={<MenuOutlined />}
-                  onClick={() => {
-                    dialysisHaptic('tap');
-                    setMobileNavOpen(true);
-                  }}
-                  aria-label="فتح القائمة"
-                />
-              )}
               {!isMobile && (
                 <Button
                   type="text"
@@ -686,6 +746,7 @@ const DialysisAppLayout: React.FC = () => {
 
       <Modal
         title="مستشفى جديد — وحدة الغسيل الكلوي"
+        className="d-app-modal-mobile"
         open={newHospitalOpen}
         onCancel={() => {
           setNewHospitalOpen(false);

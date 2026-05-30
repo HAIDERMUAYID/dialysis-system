@@ -1,0 +1,168 @@
+/* =========================================================
+   D-IRS — قواعد عامة لصفحات الموبايل (≤991px + .d-app-mobile)
+   ========================================================= */
+
+.d-app-mobile .d-page-header {
+  margin-bottom: 12px;
+}
+
+.d-app-mobile .d-page-header h2 {
+  display: none;
+}
+
+.d-app-mobile .d-page-header .sub {
+  display: none;
+}
+
+.d-app-mobile .d-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.d-app-mobile .d-toolbar .grow {
+  display: none;
+}
+
+.d-app-mobile .d-toolbar-input-grow,
+.d-app-mobile .d-toolbar .ant-input-affix-wrapper,
+.d-app-mobile .d-toolbar .ant-select,
+.d-app-mobile .d-toolbar .ant-picker {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+.d-app-mobile .d-toolbar .ant-btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+.d-app-mobile .d-toolbar .ant-btn-icon-only {
+  width: auto;
+  min-width: 44px;
+}
+
+.d-app-mobile .d-stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.d-app-mobile .d-stat {
+  padding: 12px 14px;
+}
+
+.d-app-mobile .d-stat-value {
+  font-size: 22px;
+}
+
+.d-app-mobile .d-card {
+  padding: 14px;
+  border-radius: 16px;
+  overflow-x: clip;
+}
+
+.d-app-mobile .d-table-scroll {
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+
+.d-app-mobile .d-table-scroll .ant-table {
+  min-width: 0;
+}
+
+.d-app-mobile .ant-segmented {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.d-app-mobile .ant-picker,
+.d-app-mobile .ant-picker-range {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.d-app-mobile .ant-tabs-nav {
+  margin-bottom: 10px !important;
+}
+
+.d-app-mobile .ant-tabs-nav-wrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.d-app-mobile .d-access-tabs .ant-tabs-tab {
+  padding: 10px 12px;
+}
+
+/* إدارة الوصول — بطاقات على الهاتف */
+.d-access-mobile-hospitals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-access-hospital-card {
+  border: 1px solid #e8ecf4;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.d-access-hospital-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.d-access-hospital-card__name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+  margin: 0;
+}
+
+.d-access-hospital-card__meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.d-access-hospital-card__body {
+  padding: 12px 14px 14px;
+}
+
+.d-access-user-card {
+  padding: 10px 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.d-access-user-card:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.d-access-user-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.d-access-user-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-access-user-card__actions .ant-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 120px;
+}
