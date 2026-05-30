@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -37,17 +38,25 @@ import {
   UserOutlined,
   BarChartOutlined,
   PlusOutlined,
+  BankOutlined,
+  LockOutlined,
+  CameraOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
 import { usePermission } from '../../../hooks/usePermission';
 import { ALL_MY_HOSPITALS, useDialysisContext } from './dialysisContext';
 import { DIALYSIS_MOBILE_MQ } from './useDialysisMobile';
+import { dialysisHaptic, prefersReducedMotion } from './useDialysisHaptic';
+import { useDialysisPageDirection } from './useDialysisPageDirection';
 import DialysisBrandLogo from './DialysisBrandLogo';
 import DialysisWelcomeBanner from './DialysisWelcomeBanner';
+import ChangePasswordModal from '../../Common/ChangePasswordModal';
+import ProfilePhotoModal from '../../Common/ProfilePhotoModal';
 import { DIALYSIS_SYSTEM_TITLE, DIALYSIS_SYSTEM_TITLE_SHORT } from './dialysisBrand';
 import './dialysis-brand.css';
 import './dialysis-app.css';
+import './dialysis-mobile-polish.css';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -102,7 +111,7 @@ const MOBILE_MQ = DIALYSIS_MOBILE_MQ;
 const DialysisAppLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { hospitals, hospitalId, setHospitalId, refreshHospitals } = useDialysisContext();
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MQ).matches : false
@@ -124,6 +133,32 @@ const DialysisAppLayout: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (isMobile) {
+      document.body.classList.add('d-app-mobile');
+    } else {
+      document.body.classList.remove('d-app-mobile');
+    }
+    return () => document.body.classList.remove('d-app-mobile');
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    dialysisHaptic('nav');
+  }, [location.pathname, isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const header = document.querySelector('.d-app-header');
+    const onScroll = () => {
+      header?.classList.toggle('is-scrolled', window.scrollY > 6);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMobile]);
+
   // فلترة العناصر حسب الصلاحية. ملاحظة: hooks لا تستدعى داخل map، لذلك نستدعيها هنا.
   const canView = usePermission('dialysis:view');
   const permPharmView = usePermission('dialysis:pharmacy:view');
@@ -138,6 +173,11 @@ const DialysisAppLayout: React.FC = () => {
 
   const [newHospitalOpen, setNewHospitalOpen] = useState(false);
   const [newHospitalSaving, setNewHospitalSaving] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [profilePhotoOpen, setProfilePhotoOpen] = useState(false);
+  const [photoVersion, setPhotoVersion] = useState(0);
+  const [hospitalDrawerOpen, setHospitalDrawerOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hospitalForm] = Form.useForm<{
     name: string;
     code?: string;
@@ -216,13 +256,116 @@ const DialysisAppLayout: React.FC = () => {
     })),
   ]);
 
+  const userAvatarSrc = user?.photoUrl
+    ? `${user.photoUrl}${user.photoUrl.includes('?') ? '&' : '?'}v=${photoVersion}`
+    : undefined;
+
+  const mobileNavKeys = canView ? MOBILE_BOTTOM : canPharmacyNav ? ['pharmacy', 'pharmacy-stock'] : MOBILE_BOTTOM;
+
+  const hospitalOptions = useMemo(
+    () => [
+      ...(hospitals.length > 1
+        ? [{ value: ALL_MY_HOSPITALS, label: 'جميع المستشفيات (مدموج)' }]
+        : []),
+      ...hospitals.map((h) => ({
+        value: h.id,
+        label: `${h.name}${h.code ? ` · ${h.code}` : ''}`,
+      })),
+    ],
+    [hospitals]
+  );
+
+  const currentHospitalLabel = useMemo(() => {
+    if (hospitalId === ALL_MY_HOSPITALS) return 'جميع المستشفيات';
+    const match = hospitals.find((h) => h.id === hospitalId);
+    if (!match) return 'اختر المستشفى';
+    return match.code ? `${match.name} · ${match.code}` : match.name;
+  }, [hospitalId, hospitals]);
+
+  const currentHospitalShortLabel = useMemo(() => {
+    if (hospitalId === ALL_MY_HOSPITALS) return 'جميع المستشفيات';
+    const match = hospitals.find((h) => h.id === hospitalId);
+    if (!match) return 'المستشفى';
+    return match.code || match.name;
+  }, [hospitalId, hospitals]);
+
+  const isOverviewPage =
+    location.pathname === '/dialysis' || location.pathname === '/dialysis/';
+
+  const pageDirection = useDialysisPageDirection(location.pathname);
+
+  const hospitalPicker = (
+    <>
+      <Select
+        size={isMobile ? 'large' : 'middle'}
+        className="d-app-hospital-select"
+        placeholder="اختر المستشفى"
+        value={hospitalId ?? undefined}
+        onChange={(value) => {
+          setHospitalId(value);
+          setHospitalDrawerOpen(false);
+        }}
+        showSearch={!isMobile}
+        optionFilterProp="label"
+        options={hospitalOptions}
+      />
+      <Space size="small" className="d-app-hospital-bar__actions">
+        {canManageHospital && (
+          <Tooltip title="مستشفى جديد">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setHospitalDrawerOpen(false);
+                setNewHospitalOpen(true);
+              }}
+            >
+              مستشفى جديد
+            </Button>
+          </Tooltip>
+        )}
+        <Tooltip title="تحديث قائمة المستشفيات">
+          <Button icon={<ReloadOutlined />} onClick={() => refreshHospitals()} />
+        </Tooltip>
+      </Space>
+    </>
+  );
+
   const userMenu: MenuProps['items'] = [
+    {
+      key: 'hospital-scope',
+      icon: <BankOutlined />,
+      label: (
+        <span className="d-app-user-menu-hospital">
+          <span className="d-app-user-menu-hospital__label">نطاق العمل</span>
+          <span className="d-app-user-menu-hospital__value">{currentHospitalShortLabel}</span>
+        </span>
+      ),
+      onClick: () => {
+        dialysisHaptic('tap');
+        setHospitalDrawerOpen(true);
+      },
+    },
+    { type: 'divider' },
     {
       key: 'home',
       icon: <ArrowLeftOutlined />,
       label: 'العودة للنظام الرئيسي',
       onClick: () => navigate('/'),
     },
+    {
+      key: 'profile-photo',
+      icon: <CameraOutlined />,
+      label: 'الصورة الشخصية',
+      onClick: () => setProfilePhotoOpen(true),
+    },
+    {
+      key: 'change-password',
+      icon: <LockOutlined />,
+      label: 'تغيير كلمة المرور',
+      onClick: () => setChangePasswordOpen(true),
+    },
+    { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -231,6 +374,13 @@ const DialysisAppLayout: React.FC = () => {
       danger: true,
     },
   ];
+
+  const closeUserMenu = () => setUserMenuOpen(false);
+
+  const runUserMenuAction = (action: () => void) => {
+    closeUserMenu();
+    action();
+  };
 
   const sidebar = (
     <div className="d-app-sidebar-inner">
@@ -243,6 +393,22 @@ const DialysisAppLayout: React.FC = () => {
           </div>
         )}
       </div>
+      {!isMobile && !collapsed && (
+        <div className="d-app-sidebar-hospital">
+          <Text type="secondary" className="d-app-hospital-bar__label">
+            نطاق العمل
+          </Text>
+          {hospitalPicker}
+        </div>
+      )}
+      {isMobile && (
+        <div className="d-app-sidebar-hospital d-app-sidebar-hospital--mobile">
+          <Text type="secondary" className="d-app-hospital-bar__label">
+            نطاق العمل
+          </Text>
+          {hospitalPicker}
+        </div>
+      )}
       <Menu
         mode="inline"
         items={menuItems}
@@ -268,8 +434,6 @@ const DialysisAppLayout: React.FC = () => {
     </Sider>
   );
 
-  const mobileNavKeys = canView ? MOBILE_BOTTOM : canPharmacyNav ? ['pharmacy', 'pharmacy-stock'] : MOBILE_BOTTOM;
-
   const mobileBottom = isMobile ? (
     <nav className="d-bottom-nav">
       {items
@@ -280,15 +444,21 @@ const DialysisAppLayout: React.FC = () => {
             to={i.to}
             end={i.to === '/dialysis'}
             className={({ isActive }) => `d-bottom-item${isActive ? ' active' : ''}`}
+            onClick={() => dialysisHaptic('nav')}
           >
             <span className="d-bottom-icon">{i.icon}</span>
-            <span className="d-bottom-label">{i.label}</span>
+            <span className="d-bottom-label">
+              {i.key === 'live' ? 'القاعة' : i.label}
+            </span>
           </NavLink>
         ))}
       <button
         type="button"
         className="d-bottom-item"
-        onClick={() => setMobileNavOpen(true)}
+        onClick={() => {
+          dialysisHaptic('tap');
+          setMobileNavOpen(true);
+        }}
       >
         <span className="d-bottom-icon"><MenuOutlined /></span>
         <span className="d-bottom-label">المزيد</span>
@@ -298,7 +468,7 @@ const DialysisAppLayout: React.FC = () => {
 
   return (
     <>
-    <Layout className="d-app-root">
+    <Layout className={`d-app-root${isMobile ? ' d-app-mobile' : ''}`}>
       {!isMobile && desktopSider}
 
       {isMobile && (
@@ -322,7 +492,10 @@ const DialysisAppLayout: React.FC = () => {
                 <Button
                   type="text"
                   icon={<MenuOutlined />}
-                  onClick={() => setMobileNavOpen(true)}
+                  onClick={() => {
+                    dialysisHaptic('tap');
+                    setMobileNavOpen(true);
+                  }}
                   aria-label="فتح القائمة"
                 />
               )}
@@ -340,92 +513,33 @@ const DialysisAppLayout: React.FC = () => {
               </Text>
             </div>
             {!isMobile && (
-              <Space wrap size="small" className="d-app-header-actions">
-                <Select
-                  size="middle"
-                  style={{ minWidth: 240 }}
-                  placeholder="المستشفى"
-                  value={hospitalId ?? undefined}
-                  onChange={setHospitalId}
-                  options={[
-                    ...(hospitals.length > 1
-                      ? [
-                          {
-                            value: ALL_MY_HOSPITALS,
-                            label: 'جميع المستشفيات (مدموج)',
-                          },
-                        ]
-                      : []),
-                    ...hospitals.map((h) => ({
-                      value: h.id,
-                      label: `${h.name}${h.code ? ` · ${h.code}` : ''}`,
-                    })),
-                  ]}
-                />
-                {canManageHospital && (
-                  <Tooltip title="إضافة مستشفى جديد (وحدة غسيل)">
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => setNewHospitalOpen(true)}
-                    >
-                      مستشفى جديد
-                    </Button>
-                  </Tooltip>
-                )}
-                <Tooltip title="تحديث">
-                  <Button icon={<ReloadOutlined />} onClick={() => refreshHospitals()} />
-                </Tooltip>
-                <Dropdown menu={{ items: userMenu }} placement="bottomLeft">
-                  <Button type="text" className="d-app-user-btn">
-                    <Avatar size="small" icon={<UserOutlined />} />
-                    <span style={{ marginInlineStart: 8 }}>{user?.name}</span>
-                  </Button>
-                </Dropdown>
-              </Space>
+              <Dropdown
+                menu={{ items: userMenu }}
+                placement="bottomLeft"
+                trigger={['click']}
+                getPopupContainer={() => document.body}
+                overlayStyle={{ zIndex: 1300 }}
+              >
+                <Button type="text" className="d-app-user-btn" aria-label="قائمة الحساب">
+                  <Avatar size="small" src={userAvatarSrc} icon={<UserOutlined />} />
+                  <span style={{ marginInlineStart: 8 }}>{user?.name}</span>
+                </Button>
+              </Dropdown>
             )}
             {isMobile && (
-              <Space size="small">
-                {canManageHospital && (
-                  <Tooltip title="مستشفى جديد">
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => setNewHospitalOpen(true)}
-                    />
-                  </Tooltip>
-                )}
-                <Tooltip title="تحديث">
-                  <Button icon={<ReloadOutlined />} onClick={() => refreshHospitals()} />
-                </Tooltip>
-                <Dropdown menu={{ items: userMenu }} placement="bottomLeft">
-                  <Button type="text" className="d-app-user-btn">
-                    <Avatar size="small" icon={<UserOutlined />} />
-                  </Button>
-                </Dropdown>
-              </Space>
+              <Button
+                type="text"
+                className="d-app-user-btn"
+                aria-label="فتح قائمة الحساب"
+                onClick={() => {
+                  dialysisHaptic('tap');
+                  setUserMenuOpen(true);
+                }}
+              >
+                <Avatar size="small" src={userAvatarSrc} icon={<UserOutlined />} />
+              </Button>
             )}
           </div>
-          {isMobile && (
-            <div className="d-app-header-row d-app-header-row--bar">
-              <Select
-                size="large"
-                className="d-app-hospital-select"
-                placeholder="المستشفى"
-                value={hospitalId ?? undefined}
-                onChange={setHospitalId}
-                options={[
-                  ...(hospitals.length > 1
-                    ? [{ value: ALL_MY_HOSPITALS, label: 'جميع المستشفيات (مدموج)' }]
-                    : []),
-                  ...hospitals.map((h) => ({
-                    value: h.id,
-                    label: `${h.name}${h.code ? ` · ${h.code}` : ''}`,
-                  })),
-                ]}
-              />
-            </div>
-          )}
         </Header>
 
         <Content className={`d-app-content${isMobile ? ' has-bottom-nav' : ''}`}>
@@ -435,7 +549,11 @@ const DialysisAppLayout: React.FC = () => {
               <Typography.Title level={4} style={{ marginTop: 12 }}>
                 اختر المستشفى للبدء
               </Typography.Title>
-              <Text type="secondary">يجب اختيار مستشفى من الأعلى لعرض البيانات.</Text>
+              <Text type="secondary">
+                {isMobile
+                  ? 'افتح القائمة (☰) أو حسابك واختر «نطاق العمل».'
+                  : 'اختر المستشفى من القائمة الجانبية لعرض البيانات.'}
+              </Text>
               {canManageHospital && (
                 <Button
                   type="primary"
@@ -449,17 +567,122 @@ const DialysisAppLayout: React.FC = () => {
             </div>
           ) : (
             <>
-              <DialysisWelcomeBanner isMobile={isMobile} />
-              <div key={location.pathname} className="d-page-transition">
+              {isOverviewPage && <DialysisWelcomeBanner isMobile={isMobile} />}
+              <div
+                key={location.pathname}
+                className={
+                  isMobile
+                    ? `d-page-transition d-page-transition--mobile d-page-transition--mobile-${pageDirection}`
+                    : 'd-page-transition'
+                }
+              >
                 <Outlet />
               </div>
             </>
           )}
         </Content>
 
-        {mobileBottom}
+        {isMobile && (
+          <>
+            <Drawer
+              placement="bottom"
+              open={hospitalDrawerOpen}
+              onClose={() => setHospitalDrawerOpen(false)}
+              height="auto"
+              title="نطاق العمل"
+              className="d-app-hospital-drawer"
+              destroyOnClose
+            >
+              <Text type="secondary" className="d-app-hospital-drawer__current">
+                {currentHospitalLabel}
+              </Text>
+              <div className="d-app-hospital-drawer__body">{hospitalPicker}</div>
+            </Drawer>
+
+            <Drawer
+              placement="bottom"
+              open={userMenuOpen}
+              onClose={closeUserMenu}
+              height="auto"
+              title="حسابي"
+              className="d-app-user-drawer"
+              destroyOnClose
+              zIndex={1300}
+            >
+              <button
+                type="button"
+                className="d-app-user-drawer__profile"
+                onClick={() =>
+                  runUserMenuAction(() => setProfilePhotoOpen(true))
+                }
+              >
+                <Avatar size={64} src={userAvatarSrc} icon={<UserOutlined />} />
+                <span className="d-app-user-drawer__name">{user?.name || 'المستخدم'}</span>
+                <Text type="secondary" className="d-app-user-drawer__photo-hint">
+                  اضغط لتغيير الصورة الشخصية
+                </Text>
+              </button>
+
+              <div className="d-app-user-drawer__actions">
+                <Button
+                  block
+                  size="large"
+                  icon={<BankOutlined />}
+                  onClick={() =>
+                    runUserMenuAction(() => setHospitalDrawerOpen(true))
+                  }
+                >
+                  نطاق العمل — {currentHospitalShortLabel}
+                </Button>
+                <Button
+                  block
+                  size="large"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => runUserMenuAction(() => navigate('/'))}
+                >
+                  العودة للنظام الرئيسي
+                </Button>
+                <Button
+                  block
+                  size="large"
+                  icon={<CameraOutlined />}
+                  onClick={() =>
+                    runUserMenuAction(() => setProfilePhotoOpen(true))
+                  }
+                >
+                  الصورة الشخصية
+                </Button>
+                <Button
+                  block
+                  size="large"
+                  icon={<LockOutlined />}
+                  onClick={() =>
+                    runUserMenuAction(() => setChangePasswordOpen(true))
+                  }
+                >
+                  تغيير كلمة المرور
+                </Button>
+                <Button
+                  block
+                  size="large"
+                  danger
+                  icon={<LogoutOutlined />}
+                  onClick={() => runUserMenuAction(() => logout())}
+                >
+                  تسجيل الخروج
+                </Button>
+              </div>
+            </Drawer>
+          </>
+        )}
       </Layout>
+
     </Layout>
+
+      {isMobile &&
+        mobileBottom &&
+        typeof document !== 'undefined' &&
+        createPortal(mobileBottom, document.body)}
 
       <Modal
         title="مستشفى جديد — وحدة الغسيل الكلوي"
@@ -500,6 +723,22 @@ const DialysisAppLayout: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+
+      <ProfilePhotoModal
+        open={profilePhotoOpen}
+        onClose={() => setProfilePhotoOpen(false)}
+        userName={user?.name}
+        photoUrl={user?.photoUrl}
+        onSuccess={(photoUrl) => {
+          updateUser({ photoUrl });
+          setPhotoVersion(Date.now());
+        }}
+      />
     </>
   );
 };

@@ -18,6 +18,7 @@ const {
   loadItemUnits,
 } = require('../utils/dialysisItemUnits');
 const { purgeInactiveDialysisItemsInventory } = require('../utils/purgeDialysisItemInventory');
+const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
 
 const router = express.Router();
 
@@ -454,32 +455,12 @@ router.get(
       const where = buildDialysisSessionsWhere(hospitalClause, req.query);
 
       const [
-        total,
-        active,
-        scheduled,
-        completed,
-        cancelled,
-        intakeGroups,
-        distinctPatientRows,
+        sessionKpis,
         pharmacyDispensed,
         pharmacyDraft,
         pharmacyPending,
       ] = await Promise.all([
-        prisma.dialysisSession.count({ where }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'ACTIVE' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'SCHEDULED' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'COMPLETED' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'CANCELLED' } }),
-        prisma.dialysisSession.groupBy({
-          by: ['intakeKind'],
-          where,
-          _count: { _all: true },
-        }),
-        prisma.dialysisSession.findMany({
-          where,
-          distinct: ['dialysisPatientId'],
-          select: { dialysisPatientId: true },
-        }),
+        aggregateDialysisSessionKpis(prisma, where),
         prisma.dialysisSession.count({
           where: { ...where, pharmacyDispense: { status: 'COMPLETED' } },
         }),
@@ -498,18 +479,8 @@ router.get(
         }),
       ]);
 
-      const byIntakeKind = Object.fromEntries(
-        intakeGroups.map((g) => [g.intakeKind === null ? 'UNKNOWN' : g.intakeKind, g._count._all])
-      );
-
       res.json({
-        total,
-        active,
-        scheduled,
-        completed,
-        cancelled,
-        uniquePatients: distinctPatientRows.length,
-        byIntakeKind,
+        ...sessionKpis,
         pharmacyDispensed,
         pharmacyDraft,
         pharmacyPending,

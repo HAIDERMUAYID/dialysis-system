@@ -23,8 +23,17 @@ const {
   loadItemUnits,
 } = require('../utils/dialysisItemUnits');
 const { purgeDialysisItemInventory } = require('../utils/purgeDialysisItemInventory');
+const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
 
 const router = express.Router();
+
+/** علاقات خفيفة لقائمة الجلسات — بدون استهلاكات (تُجلب في GET /sessions/:id) */
+const SESSION_LIST_INCLUDE = {
+  hospital: { select: { id: true, name: true, code: true } },
+  dialysisPatient: { select: { fullName: true, id: true, kind: true } },
+  location: { select: { id: true, hallName: true, bedCode: true } },
+  shiftSlot: { select: { id: true, name: true, startMinutes: true } },
+};
 
 const dialysisUploadsRoot = path.join(__dirname, '../../uploads');
 const patientPhotoMulter = multer({
@@ -1504,6 +1513,177 @@ router.post(
   }
 );
 
+async function loadActiveHallBeds(prisma, hospitalId, hallName) {
+  return prisma.dialysisLocation.findMany({
+    where: { hospitalId, hallName, isActive: 1 },
+    orderBy: [{ displayOrder: 'asc' }, { bedCode: 'asc' }, { id: 'asc' }],
+  });
+}
+
+async function hallLocationBlockers(prisma, hospitalId, locationIds) {
+  if (!locationIds.length) {
+    return { schedules: 0, activeSessions: 0, machines: 0 };
+  }
+  const [schedules, activeSessions, machines] = await Promise.all([
+    prisma.dialysisPatientSchedule.count({
+      where: { hospitalId, locationId: { in: locationIds }, isActive: 1 },
+    }),
+    prisma.dialysisSession.count({
+      where: { hospitalId, locationId: { in: locationIds }, status: 'ACTIVE' },
+    }),
+    prisma.dialysisMachine.count({
+      where: { hospitalId, locationId: { in: locationIds }, isActive: 1 },
+    }),
+  ]);
+  return { schedules, activeSessions, machines };
+}
+
+router.put(
+  '/locations/hall',
+  authenticateToken,
+  requirePermission('dialysis:location:manage'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+
+      const originalHallName = String(req.body.hall_name ?? '').trim();
+      if (!originalHallName) return res.status(400).json({ error: 'hall_name مطلوب' });
+
+      const newHallNameRaw = req.body.new_hall_name;
+      let hallName =
+        newHallNameRaw !== undefined && newHallNameRaw !== null
+          ? String(newHallNameRaw).trim()
+          : originalHallName;
+      if (!hallName) return res.status(400).json({ error: 'اسم القاعة الجديد غير صالح' });
+
+      let beds = await loadActiveHallBeds(prisma, hospitalId, originalHallName);
+      if (!beds.length) return res.status(404).json({ error: 'القاعة غير موجودة أو معطّلة' });
+
+      if (hallName !== originalHallName) {
+        const otherHall = await prisma.dialysisLocation.findFirst({
+          where: { hospitalId, hallName, isActive: 1 },
+        });
+        if (otherHall) {
+          return res.status(400).json({ error: 'يوجد قاعة أخرى بنفس الاسم في هذا المستشفى' });
+        }
+        await prisma.dialysisLocation.updateMany({
+          where: { hospitalId, hallName: originalHallName, isActive: 1 },
+          data: { hallName, ...audit(req) },
+        });
+        beds = await loadActiveHallBeds(prisma, hospitalId, hallName);
+      }
+
+      if (req.body.bed_count !== undefined && req.body.bed_count !== null) {
+        const target = Math.min(80, Math.max(1, parseInt(String(req.body.bed_count), 10)));
+        if (!Number.isFinite(target)) {
+          return res.status(400).json({ error: 'bed_count غير صالح' });
+        }
+
+        for (let i = 1; i <= target; i += 1) {
+          await prisma.dialysisLocation.upsert({
+            where: {
+              hospitalId_hallName_bedCode: {
+                hospitalId,
+                hallName,
+                bedCode: String(i),
+              },
+            },
+            update: {
+              isActive: 1,
+              displayOrder: i,
+              ...audit(req),
+            },
+            create: {
+              hospitalId,
+              hallName,
+              bedCode: String(i),
+              displayOrder: i,
+              isActive: 1,
+              ...audit(req),
+            },
+          });
+        }
+
+        const refreshed = await loadActiveHallBeds(prisma, hospitalId, hallName);
+        const toDeactivate = refreshed.filter((b) => {
+          const n = parseInt(String(b.bedCode), 10);
+          return Number.isFinite(n) ? n > target : true;
+        });
+
+        if (toDeactivate.length) {
+          const ids = toDeactivate.map((b) => b.id);
+          const blockers = await hallLocationBlockers(prisma, hospitalId, ids);
+          if (blockers.schedules > 0 || blockers.activeSessions > 0 || blockers.machines > 0) {
+            return res.status(409).json({
+              error:
+                'لا يمكن تقليل عدد الأسرة: بعض الأسرة مرتبطة بجدول مريض أو جلسة نشطة أو جهاز غسيل. أزل الارتباط أولاً.',
+              blockers,
+            });
+          }
+          await prisma.dialysisLocation.updateMany({
+            where: { id: { in: ids } },
+            data: { isActive: 0, ...audit(req) },
+          });
+        }
+      }
+
+      const out = await loadActiveHallBeds(prisma, hospitalId, hallName);
+      res.json({
+        ok: true,
+        hallName,
+        bedCount: out.length,
+        locations: out,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: e.message || 'فشل تحديث القاعة' });
+    }
+  }
+);
+
+router.delete(
+  '/locations/hall',
+  authenticateToken,
+  requirePermission('dialysis:location:manage'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+
+      const hallName = String(req.body.hall_name ?? req.query.hall_name ?? '').trim();
+      if (!hallName) return res.status(400).json({ error: 'hall_name مطلوب' });
+
+      const beds = await loadActiveHallBeds(prisma, hospitalId, hallName);
+      if (!beds.length) return res.status(404).json({ error: 'القاعة غير موجودة أو معطّلة' });
+
+      const ids = beds.map((b) => b.id);
+      const blockers = await hallLocationBlockers(prisma, hospitalId, ids);
+      if (blockers.schedules > 0 || blockers.activeSessions > 0 || blockers.machines > 0) {
+        return res.status(409).json({
+          error:
+            'لا يمكن حذف القاعة: مرتبطة بجدول مرضى أو جلسة نشطة أو جهاز. أزل الارتباط أولاً.',
+          blockers,
+        });
+      }
+
+      await prisma.dialysisLocation.updateMany({
+        where: { id: { in: ids } },
+        data: { isActive: 0, ...audit(req) },
+      });
+
+      res.json({ ok: true, deactivated: ids.length });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل حذف القاعة' });
+    }
+  }
+);
+
 // --- Shift templates (شفتات يومية حسب يوم الأسبوع) ---
 router.get(
   '/shift-slots',
@@ -2360,14 +2540,8 @@ router.get(
       const take = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 300;
       let rows = await prisma.dialysisSession.findMany({
         where,
-        include: {
-          hospital: { select: { id: true, name: true, code: true } },
-          dialysisPatient: { select: { fullName: true, id: true, kind: true } },
-          location: true,
-          shiftSlot: true,
-          consumptions: { include: { item: { select: { name: true } } } },
-        },
-        orderBy: { startedAt: 'desc' },
+        include: SESSION_LIST_INCLUDE,
+        orderBy: [{ sessionDate: 'desc' }, { startedAt: 'desc' }],
         take,
       });
       rows = await attachUsernames(prisma, rows);
@@ -2395,45 +2569,8 @@ router.get(
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const where = buildDialysisSessionsWhere(hospitalClause, req.query);
 
-      const [
-        total,
-        active,
-        scheduled,
-        completed,
-        cancelled,
-        intakeGroups,
-        distinctPatientRows,
-      ] = await Promise.all([
-        prisma.dialysisSession.count({ where }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'ACTIVE' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'SCHEDULED' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'COMPLETED' } }),
-        prisma.dialysisSession.count({ where: { ...where, status: 'CANCELLED' } }),
-        prisma.dialysisSession.groupBy({
-          by: ['intakeKind'],
-          where,
-          _count: { _all: true },
-        }),
-        prisma.dialysisSession.findMany({
-          where,
-          distinct: ['dialysisPatientId'],
-          select: { dialysisPatientId: true },
-        }),
-      ]);
-
-      const byIntakeKind = Object.fromEntries(
-        intakeGroups.map((g) => [g.intakeKind === null ? 'UNKNOWN' : g.intakeKind, g._count._all])
-      );
-
-      res.json({
-        total,
-        active,
-        scheduled,
-        completed,
-        cancelled,
-        uniquePatients: distinctPatientRows.length,
-        byIntakeKind,
-      });
+      const kpis = await aggregateDialysisSessionKpis(prisma, where);
+      res.json(kpis);
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل إحصاء الجلسات' });
@@ -2457,11 +2594,7 @@ router.get(
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const rows = await prisma.dialysisSession.findMany({
         where: { hospitalId: hospitalClause, status: 'ACTIVE' },
-        include: {
-          hospital: { select: { id: true, name: true, code: true } },
-          dialysisPatient: { select: { fullName: true } },
-          location: true,
-        },
+        include: SESSION_LIST_INCLUDE,
         orderBy: { startedAt: 'desc' },
       });
       res.json(rows);

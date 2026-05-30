@@ -1,11 +1,44 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const router = express.Router();
 const db = require('../database/db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const { buildDialysisHospitalAuthFields } = require('../utils/dialysisScope');
 const { authLimiter } = require('../utils/rateLimiter');
+
+const uploadsRoot = path.join(__dirname, '../../uploads');
+const profilePhotoMulter = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const userId = req.user.id;
+      const dir = path.join(uploadsRoot, 'user-profiles', String(userId));
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = (path.extname(file.originalname || '') || '.jpg').toLowerCase();
+      const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+      const e = allowed.includes(ext) ? (ext === '.jpeg' ? '.jpg' : ext) : '.jpg';
+      cb(null, `photo${e}`);
+    },
+  }),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
+      cb(new Error('يجب رفع صورة (JPEG/PNG/WebP/GIF)'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+function userPhotoPayload(user) {
+  return user?.photoUrl ?? user?.photo_url ?? null;
+}
 
 // Login (rate-limited; GET /me must stay unrestricted so session bootstrap does not exhaust the limit)
 router.post('/login', authLimiter, async (req, res) => {
@@ -123,6 +156,7 @@ router.post('/login', authLimiter, async (req, res) => {
         username: user.username,
         role: user.role,
         name: user.name,
+        photoUrl: userPhotoPayload(user),
         permissions,
         ...dialysisAuth,
       },
@@ -195,6 +229,48 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+// Upload profile photo
+router.post('/profile-photo', authenticateToken, (req, res, next) => {
+  profilePhotoMulter.single('photo')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'فشل الرفع' });
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({ error: 'لم يُرفع ملف' });
+    }
+
+    const photoUrl = `/uploads/user-profiles/${userId}/${req.file.filename}`;
+
+    if (db.prisma) {
+      await db.prisma.user.update({
+        where: { id: userId },
+        data: { photoUrl },
+      });
+    } else {
+      const { runQuery } = require('../database/db');
+      try {
+        await runQuery(
+          'UPDATE users SET photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [photoUrl, userId]
+        );
+      } catch (sqlErr) {
+        if (String(sqlErr.message || '').includes('photo_url')) {
+          return res.status(503).json({ error: 'ميزة الصورة الشخصية تتطلب تحديث قاعدة البيانات' });
+        }
+        throw sqlErr;
+      }
+    }
+
+    res.json({ photo_url: photoUrl, photoUrl });
+  } catch (error) {
+    console.error('Profile photo upload error:', error);
+    res.status(500).json({ error: 'فشل حفظ الصورة الشخصية' });
+  }
+});
+
 /** المستخدم الحالي + صلاحيات الدور (للواجهة بعد تحديث البذور دون إعادة تسجيل دخول) */
 router.get('/me', authenticateToken, async (req, res) => {
   try {
@@ -205,6 +281,7 @@ router.get('/me', authenticateToken, async (req, res) => {
         username: req.user.username,
         role: req.user.role,
         name: req.user.name,
+        photoUrl: null,
         permissions: [],
       });
     }
@@ -243,6 +320,7 @@ router.get('/me', authenticateToken, async (req, res) => {
       username: user.username,
       role: user.role,
       name: user.name,
+      photoUrl: userPhotoPayload(user),
       permissions,
       ...dialysisAuth,
     });

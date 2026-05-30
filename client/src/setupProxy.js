@@ -12,4 +12,12 @@ module.exports = function setupProxy(app) {
       changeOrigin: true,
     })
   );
+
+  app.use(
+    '/uploads',
+    createProxyMiddleware({
+      target: 'http://localhost:5001',
+      changeOrigin: true,
+    })
+  );
 };

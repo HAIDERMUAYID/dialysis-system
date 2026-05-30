@@ -1,6 +1,18 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Table, Button, Modal, Form, InputNumber, Input, message, Typography, Empty, Spin } from 'antd';
-import { PlusOutlined, ApartmentOutlined } from '@ant-design/icons';
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  InputNumber,
+  Input,
+  message,
+  Typography,
+  Empty,
+  Spin,
+  Space,
+} from 'antd';
+import { PlusOutlined, ApartmentOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useDialysisMobile } from './app/useDialysisMobile';
 import './dialysis-structure-panel.css';
@@ -23,7 +35,10 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [hallModalOpen, setHallModalOpen] = useState(false);
+  const [editHallName, setEditHallName] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
   const isMobile = useDialysisMobile();
 
   const load = useCallback(async () => {
@@ -58,6 +73,67 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       count: beds.length,
     }));
   }, [locations]);
+
+  const openEdit = (hallName: string, bedCount: number) => {
+    setEditHallName(hallName);
+    editForm.setFieldsValue({ hall_name: hallName, bed_count: bedCount });
+  };
+
+  const submitEdit = async (values: { hall_name: string; bed_count: number }) => {
+    if (!hospitalId || !editHallName) return;
+    setSaving(true);
+    try {
+      await axios.put('/api/dialysis/locations/hall', {
+        hospital_id: hospitalId,
+        hall_name: editHallName,
+        new_hall_name: values.hall_name.trim(),
+        bed_count: values.bed_count,
+      });
+      message.success('تم تحديث القاعة');
+      setEditHallName(null);
+      editForm.resetFields();
+      load();
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'لم يتم تحديث القاعة';
+      message.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDeleteHall = (hallName: string, bedCount: number) => {
+    Modal.confirm({
+      title: 'حذف القاعة؟',
+      content: (
+        <span>
+          سيتم تعطيل قاعة «{hallName}» وجميع أسرتها ({bedCount}{' '}
+          {bedCount === 1 ? 'سرير' : 'أسرة'}). لا يمكن التراجع بسهولة إن وُجدت جلسات أو جداول مرتبطة.
+        </span>
+      ),
+      okText: 'حذف',
+      okType: 'danger',
+      cancelText: 'إلغاء',
+      centered: true,
+      onOk: async () => {
+        if (!hospitalId) return;
+        try {
+          await axios.delete('/api/dialysis/locations/hall', {
+            data: { hospital_id: hospitalId, hall_name: hallName },
+          });
+          message.success('تم حذف القاعة');
+          load();
+        } catch (e: unknown) {
+          const msg =
+            (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+            'لم يتم حذف القاعة';
+          message.error(msg);
+          throw e;
+        }
+      },
+    });
+  };
 
   const submitHall = async (values: { hall_name: string; bed_count: number }) => {
     if (!hospitalId) return;
@@ -108,7 +184,56 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
         </span>
       ),
     },
+    ...(canManage
+      ? [
+          {
+            title: 'إجراءات',
+            key: 'actions',
+            width: 160,
+            render: (_: unknown, r: (typeof grouped)[0]) => (
+              <Space size="small" wrap>
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => openEdit(r.hallName, r.count)}
+                >
+                  تعديل
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => confirmDeleteHall(r.hallName, r.count)}
+                >
+                  حذف
+                </Button>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
+
+  const hallActions = (hallName: string, count: number) =>
+    canManage ? (
+      <div className="d-structure-hall-card__actions">
+        <Button
+          size="small"
+          icon={<EditOutlined />}
+          onClick={() => openEdit(hallName, count)}
+        >
+          تعديل
+        </Button>
+        <Button
+          size="small"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => confirmDeleteHall(hallName, count)}
+        >
+          حذف
+        </Button>
+      </div>
+    ) : null;
 
   return (
     <div className="d-structure-panel">
@@ -155,6 +280,7 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
                     </span>
                   ))}
                 </div>
+                {hallActions(g.hallName, g.count)}
               </article>
             ))
           )}
@@ -202,6 +328,43 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
           </Form.Item>
           <Button type="primary" htmlType="submit" block size="large">
             حفظ وإنشاء الأسرة
+          </Button>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="تعديل القاعة"
+        open={editHallName != null}
+        onCancel={() => {
+          setEditHallName(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+        destroyOnClose
+        width={isMobile ? 'calc(100vw - 24px)' : 440}
+        centered
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          يمكنك تغيير اسم القاعة أو عدد الأسرة. عند التقليل يُعطّل الأسرة الزائدة فقط إن لم تكن
+          مرتبطة بمريض أو جلسة.
+        </Text>
+        <Form form={editForm} layout="vertical" onFinish={submitEdit}>
+          <Form.Item
+            name="hall_name"
+            label="اسم القاعة"
+            rules={[{ required: true, message: 'يرجى إدخال اسم القاعة' }]}
+          >
+            <Input size="large" />
+          </Form.Item>
+          <Form.Item
+            name="bed_count"
+            label="عدد الأسرة"
+            rules={[{ required: true, message: 'يرجى تحديد العدد' }]}
+          >
+            <InputNumber min={1} max={80} style={{ width: '100%' }} size="large" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block size="large" loading={saving}>
+            حفظ التعديلات
           </Button>
         </Form>
       </Modal>

@@ -1,0 +1,482 @@
+/* =========================================================
+   D-IRS — Premium mobile experience (2025-style)
+   يُفعَّل عبر .d-app-mobile على الجذر
+   ========================================================= */
+
+/* على body عند الموبايل (للشريط السفلي عبر portal) */
+body.d-app-mobile {
+  --d-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --d-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.d-app-mobile {
+  --d-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --d-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --d-brand-glow: rgba(13, 148, 136, 0.35);
+  --d-accent-glow: rgba(99, 102, 241, 0.32);
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* خلفية ambient */
+.d-app-mobile .d-app-body {
+  position: relative;
+  isolation: isolate;
+}
+
+.d-app-mobile .d-app-body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 50% at 100% -10%, rgba(99, 102, 241, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 0% 20%, rgba(13, 148, 136, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(139, 92, 246, 0.08), transparent 45%);
+}
+
+.d-app-mobile .d-app-header,
+.d-app-mobile .d-app-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* يبقى fixed — لا تُستبدل بـ relative وإلا يُقصّ الشريط السفلي */
+.d-app-root.d-app-mobile .d-bottom-nav,
+body.d-app-mobile .d-bottom-nav {
+  position: fixed;
+  z-index: 1200;
+}
+
+.d-app-mobile .d-app-content.has-bottom-nav {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #eef2ff 100%);
+}
+
+/* ——— Header ——— */
+.d-app-mobile .d-app-header {
+  transition:
+    box-shadow 320ms var(--d-ease-out),
+    background-color 320ms ease,
+    backdrop-filter 320ms ease;
+}
+
+.d-app-mobile .d-app-header.is-scrolled {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
+}
+
+.d-app-mobile .d-app-page-title {
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.d-app-mobile .d-app-user-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.d-app-mobile .d-app-user-btn .ant-avatar {
+  box-shadow: 0 0 0 2px #fff, 0 4px 12px var(--d-accent-glow);
+  transition: transform 200ms var(--d-ease-spring);
+  cursor: pointer;
+}
+
+.d-app-mobile .d-app-user-btn:active .ant-avatar {
+  transform: scale(0.94);
+}
+
+/* ——— انتقالات الصفحات (اتجاهي) ——— */
+.d-app-mobile .d-page-transition--mobile {
+  animation-duration: 380ms;
+  animation-timing-function: var(--d-ease-out);
+  animation-fill-mode: both;
+}
+
+.d-app-mobile .d-page-transition--mobile-fwd {
+  animation-name: dMobilePageFwd;
+}
+
+.d-app-mobile .d-page-transition--mobile-back {
+  animation-name: dMobilePageBack;
+}
+
+@keyframes dMobilePageFwd {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.98);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes dMobilePageBack {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.98);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ——— الشريط السفلي (نمط pill) ——— */
+.d-app-root.d-app-mobile .d-bottom-nav,
+body.d-app-mobile .d-bottom-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 -12px 40px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  gap: 4px;
+}
+
+.d-app-mobile .d-bottom-item {
+  min-height: 54px;
+  border-radius: 16px;
+  transition:
+    color 220ms ease,
+    transform 200ms var(--d-ease-spring),
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.d-app-mobile .d-bottom-item.active {
+  animation: none;
+  color: #5b21b6;
+  background: linear-gradient(145deg, rgba(237, 233, 254, 0.95), rgba(219, 234, 254, 0.9));
+  box-shadow:
+    0 4px 16px rgba(99, 102, 241, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.d-app-mobile .d-bottom-item.active::before {
+  display: none;
+}
+
+.d-app-mobile .d-bottom-item:active {
+  transform: scale(0.9);
+}
+
+.d-app-mobile .d-bottom-item.active .d-bottom-icon {
+  animation: dNavIconPop 400ms var(--d-ease-spring);
+  color: #6d28d9;
+}
+
+@keyframes dNavIconPop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15) translateY(-3px); }
+  100% { transform: translateY(-2px); }
+}
+
+.d-app-mobile .d-bottom-label {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* ——— بطاقات premium ——— */
+.d-app-mobile .d-patient-card,
+.d-app-mobile .d-session-card,
+.d-app-mobile .d-card,
+.d-app-mobile .d-stat,
+.d-app-mobile .d-report-kpi-card {
+  animation: dMobileCardIn 450ms var(--d-ease-out) both;
+  border-radius: 18px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(1) { animation-delay: 0ms; }
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(2) { animation-delay: 50ms; }
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(3) { animation-delay: 100ms; }
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(4) { animation-delay: 150ms; }
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(5) { animation-delay: 200ms; }
+.d-app-mobile .d-patients-cards .d-patient-card:nth-child(n + 6) { animation-delay: 220ms; }
+
+.d-app-mobile .d-stat-grid .d-stat:nth-child(1) { animation-delay: 0ms; }
+.d-app-mobile .d-stat-grid .d-stat:nth-child(2) { animation-delay: 45ms; }
+.d-app-mobile .d-stat-grid .d-stat:nth-child(3) { animation-delay: 90ms; }
+.d-app-mobile .d-stat-grid .d-stat:nth-child(4) { animation-delay: 135ms; }
+.d-app-mobile .d-stat-grid .d-stat:nth-child(5) { animation-delay: 180ms; }
+.d-app-mobile .d-stat-grid .d-stat:nth-child(6) { animation-delay: 220ms; }
+
+@keyframes dMobileCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.d-app-mobile .d-patient-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.d-app-mobile .d-patient-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(99, 102, 241, 0.12), transparent 65%);
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.d-app-mobile .d-patient-card:active::after {
+  opacity: 1;
+}
+
+.d-app-mobile .d-patient-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+}
+
+.d-app-mobile .d-stat {
+  overflow: hidden;
+}
+
+.d-app-mobile .d-stat:active {
+  transform: scale(0.97);
+}
+
+.d-app-mobile .d-stat-icon {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
+}
+
+/* ——— FAB ——— */
+.d-mobile-fab {
+  position: fixed;
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 1190;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #0d9488 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow:
+    0 12px 32px rgba(79, 70, 229, 0.45),
+    0 4px 12px rgba(13, 148, 136, 0.25);
+  cursor: pointer;
+  animation: dFabIn 500ms var(--d-ease-spring) both;
+  transition: transform 180ms var(--d-ease-spring), box-shadow 200ms ease;
+}
+
+.d-mobile-fab:active {
+  transform: scale(0.94);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+}
+
+.d-mobile-fab__icon {
+  display: inline-flex;
+  font-size: 20px;
+}
+
+@keyframes dFabIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ——— Skeleton shimmer ——— */
+.d-mobile-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.d-mobile-skeleton--stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.d-mobile-skeleton__row {
+  border-radius: 18px;
+  min-height: 120px;
+  background: linear-gradient(
+    110deg,
+    #e2e8f0 8%,
+    #f1f5f9 18%,
+    #e2e8f0 33%
+  );
+  background-size: 200% 100%;
+  animation: dShimmer 1.2s ease-in-out infinite;
+}
+
+.d-mobile-skeleton__row--stat {
+  min-height: 88px;
+  border-radius: 14px;
+}
+
+@keyframes dShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.d-app-mobile .ant-btn,
+.d-app-mobile .d-bottom-item,
+.d-app-mobile .d-mobile-fab {
+  touch-action: manipulation;
+}
+
+/* ——— أزرار ——— */
+.d-app-mobile .ant-btn {
+  min-height: 42px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition:
+    transform 180ms var(--d-ease-spring),
+    box-shadow 220ms ease;
+}
+
+.d-app-mobile .ant-btn-primary:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border: none;
+  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.35);
+}
+
+.d-app-mobile .ant-btn-primary:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* ——— عناوين ——— */
+.d-app-mobile .d-page-header h2,
+.d-app-mobile .d-patients-hero h2 {
+  animation: dMobileTitleIn 400ms var(--d-ease-out) both;
+  letter-spacing: -0.02em;
+}
+
+.d-app-mobile .d-page-header .sub,
+.d-app-mobile .d-patients-hero .sub {
+  animation: dMobileTitleIn 440ms var(--d-ease-out) 70ms both;
+}
+
+@keyframes dMobileTitleIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ——— دروج ——— */
+.d-app-mobile .ant-drawer-bottom .ant-drawer-content {
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -20px 60px rgba(15, 23, 42, 0.15);
+}
+
+.d-app-mobile .ant-drawer-right .ant-drawer-content {
+  box-shadow: -12px 0 48px rgba(15, 23, 42, 0.12);
+}
+
+.d-app-mobile .ant-drawer-mask {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ——— ترحيب ——— */
+.d-app-mobile .d-welcome--mobile {
+  animation: dMobileWelcomeIn 520ms var(--d-ease-out) both;
+  box-shadow:
+    0 16px 40px var(--d-brand-glow),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+@keyframes dMobileWelcomeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ——— حقول ——— */
+.d-app-mobile .ant-input,
+.d-app-mobile .ant-input-affix-wrapper,
+.d-app-mobile .ant-select-selector {
+  border-radius: 14px !important;
+  min-height: 46px;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.d-app-mobile .ant-input-affix-wrapper:focus-within,
+.d-app-mobile .ant-select-focused .ant-select-selector {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+}
+
+/* ——— رسائل ant ——— */
+.d-app-mobile .ant-message-notice-content {
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+}
+
+/* ——— Empty states ——— */
+.d-app-mobile .ant-empty {
+  animation: dMobileCardIn 400ms var(--d-ease-out) both;
+}
+
+/* ——— تقليل الحركة ——— */
+@media (prefers-reduced-motion: reduce) {
+  .d-app-mobile,
+  .d-app-mobile * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .d-app-mobile .d-page-transition--mobile {
+    filter: none !important;
+  }
+
+  .d-mobile-fab {
+    animation: none;
+  }
+
+  .d-mobile-skeleton__row {
+    animation: none;
+    background: #e2e8f0;
+  }
+}

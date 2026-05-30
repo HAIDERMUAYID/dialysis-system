@@ -6,6 +6,7 @@ interface User {
   username: string;
   role: string;
   name: string;
+  photoUrl?: string | null;
   /** أسماء الصلاحيات من جدول permissions (مثل dialysis:view) */
   permissions?: string[];
   /** نطاق مستشفيات وحدة الغسيل (من الخادم بعد تسجيل الدخول و /me) */
@@ -19,6 +20,7 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<User>;
   logout: () => void;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               username: string;
               role: string;
               name: string;
+              photoUrl?: string | null;
               permissions: string[];
               dialysisHospitalIds?: number[];
               dialysisCanSeeAllHospitals?: boolean;
@@ -67,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               username: data.username,
               role: data.role,
               name: data.name,
+              photoUrl: data.photoUrl ?? userData.photoUrl ?? null,
               permissions: data.permissions ?? [],
               dialysisHospitalIds: data.dialysisHospitalIds,
               dialysisCanSeeAllHospitals: data.dialysisCanSeeAllHospitals,
@@ -156,6 +160,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = (patch: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const merged = { ...prev, ...patch };
+      localStorage.setItem('user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -164,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

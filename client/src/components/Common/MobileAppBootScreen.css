@@ -1,88 +1,244 @@
 .mobile-app-boot {
-  min-height: calc(100vh - 20px);
+  --boot-teal: #0f766e;
+  --boot-teal-dark: #134e4a;
+  --boot-cyan: #0ea5e9;
+  --boot-violet: #7c3aed;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background: radial-gradient(circle at top, #e0f2fe, #f8fafc 42%);
-}
-
-.mobile-app-boot__card {
-  width: min(360px, 100%);
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 26px;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
-  padding: 24px 18px;
-  text-align: center;
-  animation: bootCardLift 240ms ease-out;
-  position: relative;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
   overflow: hidden;
+  background: #0b1220;
 }
 
-.mobile-app-boot__card::after {
-  content: '';
+.mobile-app-boot__mesh {
   position: absolute;
-  inset: -40%;
-  background: conic-gradient(
-    from 180deg at 50% 50%,
-    rgba(21, 124, 103, 0.06),
-    rgba(14, 165, 233, 0.05),
-    rgba(21, 124, 103, 0.06)
-  );
-  animation: bootAuraSpin 6s linear infinite;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(14, 165, 233, 0.35), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 50%, rgba(124, 58, 237, 0.22), transparent 50%),
+    radial-gradient(ellipse 80% 55% at 0% 80%, rgba(15, 118, 110, 0.35), transparent 48%),
+    linear-gradient(165deg, #0f172a 0%, #134e4a 42%, #0c4a6e 100%);
+  animation: bootMeshShift 12s ease-in-out infinite alternate;
+}
+
+.mobile-app-boot__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.55;
   pointer-events: none;
 }
 
-.mobile-app-boot__card > * {
+.mobile-app-boot__orb--1 {
+  width: 220px;
+  height: 220px;
+  top: 12%;
+  inset-inline-start: -12%;
+  background: rgba(13, 148, 136, 0.65);
+  animation: bootOrbFloat1 8s ease-in-out infinite;
+}
+
+.mobile-app-boot__orb--2 {
+  width: 180px;
+  height: 180px;
+  bottom: 18%;
+  inset-inline-end: -8%;
+  background: rgba(99, 102, 241, 0.5);
+  animation: bootOrbFloat2 9s ease-in-out infinite;
+}
+
+.mobile-app-boot__card {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  width: min(380px, 100%);
+  padding: 28px 22px 24px;
+  text-align: center;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 8px 32px rgba(13, 148, 136, 0.15);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  animation: bootCardIn 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mobile-app-boot__logo-wrap {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-app-boot__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.mobile-app-boot__ring--outer {
+  inset: 0;
+  border-top-color: rgba(13, 148, 136, 0.55);
+  border-inline-end-color: rgba(14, 165, 233, 0.35);
+  animation: bootRingSpin 2.4s linear infinite;
+}
+
+.mobile-app-boot__ring--inner {
+  inset: 10px;
+  border-bottom-color: rgba(124, 58, 237, 0.45);
+  border-inline-start-color: rgba(13, 148, 136, 0.3);
+  animation: bootRingSpin 1.8s linear infinite reverse;
 }
 
 .mobile-app-boot__logo {
-  width: 88px;
-  height: 88px;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
-  margin-bottom: 10px;
-  animation: bootLogoPulse 1.8s ease-in-out infinite;
+  border-radius: 18px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  animation: bootLogoFloat 3s ease-in-out infinite;
 }
 
-.mobile-app-boot__card h2 {
+.mobile-app-boot__ministry {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0d9488;
+  line-height: 1.45;
+}
+
+.mobile-app-boot__title {
   margin: 0;
-  color: #134e4a;
-  font-size: 1.18rem;
+  font-size: 2rem;
   font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #0f766e 0%, #0284c7 50%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-.mobile-app-boot__card p {
-  margin: 8px 0 14px;
+.mobile-app-boot__subtitle {
+  margin: 4px 0 18px;
+  font-size: 13px;
+  font-weight: 600;
   color: #64748b;
-  font-size: 0.93rem;
+}
+
+.mobile-app-boot__status {
+  margin: 0 0 14px;
+  min-height: 1.5em;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  animation: bootStatusIn 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mobile-app-boot__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mobile-app-boot__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    background 280ms ease,
+    box-shadow 280ms ease;
+}
+
+.mobile-app-boot__dot.is-active {
+  transform: scale(1.25);
+  background: linear-gradient(135deg, #0d9488, #6366f1);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
+}
+
+.mobile-app-boot__dot.is-done {
+  background: #14b8a6;
 }
 
 .mobile-app-boot__progress {
   width: 100%;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
   background: #e2e8f0;
   overflow: hidden;
 }
 
-.mobile-app-boot__progress span {
+.mobile-app-boot__progress-fill {
   display: block;
-  width: 42%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #157c67, #0ea5e9);
-  transition: width 280ms ease;
-  position: relative;
-  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    #0f766e 0%,
+    #0ea5e9 45%,
+    #8b5cf6 100%
+  );
+  background-size: 200% 100%;
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: bootProgressShine 1.6s ease-in-out infinite;
+  box-shadow: 0 0 14px rgba(14, 165, 233, 0.45);
 }
 
-@keyframes bootCardLift {
+@keyframes bootMeshShift {
+  from { filter: hue-rotate(0deg) brightness(1); }
+  to { filter: hue-rotate(8deg) brightness(1.05); }
+}
+
+@keyframes bootOrbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(24px, 18px) scale(1.08); }
+}
+
+@keyframes bootOrbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, -14px) scale(1.06); }
+}
+
+@keyframes bootCardIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(28px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bootRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bootLogoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes bootStatusIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -90,26 +246,24 @@
   }
 }
 
-@keyframes bootLogoPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.04);
-  }
-}
-
-@keyframes bootAuraSpin {
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes bootProgressShine {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mobile-app-boot__mesh,
+  .mobile-app-boot__orb,
+  .mobile-app-boot__ring,
+  .mobile-app-boot__logo,
+  .mobile-app-boot__progress-fill,
   .mobile-app-boot__card,
-  .mobile-app-boot__card::after,
-  .mobile-app-boot__logo {
+  .mobile-app-boot__status {
     animation: none !important;
+  }
+
+  .mobile-app-boot__card {
+    opacity: 1;
+    transform: none;
   }
 }

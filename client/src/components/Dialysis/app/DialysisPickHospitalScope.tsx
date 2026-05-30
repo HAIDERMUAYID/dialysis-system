@@ -62,7 +62,7 @@ export const DialysisPickHospitalScope: React.FC<DialysisPickHospitalScopeProps>
               {description}
             </Paragraph>
             <Text type="secondary" className="d-pick-hospital-scope__hint">
-              يمكنك أيضاً اختيار المستشفى من القائمة المنسدلة في شريط العنوان أعلاه.
+              يمكنك أيضاً اختيار المستشفى من «نطاق العمل» في القائمة الجانبية أو من الشريط العلوي على الهاتف.
             </Text>
           </div>
         </div>

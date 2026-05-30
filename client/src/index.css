@@ -44,6 +44,7 @@ body {
 
 .app-splash--hide {
   opacity: 0;
+  pointer-events: none;
 }
 
 .app-splash-card {
@@ -124,7 +125,6 @@ html.mobile-app-shell #root {
 }
 
 html.mobile-app-shell body {
-  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -136,13 +136,16 @@ html.is-standalone body {
 /* تجربة كتابة موبايل أفضل: ثبات التكبير وحركة لوحة المفاتيح */
 @media (max-width: 768px) {
   html.mobile-app-shell,
-  html.mobile-app-shell body {
-    height: 100%;
+  html.mobile-app-shell body,
+  html.mobile-app-shell #root {
+    min-height: 100%;
+    height: auto;
   }
 
   html.mobile-app-shell body {
     text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
+    overflow-y: auto;
   }
 
   html.mobile-app-shell input,

@@ -11,6 +11,9 @@ import {
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { ALL_MY_HOSPITALS, useDialysisContext } from '../dialysisContext';
+import { useDialysisMobile } from '../useDialysisMobile';
+import DialysisPullRefresh from '../DialysisPullRefresh';
+import DialysisMobileSkeleton from '../DialysisMobileSkeleton';
 import { Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -34,6 +37,7 @@ const STAT_COLORS: Record<string, string> = {
 
 const OverviewPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
+  const isMobile = useDialysisMobile();
   const mergedScope = hospitalId === ALL_MY_HOSPITALS;
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -93,26 +97,30 @@ const OverviewPage: React.FC = () => {
     { key: 'machines', label: 'أجهزة الغسل', value: stats.machines, icon: <HddOutlined />, link: '/dialysis/machines' },
   ];
 
-  return (
-    <Spin spinning={loading}>
+  const body = (
+    <Spin spinning={loading && !isMobile}>
       <div className="d-page-header">
         <h2>نظرة عامة</h2>
         <Text className="sub">ملخص بيانات وحدة الغسل الكلوي. يتم تحديث البيانات كل 30 ثانية.</Text>
       </div>
 
-      <div className="d-stat-grid">
-        {cards.map((c) => (
-          <Link key={c.key} to={c.link} className="d-stat" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="d-stat-info">
-              <span className="d-stat-label">{c.label}</span>
-              <span className="d-stat-value">{c.value}</span>
-            </div>
-            <span className="d-stat-icon" style={{ background: STAT_COLORS[c.key] }}>
-              {c.icon}
-            </span>
-          </Link>
-        ))}
-      </div>
+      {isMobile && loading ? (
+        <DialysisMobileSkeleton rows={6} variant="stat" />
+      ) : (
+        <div className="d-stat-grid">
+          {cards.map((c) => (
+            <Link key={c.key} to={c.link} className="d-stat" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="d-stat-info">
+                <span className="d-stat-label">{c.label}</span>
+                <span className="d-stat-value">{c.value}</span>
+              </div>
+              <span className="d-stat-icon" style={{ background: STAT_COLORS[c.key] }}>
+                {c.icon}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="d-card" style={{ marginTop: 18 }}>
         <Title level={5} className="d-card-title">جلسات قيد التشغيل</Title>
@@ -158,6 +166,16 @@ const OverviewPage: React.FC = () => {
       </div>
     </Spin>
   );
+
+  if (isMobile) {
+    return (
+      <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+        {body}
+      </DialysisPullRefresh>
+    );
+  }
+
+  return body;
 };
 
 export default OverviewPage;

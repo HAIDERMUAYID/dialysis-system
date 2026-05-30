@@ -48,6 +48,7 @@ model RolePermission {
   permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   
   @@unique([roleId, permissionId])
+  @@index([roleId])
   @@map("role_permissions")
 }
 
@@ -77,6 +78,7 @@ model User {
   name          String
   email         String?
   phone         String?
+  photoUrl      String?   @map("photo_url")
   isActive      Int       @default(1) @map("is_active")
   lastLogin     DateTime? @map("last_login")
   createdBy     Int?      @map("created_by")
@@ -104,6 +106,8 @@ model User {
   attachments   VisitAttachment[]
   dialysisPharmacyDispensesCompleted DialysisSessionDispense[] @relation("DialysisPharmacyDispenseCompletedBy")
   
+  @@index([roleId])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -180,6 +184,8 @@ model Visit {
   @@index([status, labCompleted])
   @@index([status, pharmacyCompleted])
   @@index([status, doctorCompleted])
+  @@index([patientId, createdAt])
+  @@index([visitType])
   @@map("visits")
 }
 
@@ -238,6 +244,7 @@ model Diagnosis {
   visit           Visit     @relation(fields: [visitId], references: [id])
   creator         User?     @relation(fields: [createdBy], references: [id])
   
+  @@index([visitId])
   @@map("diagnoses")
 }
 
@@ -252,6 +259,8 @@ model VisitStatusHistory {
   visit           Visit     @relation(fields: [visitId], references: [id])
   changer         User?     @relation(fields: [changedBy], references: [id])
   
+  @@index([visitId])
+  @@index([createdAt])
   @@map("visit_status_history")
 }
 
@@ -339,6 +348,7 @@ model LabTestPanelItem {
   testCatalog     LabTestCatalog @relation(fields: [testCatalogId], references: [id], onDelete: Cascade)
   
   @@unique([panelId, testCatalogId])
+  @@index([panelId])
   @@map("lab_test_panel_items")
 }
 
@@ -410,7 +420,8 @@ model VisitAttachment {
   
   visit           Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
   uploader        User?     @relation(fields: [uploadedBy], references: [id])
-  
+
+  @@index([visitId])
   @@map("visit_attachments")
 }
 
@@ -517,7 +528,9 @@ model UserHospitalAccess {
   hospital     Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
 
   @@unique([userId, hospitalId])
+  @@index([userId])
   @@index([hospitalId])
+  @@index([userId, isPrimary])
   @@map("user_hospital_access")
 }
 
@@ -577,6 +590,9 @@ model DialysisPatient {
   @@index([nationalId])
   @@index([phone])
   @@index([kind])
+  @@index([hospitalId, updatedAt])
+  @@index([hospitalId, fullName])
+  @@index([fullName])
   @@unique([hospitalId, biometricId])
   @@map("d_irs_patients")
 }
@@ -653,6 +669,8 @@ model DialysisMachine {
   hourLogs               DialysisMachineHourLog[]
 
   @@index([hospitalId])
+  @@index([hospitalId, isActive])
+  @@index([locationId])
   @@index([assetTag])
   @@map("d_irs_machines")
 }
@@ -833,6 +851,8 @@ model DialysisPatientSchedule {
 
   @@unique([dialysisPatientId, dayOfWeek, shiftSlotId])
   @@index([hospitalId])
+  @@index([dialysisPatientId, hospitalId])
+  @@index([dialysisPatientId, dayOfWeek, isActive])
   @@map("d_irs_patient_schedules")
 }
 
@@ -882,8 +902,17 @@ model DialysisSession {
   pharmacyDispense  DialysisSessionDispense?
 
   @@index([hospitalId, sessionDate, shift])
+  @@index([hospitalId, sessionDate, status])
+  @@index([hospitalId, status])
+  @@index([hospitalId, status, sessionDate])
+  @@index([hospitalId, startedAt])
   @@index([dialysisPatientId, sessionDate])
   @@index([status])
+  @@index([intakeKind])
+  @@index([locationId])
+  @@index([shiftSlotId])
+  @@index([machineId])
+  @@index([startedAt])
   @@map("d_irs_sessions")
 }
 

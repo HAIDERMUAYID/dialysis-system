@@ -22,6 +22,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ALL_MY_HOSPITALS, useDialysisContext, useEffectiveDialysisHospitalId } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
+import DialysisPullRefresh from '../DialysisPullRefresh';
+import DialysisMobileFab from '../DialysisMobileFab';
+import DialysisMobileSkeleton from '../DialysisMobileSkeleton';
 import { usePermission } from '../../../../hooks/usePermission';
 import DialysisPatientDetailModal from '../../DialysisPatientDetailModal';
 import DialysisPatientIntakePanel from '../../DialysisPatientIntakePanel';
@@ -125,7 +128,7 @@ const PatientsPage: React.FC = () => {
     setCardPage(1);
   }, [search]);
 
-  return (
+  const pageBody = (
     <div className="d-patients-page">
       <div className="d-page-header d-patients-hero">
         <h2>المرضى</h2>
@@ -144,9 +147,11 @@ const PatientsPage: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="grow d-toolbar-input-grow"
           />
-          <Button icon={<ReloadOutlined />} onClick={load}>
-            تحديث
-          </Button>
+          {!isMobile && (
+            <Button icon={<ReloadOutlined />} onClick={load}>
+              تحديث
+            </Button>
+          )}
           {canCreate && (
             <Button
               type="primary"
@@ -155,7 +160,7 @@ const PatientsPage: React.FC = () => {
               block={isMobile}
               title={
                 mergedScope
-                  ? 'لإضافة مريض جديد اختر مستشفى واحداً من القائمة أعلاه'
+                  ? 'لإضافة مريض جديد اختر مستشفى واحداً من القائمة'
                   : undefined
               }
               onClick={() => setDrawerOpen(true)}
@@ -163,8 +168,15 @@ const PatientsPage: React.FC = () => {
               مريض جديد
             </Button>
           )}
+          {isMobile && (
+            <Button icon={<ReloadOutlined />} onClick={load}>
+              تحديث
+            </Button>
+          )}
         </div>
-        {isMobile ? (
+        {isMobile && loading ? (
+          <DialysisMobileSkeleton rows={4} />
+        ) : isMobile ? (
           <Spin spinning={loading}>
             <div className="d-patients-cards">
               {mobileSlice.map((r) => (
@@ -400,6 +412,35 @@ const PatientsPage: React.FC = () => {
       />
     </div>
   );
+
+  if (isMobile) {
+    const fab = canCreate ? (
+      <DialysisMobileFab
+        icon={<PlusOutlined />}
+        label="مريض"
+        ariaLabel="إضافة مريض جديد"
+        visible
+        onClick={() => {
+          if (mergedScope) {
+            message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إضافة مريض');
+            return;
+          }
+          setDrawerOpen(true);
+        }}
+      />
+    ) : null;
+
+    return (
+      <>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+          {pageBody}
+        </DialysisPullRefresh>
+        {fab}
+      </>
+    );
+  }
+
+  return pageBody;
 };
 
 export default PatientsPage;

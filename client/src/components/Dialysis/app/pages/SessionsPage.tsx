@@ -22,6 +22,7 @@ import {
   Spin,
   Segmented,
   Tooltip,
+  Pagination,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -51,8 +52,13 @@ import { useDialysisMobile } from '../useDialysisMobile';
 import { usePermission } from '../../../../hooks/usePermission';
 import DialysisSessionClinicalDrawer from '../../DialysisSessionClinicalDrawer';
 import { formatDialysisCalendarDate } from '../../dialysisConstants';
+import DialysisPullRefresh from '../DialysisPullRefresh';
+import DialysisMobileFab from '../DialysisMobileFab';
+import SessionMobileCard from './SessionMobileCard';
+import './sessions-page.css';
 
 const { Text } = Typography;
+const MOBILE_PAGE_SIZE = 15;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
@@ -214,6 +220,8 @@ const SessionsPage: React.FC = () => {
   const [machines, setMachines] = useState<MachineLite[]>([]);
   const [intakeHints, setIntakeHints] = useState<IntakeHints | null>(null);
 
+  const [mobilePage, setMobilePage] = useState(1);
+
   const [clinicalOpen, setClinicalOpen] = useState(false);
   const [clinicalId, setClinicalId] = useState<number | null>(null);
   const [clinicalHospitalId, setClinicalHospitalId] = useState<number | null>(null);
@@ -279,6 +287,10 @@ const SessionsPage: React.FC = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setMobilePage(1);
+  }, [period, customRange, filterStatus, filterIntakeKind, filterPatientId, searchName, hospitalId]);
 
   useEffect(() => {
     if (hospitalId == null) return;
@@ -469,6 +481,11 @@ const SessionsPage: React.FC = () => {
       },
     });
   };
+
+  const mobilePageRows = useMemo(() => {
+    const start = (mobilePage - 1) * MOBILE_PAGE_SIZE;
+    return rows.slice(start, start + MOBILE_PAGE_SIZE);
+  }, [rows, mobilePage]);
 
   const kpiCards = useMemo(() => {
     if (!kpis) return [];
@@ -715,8 +732,14 @@ const SessionsPage: React.FC = () => {
     ];
   }, [isMobile, mergedScope, canEdit, canDelete, endSession, removeSession]);
 
-  return (
-    <>
+  const openClinical = (r: SessionRow) => {
+    setClinicalId(r.id);
+    setClinicalHospitalId(r.hospitalId ?? null);
+    setClinicalOpen(true);
+  };
+
+  const pageBody = (
+    <div className={isMobile ? 'd-sessions-page' : undefined}>
       <div className="d-page-header">
         <h2>الجلسات</h2>
         <Text className="sub">
@@ -760,7 +783,10 @@ const SessionsPage: React.FC = () => {
       )}
 
       <div className="d-card">
-        <div className="d-toolbar" style={{ marginBottom: 8 }}>
+        <div
+          className={`d-toolbar${isMobile ? ' d-sessions-toolbar-period' : ''}`}
+          style={{ marginBottom: 8 }}
+        >
           <Segmented
             value={period}
             onChange={(v) => {
@@ -787,6 +813,7 @@ const SessionsPage: React.FC = () => {
             />
           )}
           <span className="grow" />
+          <div className={isMobile ? 'd-sessions-toolbar-actions' : undefined}>
           <Tooltip title="تحديث القائمة والأرقام">
             <Button icon={<ReloadOutlined />} onClick={load}>
               تحديث
@@ -794,6 +821,7 @@ const SessionsPage: React.FC = () => {
           </Tooltip>
           {canCreate && (
             <Button
+              className={isMobile ? 'd-sessions-btn-new' : undefined}
               type="primary"
               icon={<PlusOutlined />}
               onClick={openCreate}
@@ -807,9 +835,13 @@ const SessionsPage: React.FC = () => {
               جلسة جديدة
             </Button>
           )}
+          </div>
         </div>
 
-        <div className="d-toolbar" style={{ alignItems: 'stretch' }}>
+        <div
+          className={`d-toolbar${isMobile ? ' d-sessions-filters' : ''}`}
+          style={{ alignItems: 'stretch' }}
+        >
           <FilterOutlined style={{ marginTop: 8, color: '#94a3b8' }} />
           <Select
             allowClear
@@ -860,24 +892,69 @@ const SessionsPage: React.FC = () => {
         </div>
 
         <Spin spinning={loading}>
-          <div className="d-table-scroll">
-            <Table
-              rowKey="id"
-              loading={false}
-              dataSource={rows}
-              className={isMobile ? 'd-sessions-table-mobile' : undefined}
-              size={isMobile ? 'small' : 'middle'}
-              scroll={isMobile ? { x: 420 } : { x: 'max-content' }}
-              locale={{ emptyText: <Empty description="لا توجد جلسات حسب الفلتر" /> }}
-              pagination={{
-                pageSize: 15,
-                showSizeChanger: true,
-                pageSizeOptions: ['10', '15', '25', '50'],
-                showTotal: (t) => `إجمالي ${t} صفاً`,
-              }}
-              columns={columns}
-            />
-          </div>
+          {isMobile ? (
+            <>
+              {rows.length === 0 ? (
+                <Empty description="لا توجد جلسات حسب الفلتر" />
+              ) : (
+                <div className="d-sessions-cards">
+                  {mobilePageRows.map((r) => {
+                    const statusMeta = STATUS_LABEL[r.status] ?? {
+                      label: r.status,
+                      color: 'default',
+                    };
+                    const intake = r.intakeKind
+                      ? INTAKE_KIND_LABEL[r.intakeKind]
+                      : undefined;
+                    return (
+                      <SessionMobileCard
+                        key={r.id}
+                        row={r}
+                        showHospital={mergedScope}
+                        statusMeta={statusMeta}
+                        intakeLabel={intake?.label}
+                        intakeColor={intake?.color}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        onOpenRecord={() => openClinical(r)}
+                        onEnd={() => endSession(r.id, r.hospitalId)}
+                        onDelete={() => removeSession(r.id, r.hospitalId)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+              {rows.length > MOBILE_PAGE_SIZE && (
+                <Pagination
+                  className="d-sessions-pagination"
+                  current={mobilePage}
+                  pageSize={MOBILE_PAGE_SIZE}
+                  total={rows.length}
+                  showSizeChanger={false}
+                  showTotal={(t) => `إجمالي ${t}`}
+                  onChange={(p) => setMobilePage(p)}
+                />
+              )}
+            </>
+          ) : (
+            <div className="d-table-scroll">
+              <Table
+                rowKey="id"
+                loading={false}
+                dataSource={rows}
+                size="middle"
+                scroll={{ x: 'max-content' }}
+                locale={{ emptyText: <Empty description="لا توجد جلسات حسب الفلتر" /> }}
+                pagination={{
+                  pageSize: 15,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['10', '15', '25', '50'],
+                  showTotal: (t) => `إجمالي ${t} صفاً`,
+                }}
+                columns={columns}
+              />
+            </div>
+          )}
         </Spin>
       </div>
 
@@ -1135,8 +1212,37 @@ const SessionsPage: React.FC = () => {
         }}
         onSaved={() => load()}
       />
-    </>
+    </div>
   );
+
+  if (isMobile) {
+    const fab = canCreate ? (
+      <DialysisMobileFab
+        icon={<PlusOutlined />}
+        label="جلسة"
+        ariaLabel="جلسة غسيل جديدة"
+        visible
+        onClick={() => {
+          if (mergedScope) {
+            message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إنشاء جلسة');
+            return;
+          }
+          openCreate();
+        }}
+      />
+    ) : null;
+
+    return (
+      <>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+          {pageBody}
+        </DialysisPullRefresh>
+        {fab}
+      </>
+    );
+  }
+
+  return pageBody;
 };
 
 export default SessionsPage;

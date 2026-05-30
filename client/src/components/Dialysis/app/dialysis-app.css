@@ -4,20 +4,25 @@
    - Mobile-first touch targets, safe area aware
    ========================================================= */
 
-.d-app-root {
-  min-height: 100vh;
-  background: #f5f7fb;
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  position: relative;
-}
-
-/* يمنع التمرير الأفقي على مستوى الصفحة أثناء استخدام وحدة الغسل */
+/* يمنع التمرير الأفقي فقط — التمرير العمودي يبقى على مستوى الصفحة */
 html.d-app-html,
 body.d-app-body-lock {
   overflow-x: hidden;
+  overflow-y: auto;
   max-width: 100vw;
+  min-height: 100%;
+  height: auto;
+}
+
+.d-app-root {
+  min-height: 100vh;
+  height: auto;
+  background: #f5f7fb;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  overflow-y: visible;
+  position: relative;
 }
 
 .d-app-root.ant-layout {
@@ -26,9 +31,12 @@ body.d-app-body-lock {
 
 .d-app-body.ant-layout {
   min-width: 0 !important;
-  flex: 1;
+  flex: 1 1 auto;
   max-width: 100%;
-  overflow-x: hidden;
+  min-height: 100vh;
+  height: auto;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .d-app-sider {
@@ -129,6 +137,8 @@ body.d-app-body-lock {
   gap: 0;
   padding: 8px 16px;
   min-height: 60px;
+  height: auto !important;
+  line-height: normal !important;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
   transition: box-shadow 220ms ease, background-color 220ms ease;
 }
@@ -149,14 +159,179 @@ body.d-app-body-lock {
   min-height: 44px;
 }
 
-.d-app-header-row--bar {
-  padding-top: 6px;
-  border-top: 1px solid #f3f4f6;
+.d-app-hospital-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.d-app-sidebar-hospital {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border-bottom: 1px solid #eef0f4;
+  background: #f8fafc;
+}
+
+.d-app-sidebar-hospital .d-app-hospital-select {
+  width: 100% !important;
+}
+
+.d-app-sidebar-hospital .d-app-hospital-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-app-sidebar-hospital--mobile {
+  background: #fff;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.d-app-user-menu-hospital {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.d-app-user-menu-hospital__label {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.d-app-user-menu-hospital__value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-app-hospital-drawer .ant-drawer-body,
+.d-app-user-drawer .ant-drawer-body {
+  padding-top: 8px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.d-app-user-drawer__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 12px 8px 16px;
+  border: 0;
+  border-bottom: 1px solid #eef0f4;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background-color 160ms ease;
+}
+
+.d-app-user-drawer__profile:active {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.d-app-user-drawer__name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.d-app-user-drawer__photo-hint {
+  font-size: 12px;
+}
+
+.d-app-user-drawer__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d-app-user-drawer__actions .ant-btn {
+  justify-content: flex-start;
+  height: 48px;
+}
+
+.d-app-hospital-drawer__current {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.d-app-hospital-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-app-hospital-drawer__body .d-app-hospital-select {
+  width: 100% !important;
+}
+
+.d-app-hospital-drawer__body .d-app-hospital-bar__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.d-app-hospital-bar__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.d-app-hospital-bar__icon {
+  font-size: 22px;
+  color: #0d9488;
+  flex-shrink: 0;
+}
+
+.d-app-hospital-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.d-app-hospital-bar__label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.d-app-hospital-bar__actions {
+  flex-shrink: 0;
 }
 
 .d-app-hospital-select {
   width: 100% !important;
   min-width: 0 !important;
+}
+
+@media (min-width: 769px) {
+  .d-app-hospital-select {
+    min-width: 320px !important;
+    max-width: 560px;
+  }
 }
 
 .d-app-header-actions {
@@ -189,10 +364,13 @@ body.d-app-body-lock {
   min-width: 0;
   width: 100%;
   max-width: 100%;
+  flex: 1 1 auto;
+  overflow: visible;
+  min-height: 0;
 }
 
 .d-app-content.has-bottom-nav {
-  padding: 14px 12px calc(76px + env(safe-area-inset-bottom));
+  padding: 14px 12px calc(88px + env(safe-area-inset-bottom));
 }
 
 .d-empty {
@@ -210,13 +388,18 @@ body.d-app-body-lock {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100vw;
   background: #fff;
   border-top: 1px solid #e5e7eb;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  z-index: 50;
+  z-index: 1200;
   padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+  pointer-events: auto;
 }
 
 .d-bottom-item {
@@ -529,13 +712,23 @@ body.d-app-body-lock {
 @media (max-width: 768px) {
   .d-app-header { padding: 8px 10px; }
   .d-app-page-title { font-size: 14px; }
+  .d-app-header-row--main {
+    gap: 8px;
+  }
   .d-card { padding: 14px; border-radius: 12px; }
   .d-page-header h2 { font-size: 18px; }
   .d-app-content {
     padding: 14px 12px;
   }
   .d-app-content.has-bottom-nav {
-    padding: 12px 10px calc(76px + env(safe-area-inset-bottom));
+    padding: 12px 10px calc(88px + env(safe-area-inset-bottom));
+    overflow-x: clip;
+  }
+
+  .d-app-content .d-page-transition {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
   }
 }
 
@@ -695,6 +888,8 @@ body.d-app-body-lock {
 /* Dark mode (optional — picks up parent color-scheme attribute) */
 [data-theme='dark'] .d-app-root { background: #0f172a; }
 [data-theme='dark'] .d-app-header,
+[data-theme='dark'] .d-app-sidebar-hospital,
+[data-theme='dark'] .d-app-hospital-bar,
 [data-theme='dark'] .d-app-sider,
 [data-theme='dark'] .d-card,
 [data-theme='dark'] .d-bottom-nav,

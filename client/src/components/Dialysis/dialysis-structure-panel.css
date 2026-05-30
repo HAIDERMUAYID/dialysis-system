@@ -101,6 +101,20 @@
   gap: 6px;
 }
 
+.d-structure-hall-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.d-structure-hall-card__actions .ant-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 120px;
+}
+
 .d-structure-bed-chip {
   display: inline-flex;
   align-items: center;
