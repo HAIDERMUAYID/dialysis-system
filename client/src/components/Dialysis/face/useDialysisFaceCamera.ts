@@ -6,7 +6,9 @@ const STORAGE_KEY = 'd-dialysis-face-camera-facing';
 export function readSavedFaceCameraFacing(): FaceCameraFacing {
   if (typeof window === 'undefined') return 'environment';
   const saved = localStorage.getItem(STORAGE_KEY);
-  return saved === 'user' || saved === 'environment' ? saved : 'environment';
+  if (saved === 'user' || saved === 'environment') return saved;
+  const mobile = window.matchMedia('(max-width: 991px)').matches;
+  return mobile ? 'user' : 'environment';
 }
 
 export function saveFaceCameraFacing(facing: FaceCameraFacing): void {

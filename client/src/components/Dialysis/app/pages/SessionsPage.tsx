@@ -1292,20 +1292,19 @@ const SessionsPage: React.FC = () => {
               ]}
             />
           </Form>
-
-          {DIALYSIS_FACE_ENABLED && faceHospitalId != null && !isMobile && (
-            <Suspense fallback={null}>
-              <DialysisFaceIdentifyModal
-                open={faceIdentifyOpen}
-                onClose={() => setFaceIdentifyOpen(false)}
-                hospitalId={faceHospitalId}
-                nestedInDrawer
-                onSelect={(patientId) => handleFacePatientSelected(patientId)}
-              />
-            </Suspense>
-          )}
         </Drawer>
       )}
+
+      {DIALYSIS_FACE_ENABLED && faceHospitalId != null ? (
+        <Suspense fallback={null}>
+          <DialysisFaceIdentifyModal
+            open={faceIdentifyOpen}
+            onClose={() => setFaceIdentifyOpen(false)}
+            hospitalId={faceHospitalId}
+            onSelect={(patientId) => handleFacePatientSelected(patientId)}
+          />
+        </Suspense>
+      ) : null}
 
       <DialysisSessionClinicalDrawer
         open={clinicalOpen}
@@ -1349,16 +1348,6 @@ const SessionsPage: React.FC = () => {
           {pageBody}
         </DialysisPullRefresh>
         {fab}
-        {DIALYSIS_FACE_ENABLED && faceHospitalId != null && (
-          <Suspense fallback={null}>
-            <DialysisFaceIdentifyModal
-              open={faceIdentifyOpen}
-              onClose={() => setFaceIdentifyOpen(false)}
-              hospitalId={faceHospitalId}
-              onSelect={(patientId) => handleFacePatientSelected(patientId)}
-            />
-          </Suspense>
-        )}
       </>
     );
   }

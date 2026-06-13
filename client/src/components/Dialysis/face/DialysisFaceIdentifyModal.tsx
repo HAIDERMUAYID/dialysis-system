@@ -17,6 +17,7 @@ import DialysisFaceInstructions from './DialysisFaceInstructions';
 import DialysisFaceQualityMeter from './DialysisFaceQualityMeter';
 import { useDialysisFaceCamera } from './useDialysisFaceCamera';
 import { useFaceQualityPreview } from './useFaceQualityPreview';
+import { useDialysisFaceModalProps } from './useDialysisFaceModalProps';
 import './dialysis-face-enroll.css';
 
 const { Text, Paragraph } = Typography;
@@ -57,6 +58,7 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
   onSelect,
   nestedInDrawer = false,
 }) => {
+  const faceModalProps = useDialysisFaceModalProps(nestedInDrawer);
   const { videoRef, facing, flipCamera, phase: cameraPhase, loadHint, error: cameraError, setError } =
     useDialysisFaceCamera(open);
   const quality = useFaceQualityPreview(videoRef, open && cameraPhase === 'ready');
@@ -205,13 +207,10 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
       onCancel={onClose}
       footer={null}
       destroyOnClose
-      getContainer={nestedInDrawer ? false : undefined}
       maskClosable={false}
       keyboard={false}
-      zIndex={nestedInDrawer ? 1100 : 1320}
       className="d-face-enroll-modal d-face-identify-modal"
-      width="min(440px, calc(100vw - 24px))"
-      centered
+      {...faceModalProps}
     >
       {pending ? (
         <DialysisFaceConfirmPanel

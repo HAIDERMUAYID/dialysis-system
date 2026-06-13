@@ -1,12 +1,10 @@
 /**
- * تفعيل ميزة الوجه:
- * - true صراحةً عبر REACT_APP_DIALYSIS_FACE_ENABLED=true
- * - أو تلقائياً في npm run dev (localhost) ما لم يُضبط =false
+ * تفعيل ميزة الوجه (محلي + Render + PWA):
+ * - مفعّلة افتراضياً في كل البيئات
+ * - لتعطيلها صراحةً: REACT_APP_DIALYSIS_FACE_ENABLED=false عند build
  */
 export const DIALYSIS_FACE_ENABLED =
-  process.env.REACT_APP_DIALYSIS_FACE_ENABLED === 'true' ||
-  (process.env.NODE_ENV === 'development' &&
-    process.env.REACT_APP_DIALYSIS_FACE_ENABLED !== 'false');
+  process.env.REACT_APP_DIALYSIS_FACE_ENABLED !== 'false';
 
 export const FACE_MODEL_CDN =
   'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';

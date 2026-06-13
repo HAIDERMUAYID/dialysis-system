@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: REACT_APP_DIALYSIS_FACE_ENABLED
+        value: "true"
       - key: PORT
         value: 5001
       - key: DATABASE_URL
@@ -35,6 +37,8 @@ services:
           type: web
           name: hospital-api
           property: host
+      - key: REACT_APP_DIALYSIS_FACE_ENABLED
+        value: "true"
 
 databases:
   # PostgreSQL Database

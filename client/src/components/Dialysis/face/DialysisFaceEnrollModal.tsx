@@ -20,6 +20,7 @@ import DialysisFaceInstructions from './DialysisFaceInstructions';
 import DialysisFaceQualityMeter from './DialysisFaceQualityMeter';
 import { useDialysisFaceCamera } from './useDialysisFaceCamera';
 import { useFaceQualityPreview } from './useFaceQualityPreview';
+import { useDialysisFaceModalProps } from './useDialysisFaceModalProps';
 import './dialysis-face-enroll.css';
 
 const { Text, Paragraph } = Typography;
@@ -46,6 +47,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
   hasFaceEnrolled = false,
   onEnrolled,
 }) => {
+  const faceModalProps = useDialysisFaceModalProps();
   const { videoRef, facing, flipCamera, phase: cameraPhase, loadHint, error: cameraError } =
     useDialysisFaceCamera(open);
   const quality = useFaceQualityPreview(videoRef, open && cameraPhase === 'ready');
@@ -262,8 +264,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
       footer={null}
       destroyOnClose
       className="d-face-enroll-modal"
-      width="min(440px, calc(100vw - 24px))"
-      centered
+      {...faceModalProps}
     >
       <Paragraph type="secondary" style={{ marginBottom: 8 }}>
         {patientName} — <SafetyCertificateOutlined /> بصمة من الوجه والملامح فقط
