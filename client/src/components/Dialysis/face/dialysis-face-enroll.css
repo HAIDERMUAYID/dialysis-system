@@ -11,6 +11,72 @@
   box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.35);
 }
 
+.d-face-enroll-video-wrap--ready {
+  box-shadow:
+    inset 0 0 0 2px rgba(34, 197, 94, 0.5),
+    0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.d-face-enroll-video-wrap--turn {
+  box-shadow: inset 0 0 0 2px rgba(245, 158, 11, 0.55);
+}
+
+.d-face-enroll-manage {
+  padding: 4px 0 8px;
+}
+
+/* ——— تسجيل سلس ——— */
+.d-face-enroll-intro {
+  text-align: center;
+  padding: 8px 4px 12px;
+}
+
+.d-face-enroll-intro__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #4f46e5;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(13, 148, 136, 0.14) 100%);
+}
+
+.d-face-enroll-flow__status {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.d-face-enroll-flow__status .ant-tag {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.d-face-enroll-flow__progress {
+  margin-bottom: 12px;
+}
+
+.d-face-enroll-modal--smooth .d-face-enroll-flow__video {
+  aspect-ratio: 3 / 4;
+  max-height: min(56vh, 440px);
+  border-radius: 18px;
+}
+
+.d-face-enroll-modal--smooth.d-face-enroll-modal--mobile .d-face-enroll-actions {
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
+.d-face-enroll-modal--smooth .d-face-camera-controls {
+  justify-content: center;
+  margin-top: 8px;
+}
+
 .d-face-enroll-video {
   width: 100%;
   height: 100%;

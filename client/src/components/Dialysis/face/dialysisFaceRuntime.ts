@@ -356,12 +356,17 @@ export async function captureLivenessTurnFrame(
       : delta >= FACE_LIVENESS_YAW_MIN;
 
   if (!turnedEnough) {
+    const turnDir =
+      mirrored
+        ? expectTurn === 'left'
+          ? 'لليمين (كما تراه في الشاشة)'
+          : 'لليسار (كما تراه في الشاشة)'
+        : expectTurn === 'left'
+          ? 'لليسار'
+          : 'لليمين';
     return {
       ok: false,
-      error:
-        expectTurn === 'left'
-          ? 'أدر رأسك قليلاً لليسار ثم اضغط مرة أخرى'
-          : 'أدر رأسك قليلاً لليمين ثم اضغط مرة أخرى',
+      error: `أدر رأسك قليلاً ${turnDir}`,
     };
   }
 

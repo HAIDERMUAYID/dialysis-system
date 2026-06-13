@@ -12,7 +12,7 @@ export const FACE_MODEL_CDN =
 /** إصدار خط أنابيب الاستخراج — يُخزَّن مع التسجيل */
 export const FACE_PIPELINE_VERSION = 'face-api-aligned-v2';
 
-export const FACE_ENROLL_SAMPLES = 5;
+export const FACE_ENROLL_SAMPLES = 3;
 export const FACE_ENROLL_MIN_SAMPLES = 3;
 
 export const FACE_MIN_DETECTION_SCORE = 0.75;
@@ -20,7 +20,7 @@ export const FACE_MIN_FACE_RATIO = 0.22;
 export const FACE_MAX_HEAD_TILT_DEG = 15;
 /** أقصى انحراف أفقي عند «انظر للأمام» — متوافق مع مؤشر الجودة */
 export const FACE_LIVENESS_CENTER_YAW_MAX = 0.3;
-export const FACE_LIVENESS_YAW_MIN = 0.08;
+export const FACE_LIVENESS_YAW_MIN = 0.06;
 export const FACE_CENTER_YAW_MAX = 0.3;
 
 export const FACE_AUTO_MATCH_THRESHOLD = 0.88;
@@ -42,6 +42,10 @@ export const FACE_AUTO_SCAN_STABLE_MS = 500;
 export const FACE_AUTO_SCAN_STABLE_FAST_MS = 320;
 /** فترة الانتظار بعد محاولة فاشلة قبل إعادة المحاولة */
 export const FACE_AUTO_SCAN_COOLDOWN_MS = 1400;
+
+/** ثبات الوجه قبل التقاط تلقائي أثناء التسجيل */
+export const FACE_ENROLL_AUTO_STABLE_MS = 420;
+export const FACE_ENROLL_TURN_STABLE_MS = 300;
 
 export const FACE_ENROLL_MIN_PAIRWISE = 0.72;
 export const FACE_LIVENESS_MIN_PAIRWISE = 0.68;
