@@ -44,6 +44,7 @@ import {
 import { usePermission } from '../../../../hooks/usePermission';
 import DialysisPatientDetailModal from '../../DialysisPatientDetailModal';
 import { useDialysisMobile } from '../useDialysisMobile';
+import { useDialysisOverlayLock } from '../useDialysisOverlayLock';
 import DialysisBrandLogo from '../DialysisBrandLogo';
 import { DIALYSIS_MINISTRY_LINE, DIALYSIS_SYSTEM_TITLE } from '../dialysisBrand';
 import '../dialysis-brand.css';
@@ -295,6 +296,7 @@ const PatientMedicalRecordPage: React.FC = () => {
   const [payload, setPayload] = useState<DossierPayload | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
+  useDialysisOverlayLock(isMobile && (editOpen || faceEnrollOpen));
   /** يفعّل تخطيط الطباعة: كل الجلسات، كل الإحصاء، وتجهيز الجداول قبل الحوار */
   const [printLayout, setPrintLayout] = useState(false);
 

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { FACE_QUALITY_POLL_MS } from './dialysisFaceConfig';
+import { FACE_QUALITY_POLL_MS, FACE_QUALITY_POLL_MOBILE_MS } from './dialysisFaceConfig';
+import { useDialysisMobile } from '../app/useDialysisMobile';
 import { previewFaceQuality } from './dialysisFaceRuntime';
 import type { FaceQualitySnapshot } from './dialysisFaceQuality';
 
 export function useFaceQualityPreview(
   videoRef: React.RefObject<HTMLVideoElement | null>,
-  enabled: boolean
+  enabled: boolean,
+  pollMs?: number
 ): FaceQualitySnapshot | null {
+  const isMobile = useDialysisMobile();
+  const intervalMs = pollMs ?? (isMobile ? FACE_QUALITY_POLL_MOBILE_MS : FACE_QUALITY_POLL_MS);
   const [quality, setQuality] = useState<FaceQualitySnapshot | null>(null);
   const busyRef = useRef(false);
 
@@ -41,7 +45,7 @@ export function useFaceQualityPreview(
 
     const id = window.setInterval(() => {
       void tick();
-    }, FACE_QUALITY_POLL_MS);
+    }, intervalMs);
     void tick();
 
     return () => {
@@ -49,7 +53,7 @@ export function useFaceQualityPreview(
       document.removeEventListener('visibilitychange', onVisibility);
       window.clearInterval(id);
     };
-  }, [videoRef, enabled]);
+  }, [videoRef, enabled, intervalMs]);
 
   return quality;
 }

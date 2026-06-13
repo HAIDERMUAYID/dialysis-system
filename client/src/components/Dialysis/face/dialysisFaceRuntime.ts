@@ -244,7 +244,8 @@ export async function captureFaceDescriptor(
 export async function captureVerifiedFaceDescriptors(
   video: HTMLVideoElement,
   count: number,
-  onProgress?: (frameIndex: number, total: number, ok: boolean) => void
+  onProgress?: (frameIndex: number, total: number, ok: boolean) => void,
+  frameDelayMs = FACE_VERIFY_FRAME_DELAY_MS
 ): Promise<{ descriptors: number[][]; errors: string[]; avgQuality: number }> {
   const descriptors: number[][] = [];
   const errors: string[] = [];
@@ -253,7 +254,7 @@ export async function captureVerifiedFaceDescriptors(
   for (let i = 0; i < count; i += 1) {
     if (i > 0) {
       // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, FACE_VERIFY_FRAME_DELAY_MS));
+      await new Promise((r) => setTimeout(r, frameDelayMs));
     }
 
     // eslint-disable-next-line no-await-in-loop
@@ -389,12 +390,16 @@ export async function startFaceCamera(
     throw new Error('المتصفح لا يدعم الكامره. استخدم HTTPS أو localhost.');
   }
 
+  const mobile =
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 991px)').matches;
+
   const tryOpen = async (facing: FaceCameraFacing) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: facing },
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        width: { ideal: mobile ? 1280 : 640 },
+        height: { ideal: mobile ? 720 : 480 },
+        frameRate: { ideal: 24, max: 30 },
       },
       audio: false,
     });

@@ -31,8 +31,17 @@ export const FACE_VERIFY_MIN_SCORE = 0.86;
 export const FACE_SUGGEST_THRESHOLD = 0.62;
 
 export const FACE_VERIFY_FRAMES = 3;
+export const FACE_IDENTIFY_FRAMES = 2;
 export const FACE_VERIFY_FRAME_DELAY_MS = 280;
+export const FACE_IDENTIFY_FRAME_DELAY_MS = 120;
 export const FACE_QUALITY_POLL_MS = 1000;
+export const FACE_QUALITY_POLL_MOBILE_MS = 480;
+/** مدة ثبات جودة الوجه قبل بدء التعرف التلقائي */
+export const FACE_AUTO_SCAN_STABLE_MS = 500;
+/** أسرع عند جودة ممتازة */
+export const FACE_AUTO_SCAN_STABLE_FAST_MS = 320;
+/** فترة الانتظار بعد محاولة فاشلة قبل إعادة المحاولة */
+export const FACE_AUTO_SCAN_COOLDOWN_MS = 1400;
 
 export const FACE_ENROLL_MIN_PAIRWISE = 0.72;
 export const FACE_LIVENESS_MIN_PAIRWISE = 0.68;

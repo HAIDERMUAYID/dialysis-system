@@ -32,6 +32,7 @@ import {
   COUNTRY_OPTIONS,
 } from './dialysisConstants';
 import { useDialysisMobile } from './app/useDialysisMobile';
+import { useDialysisOverlayLock } from './app/useDialysisOverlayLock';
 import { DIALYSIS_FACE_ENABLED } from './face/dialysisFaceConfig';
 
 const DialysisFaceEnrollModal = lazy(() => import('./face/DialysisFaceEnrollModal'));
@@ -119,6 +120,7 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
   const isMobile = useDialysisMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
+  useDialysisOverlayLock(isMobile && (open || faceEnrollOpen));
   const [hasFaceEnrolled, setHasFaceEnrolled] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [form] = Form.useForm();
@@ -389,9 +391,17 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
       title={`ملف مريض غسيل ${patientId ? `#${patientId}` : ''}`}
       open={open}
       onCancel={onClose}
-      width={isMobile ? 'calc(100vw - 16px)' : 920}
-      centered={isMobile}
-      styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto' } }}
+      width={isMobile ? '100%' : 920}
+      centered={!isMobile}
+      zIndex={isMobile ? 1310 : 1000}
+      className={isMobile ? 'd-patient-detail-modal--mobile' : undefined}
+      styles={{
+        body: {
+          maxHeight: isMobile ? 'calc(100dvh - 140px - env(safe-area-inset-bottom))' : 'calc(100vh - 160px)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        },
+      }}
       footer={
         canEdit ? (
           <Space wrap>

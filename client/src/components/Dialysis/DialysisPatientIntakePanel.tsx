@@ -48,6 +48,11 @@ interface Props {
   canCreate: boolean;
   /** card = غلاف Card كامل، plain = للعرض داخل Drawer */
   variant?: 'card' | 'plain';
+  /** معرّف النموذج لزر الحفظ في تذييل الدرج */
+  formId?: string;
+  /** إخفاء زر الحفظ داخل النموذج (يُستخدم مع تذييل الدرج) */
+  hideInlineSubmit?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
   onPatientCreated?: (id: number) => void;
 }
 
@@ -61,6 +66,9 @@ const DialysisPatientIntakePanel: React.FC<Props> = ({
   hospitalId,
   canCreate,
   variant = 'card',
+  formId = 'd-patient-intake-form',
+  hideInlineSubmit = false,
+  onLoadingChange,
   onPatientCreated,
 }) => {
   const [form] = Form.useForm();
@@ -183,6 +191,7 @@ const DialysisPatientIntakePanel: React.FC<Props> = ({
       }
 
       setLoading(true);
+      onLoadingChange?.(true);
       const { data: patient } = await axios.post('/api/dialysis/patients', {
         hospital_id: hospitalId,
         full_name: v.full_name,
@@ -227,6 +236,7 @@ const DialysisPatientIntakePanel: React.FC<Props> = ({
       message.error(err.response?.data?.error || 'فشل الحفظ');
     } finally {
       setLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -256,6 +266,7 @@ const DialysisPatientIntakePanel: React.FC<Props> = ({
       </Text>
 
       <Form
+        id={formId}
         form={form}
         layout="vertical"
         onFinish={submit}
@@ -492,9 +503,11 @@ const DialysisPatientIntakePanel: React.FC<Props> = ({
           </>
         )}
 
-        <Button type="primary" htmlType="submit" loading={loading} style={{ marginTop: 24 }}>
-          حفظ المريض
-        </Button>
+        {!hideInlineSubmit ? (
+          <Button type="primary" htmlType="submit" loading={loading} style={{ marginTop: 24 }}>
+            حفظ المريض
+          </Button>
+        ) : null}
       </Form>
     </>
   );

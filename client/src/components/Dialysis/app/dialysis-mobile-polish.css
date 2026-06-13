@@ -50,6 +50,22 @@ body.d-app-mobile .d-bottom-nav {
   z-index: 1200;
 }
 
+body.d-dialysis-overlay-open .d-bottom-nav,
+body.d-dialysis-overlay-open .d-mobile-fab {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(110%);
+  transition:
+    opacity 220ms ease,
+    transform 280ms var(--d-ease-out, ease),
+    visibility 0s linear 280ms;
+}
+
+body.d-dialysis-overlay-open {
+  overflow: hidden;
+}
+
 .d-app-mobile .d-app-content.has-bottom-nav {
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #eef2ff 100%);
 }

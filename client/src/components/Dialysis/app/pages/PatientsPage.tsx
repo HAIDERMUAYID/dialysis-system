@@ -30,6 +30,7 @@ import { useDialysisMobile } from '../useDialysisMobile';
 import DialysisPullRefresh from '../DialysisPullRefresh';
 import DialysisMobileFab from '../DialysisMobileFab';
 import DialysisMobileSkeleton from '../DialysisMobileSkeleton';
+import { useDialysisOverlayLock } from '../useDialysisOverlayLock';
 import { usePermission } from '../../../../hooks/usePermission';
 import DialysisPatientDetailModal from '../../DialysisPatientDetailModal';
 import DialysisPatientIntakePanel from '../../DialysisPatientIntakePanel';
@@ -123,6 +124,7 @@ const PatientsPage: React.FC = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [detailHospitalId, setDetailHospitalId] = useState<number | null>(null);
+  const [intakeLoading, setIntakeLoading] = useState(false);
   const [cardPage, setCardPage] = useState(1);
   const cardPageSize = 8;
 
@@ -144,6 +146,8 @@ const PatientsPage: React.FC = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useDialysisOverlayLock(isMobile && (drawerOpen || detailOpen));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -528,15 +532,37 @@ const PatientsPage: React.FC = () => {
 
       {canCreate && (
         <Drawer
+          className={`d-patient-create-drawer${isMobile ? ' d-patient-create-drawer--mobile' : ''}`}
           title="إضافة مريض غسيل جديد"
           placement={isMobile ? 'bottom' : 'right'}
-          height={isMobile ? '92%' : undefined}
+          height={isMobile ? '94%' : undefined}
           width={isMobile ? undefined : 560}
+          zIndex={isMobile ? 1310 : 1000}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          destroyOnClose
+          maskClosable={!isMobile}
+          footer={
+            <div className="d-patient-create-drawer__footer">
+              <Button
+                type="primary"
+                size="large"
+                htmlType="submit"
+                form="d-patient-intake-form"
+                loading={intakeLoading}
+              >
+                حفظ المريض
+              </Button>
+              <Button size="large" onClick={() => setDrawerOpen(false)} disabled={intakeLoading}>
+                إلغاء
+              </Button>
+            </div>
+          }
         >
           <DialysisPatientIntakePanel
             variant="plain"
+            hideInlineSubmit
+            onLoadingChange={setIntakeLoading}
             hospitalId={
               typeof hospitalId === 'number' ? hospitalId : effectiveHospitalId ?? 0
             }
@@ -574,7 +600,7 @@ const PatientsPage: React.FC = () => {
         icon={<PlusOutlined />}
         label="مريض"
         ariaLabel="إضافة مريض جديد"
-        visible
+        visible={!drawerOpen && !detailOpen}
         onClick={() => {
           if (mergedScope) {
             message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إضافة مريض');
@@ -587,7 +613,7 @@ const PatientsPage: React.FC = () => {
 
     return (
       <>
-        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null || drawerOpen || detailOpen}>
           {pageBody}
         </DialysisPullRefresh>
         {fab}

@@ -13,19 +13,29 @@ export function useDialysisFaceModalProps(nestedInDrawer = false): Pick<
       width: '100%',
       centered: false,
       zIndex: 1450,
-      wrapClassName: 'd-face-modal-wrap--mobile',
+      wrapClassName: 'd-face-modal-wrap--mobile d-face-modal-wrap--sheet',
       style: { top: 0, padding: 0, margin: 0, maxWidth: '100vw' },
       styles: {
         content: {
-          borderRadius: '20px 20px 0 0',
+          borderRadius: '24px 24px 0 0',
           margin: 0,
           paddingBottom: 'env(safe-area-inset-bottom)',
-          maxHeight: '100dvh',
+          maxHeight: '96dvh',
+          display: 'flex',
+          flexDirection: 'column',
         },
         body: {
-          maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top))',
+          flex: 1,
+          minHeight: 0,
+          maxHeight: 'calc(96dvh - 52px - env(safe-area-inset-top))',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
+          padding: '12px 16px 16px',
+        },
+        header: {
+          padding: '14px 16px 10px',
+          marginBottom: 0,
+          borderBottom: '1px solid #eef2f7',
         },
       },
     };

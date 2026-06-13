@@ -13,9 +13,11 @@ const { Text } = Typography;
 interface Props {
   quality: FaceQualitySnapshot | null;
   compact?: boolean;
+  /** سطر واحد — للهاتف أثناء التعرف التلقائي */
+  minimal?: boolean;
 }
 
-const DialysisFaceQualityMeter: React.FC<Props> = ({ quality, compact }) => {
+const DialysisFaceQualityMeter: React.FC<Props> = ({ quality, compact, minimal }) => {
   if (!quality) {
     return (
       <div className="d-face-quality-meter d-face-quality-meter--idle">
@@ -33,6 +35,23 @@ const DialysisFaceQualityMeter: React.FC<Props> = ({ quality, compact }) => {
         : quality.level === 'fair'
           ? 'مقبول'
           : 'ضعيف';
+
+  if (minimal) {
+    return (
+      <div className="d-face-quality-meter d-face-quality-meter--minimal">
+        <Progress
+          percent={quality.score}
+          strokeColor={color}
+          showInfo={false}
+          size="small"
+          style={{ flex: 1, marginBottom: 0 }}
+        />
+        <Text style={{ color, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {label}
+        </Text>
+      </div>
+    );
+  }
 
   const items = [
     { key: 'face', label: 'وجه واحد', ok: quality.checks.singleFace && quality.checks.faceDetected },

@@ -60,6 +60,7 @@ import './dialysis-brand.css';
 import './dialysis-app.css';
 import './dialysis-mobile-polish.css';
 import './dialysis-mobile-pages.css';
+import { usePreloadDialysisFaceModels } from '../face/usePreloadDialysisFaceModels';
 
 const { Sider, Header, Content } = Layout;
 const { Text } = Typography;
@@ -112,6 +113,7 @@ const MOBILE_BOTTOM = ['overview', 'patients', 'sessions', 'live'];
 const MOBILE_MQ = DIALYSIS_MOBILE_MQ;
 
 const DialysisAppLayout: React.FC = () => {
+  usePreloadDialysisFaceModels();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, updateUser } = useAuth();

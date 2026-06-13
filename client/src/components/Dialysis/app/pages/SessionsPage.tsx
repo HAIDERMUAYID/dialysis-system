@@ -50,6 +50,7 @@ import {
   useEffectiveDialysisHospitalId,
 } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
+import { useDialysisOverlayLock } from '../useDialysisOverlayLock';
 import { usePermission } from '../../../../hooks/usePermission';
 import DialysisSessionClinicalDrawer from '../../DialysisSessionClinicalDrawer';
 import { formatDialysisCalendarDate } from '../../dialysisConstants';
@@ -243,6 +244,8 @@ const SessionsPage: React.FC = () => {
   const [mobilePage, setMobilePage] = useState(1);
 
   const [clinicalOpen, setClinicalOpen] = useState(false);
+
+  useDialysisOverlayLock(isMobile && (drawerOpen || clinicalOpen || faceIdentifyOpen));
   const [clinicalId, setClinicalId] = useState<number | null>(null);
   const [clinicalHospitalId, setClinicalHospitalId] = useState<number | null>(null);
 
@@ -1136,11 +1139,12 @@ const SessionsPage: React.FC = () => {
                 type="default"
                 size="large"
                 block
+                className="d-face-quick-btn"
                 icon={<ScanOutlined />}
                 style={{ marginBottom: 12 }}
                 onClick={() => setFaceIdentifyOpen(true)}
               >
-                التحقق بالوجه — آمن (اختياري)
+                مسح الوجه — تعرف تلقائي
               </Button>
             )}
             <Form.Item
@@ -1331,7 +1335,7 @@ const SessionsPage: React.FC = () => {
         icon={<PlusOutlined />}
         label="جلسة"
         ariaLabel="جلسة غسيل جديدة"
-        visible={!drawerOpen}
+        visible={!drawerOpen && !clinicalOpen && !faceIdentifyOpen}
         onClick={() => {
           if (mergedScope) {
             message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إنشاء جلسة');
@@ -1344,7 +1348,7 @@ const SessionsPage: React.FC = () => {
 
     return (
       <>
-        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null || drawerOpen}>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null || drawerOpen || clinicalOpen}>
           {pageBody}
         </DialysisPullRefresh>
         {fab}

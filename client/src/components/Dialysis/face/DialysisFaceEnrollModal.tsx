@@ -21,6 +21,9 @@ import DialysisFaceQualityMeter from './DialysisFaceQualityMeter';
 import { useDialysisFaceCamera } from './useDialysisFaceCamera';
 import { useFaceQualityPreview } from './useFaceQualityPreview';
 import { useDialysisFaceModalProps } from './useDialysisFaceModalProps';
+import { useDialysisFaceSession } from './useDialysisFaceSession';
+import { useDialysisMobile } from '../app/useDialysisMobile';
+import { dialysisHaptic } from '../app/useDialysisHaptic';
 import './dialysis-face-enroll.css';
 
 const { Text, Paragraph } = Typography;
@@ -47,7 +50,9 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
   hasFaceEnrolled = false,
   onEnrolled,
 }) => {
+  const isMobile = useDialysisMobile();
   const faceModalProps = useDialysisFaceModalProps();
+  useDialysisFaceSession(open);
   const { videoRef, facing, flipCamera, phase: cameraPhase, loadHint, error: cameraError } =
     useDialysisFaceCamera(open);
   const quality = useFaceQualityPreview(videoRef, open && cameraPhase === 'ready');
@@ -210,6 +215,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         },
       });
       message.success('تم تسجيل الوجه بنجاح');
+      dialysisHaptic('success');
       onEnrolled?.();
       onClose();
     } catch (e: unknown) {
@@ -263,7 +269,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
       onCancel={onClose}
       footer={null}
       destroyOnClose
-      className="d-face-enroll-modal"
+      className={`d-face-enroll-modal${isMobile ? ' d-face-enroll-modal--mobile' : ''}`}
       {...faceModalProps}
     >
       <Paragraph type="secondary" style={{ marginBottom: 8 }}>
@@ -274,10 +280,11 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         size="small"
         current={step}
         style={{ marginBottom: 12 }}
-        items={[{ title: 'حيوية' }, { title: 'التقاط' }, { title: 'حفظ' }]}
+        className="d-face-enroll-steps"
+        items={[{ title: isMobile ? 'حيوية' : 'تحقق حيوية' }, { title: 'التقاط' }, { title: 'حفظ' }]}
       />
 
-      <DialysisFaceInstructions />
+      {!isMobile ? <DialysisFaceInstructions /> : null}
 
       <DialysisFaceCameraControls
         facing={facing}
@@ -313,7 +320,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         ) : null}
       </div>
 
-      <DialysisFaceQualityMeter quality={quality} compact={step > 0} />
+      <DialysisFaceQualityMeter quality={quality} minimal={isMobile && step === 0} compact={step > 0 || !isMobile} />
 
       <Progress percent={progressPct} size="small" style={{ margin: '10px 0' }} />
 
@@ -330,7 +337,8 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         </Checkbox>
       ) : null}
 
-      <Space direction="vertical" style={{ width: '100%', marginTop: 12 }} size="small">
+      <div className="d-face-enroll-actions">
+      <Space direction="vertical" style={{ width: '100%' }} size="small">
         {step === 0 && livenessPhase === 'center' ? (
           <Button
             block
@@ -398,6 +406,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
           إلغاء
         </Button>
       </Space>
+      </div>
     </Modal>
   );
 };
