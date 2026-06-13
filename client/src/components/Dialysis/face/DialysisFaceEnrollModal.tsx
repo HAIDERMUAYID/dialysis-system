@@ -9,6 +9,8 @@ import {
   captureLivenessTurnFrame,
   minPairwiseSimilarity,
 } from './dialysisFaceRuntime';
+import { blobToJpegDataUrl, uploadDialysisPatientPortraitBlob } from '../app/dialysisPatientPhoto';
+import { captureFacePortraitBlob, captureVideoCenterPortraitBlob } from './dialysisFaceRuntime';
 import {
   FACE_ENROLL_AUTO_STABLE_MS,
   FACE_ENROLL_MIN_PAIRWISE,
@@ -44,6 +46,8 @@ interface Props {
   patientName: string;
   hasFaceEnrolled?: boolean;
   onEnrolled?: () => void;
+  quickStart?: boolean;
+  sessionHint?: string;
 }
 
 function phaseProgress(phase: FlowPhase, collectPct: number): number {
@@ -82,6 +86,8 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
   patientName,
   hasFaceEnrolled = false,
   onEnrolled,
+  quickStart = false,
+  sessionHint,
 }) => {
   const isMobile = useDialysisMobile();
   const [flowActive, setFlowActive] = useState(false);
@@ -102,6 +108,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
 
   const stableSinceRef = useRef<number | null>(null);
   const autoLockRef = useRef(false);
+  const quickStartDoneRef = useRef(false);
 
   const displayError = error || cameraError;
   const cameraReady = cameraPhase === 'ready';
@@ -125,18 +132,37 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
     if (!open) {
       setFlowActive(false);
       resetFlow();
+      quickStartDoneRef.current = false;
     }
   }, [open, resetFlow]);
+
+  useEffect(() => {
+    if (!open || !quickStart || quickStartDoneRef.current || hasFaceEnrolled) return;
+    quickStartDoneRef.current = true;
+    resetFlow();
+    setFlowActive(true);
+    setPhase('center');
+    setLocalError(null);
+  }, [open, quickStart, hasFaceEnrolled, resetFlow]);
 
   const saveEnrollment = useCallback(
     async (embeddings: number[][], avgQuality: number, pairwise: number | null) => {
       setPhase('save');
       setSubmitting(true);
+      const video = videoRef.current;
+      let portraitBlob: Blob | null = null;
+      if (video && cameraReady) {
+        portraitBlob =
+          (await captureVideoCenterPortraitBlob(video, facing === 'user')) ||
+          (await captureFacePortraitBlob(video, facing === 'user'));
+      }
       try {
+        const portraitBase64 = portraitBlob ? await blobToJpegDataUrl(portraitBlob) : undefined;
         await axios.post(`/api/dialysis/patients/${patientId}/face-enroll`, {
           hospital_id: hospitalId,
           embeddings,
           consent: true,
+          portrait_jpeg_base64: portraitBase64,
           meta: {
             pipeline_version: FACE_PIPELINE_VERSION,
             camera_facing: facing,
@@ -146,6 +172,11 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
             pairwise_similarity: pairwise,
           },
         });
+        if (portraitBlob) {
+          await uploadDialysisPatientPortraitBlob(patientId, hospitalId, portraitBlob).catch(
+            () => null
+          );
+        }
         setPhase('done');
         dialysisHaptic('success');
         message.success('تم تسجيل الوجه بنجاح');
@@ -164,7 +195,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         autoLockRef.current = false;
       }
     },
-    [patientId, hospitalId, facing, onEnrolled, onClose]
+    [patientId, hospitalId, facing, cameraReady, onEnrolled, onClose, videoRef]
   );
 
   const runCollectAndSave = useCallback(async () => {
@@ -388,6 +419,9 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         renderIntro()
       ) : (
         <div className="d-face-enroll-flow">
+          {sessionHint ? (
+            <Alert type="info" showIcon message={sessionHint} style={{ marginBottom: 10 }} />
+          ) : null}
           <div className="d-face-enroll-flow__status">
             {phase === 'done' ? (
               <Tag icon={<CheckCircleOutlined />} color="success">

@@ -1,8 +1,15 @@
 import React from 'react';
-import { CalendarOutlined, UserOutlined, EnvironmentOutlined } from '@ant-design/icons';
-import { Tag } from 'antd';
+import { CalendarOutlined, CameraOutlined, EnvironmentOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { formatDialysisCalendarDate } from '../../dialysisConstants';
+import { sessionPatientPhotoUrl } from '../dialysisPatientPhoto';
+import {
+  type ReconRowStatus,
+  PatientMatchBadge,
+  ReconStatusIcon,
+  ReportPatientCell,
+} from './reportSessionDisplay';
 
 export interface ReportSessionRow {
   id: number;
@@ -12,8 +19,9 @@ export interface ReportSessionRow {
   shift?: string | null;
   startedAt?: string | null;
   notes?: string | null;
+  patientMatchMethod?: 'MANUAL' | 'FACE' | null;
   hospital?: { name: string } | null;
-  dialysisPatient?: { fullName: string } | null;
+  dialysisPatient?: { fullName: string; id?: number; photoUrl?: string | null; photo_url?: string | null } | null;
   location?: { hallName: string; bedCode: string } | null;
   created_by_display?: string | null;
   created_by_username?: string | null;
@@ -28,10 +36,11 @@ interface ReportSessionMobileCardProps {
   intakeColor: string;
   statusLabel: string;
   statusColor: string;
-  reconLabel: string;
-  reconColor: string;
+  reconStatus: ReconRowStatus;
   creatorName: string;
   accentColor?: string;
+  showFaceEnroll?: boolean;
+  onFaceEnroll?: () => void;
 }
 
 const ReportSessionMobileCard: React.FC<ReportSessionMobileCardProps> = ({
@@ -43,10 +52,11 @@ const ReportSessionMobileCard: React.FC<ReportSessionMobileCardProps> = ({
   intakeColor,
   statusLabel,
   statusColor,
-  reconLabel,
-  reconColor,
+  reconStatus,
   creatorName,
   accentColor = '#157c67',
+  showFaceEnroll = false,
+  onFaceEnroll,
 }) => {
   const hall = row.location?.hallName?.trim();
   const bed = row.location?.bedCode?.trim();
@@ -65,9 +75,12 @@ const ReportSessionMobileCard: React.FC<ReportSessionMobileCardProps> = ({
         <div className="d-report-session-card__top">
           <div className="d-report-session-card__id-name">
             {index != null ? <span className="d-report-session-card__idx">{index}</span> : null}
-            <span className="d-report-session-card__name">
-              {row.dialysisPatient?.fullName || '—'}
-            </span>
+            <ReportPatientCell
+              name={row.dialysisPatient?.fullName}
+              photoUrl={sessionPatientPhotoUrl(row.dialysisPatient)}
+              cacheKey={row.dialysisPatient?.id}
+              size={32}
+            />
           </div>
           <Tag className="d-report-session-card__status" color={statusColor}>
             {statusLabel}
@@ -97,13 +110,26 @@ const ReportSessionMobileCard: React.FC<ReportSessionMobileCardProps> = ({
               {location}
             </span>
           ) : null}
-          <Tag className="d-report-session-card__recon" color={reconColor}>
-            {reconLabel}
-          </Tag>
+          <PatientMatchBadge method={row.patientMatchMethod} compact />
+          <span className="d-report-session-card__recon-icon">
+            <ReconStatusIcon status={reconStatus} size={18} />
+          </span>
           {showHospital && row.hospital?.name ? (
             <Tag className="d-report-session-card__hosp" color="geekblue">
               {row.hospital.name}
             </Tag>
+          ) : null}
+          {showFaceEnroll && onFaceEnroll ? (
+            <Button
+              type="primary"
+              size="small"
+              ghost
+              className="d-report-session-card__face-btn"
+              icon={<CameraOutlined />}
+              onClick={onFaceEnroll}
+            >
+              تسجيل الوجه
+            </Button>
           ) : null}
         </div>
       </div>

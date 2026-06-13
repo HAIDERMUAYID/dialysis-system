@@ -472,6 +472,26 @@ body.d-app-mobile .d-bottom-nav {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
 }
 
+/* ——— جلسات: بصمة الوجه على الموبايل ——— */
+.d-app-mobile .d-session-face-missing-card {
+  animation: dMobileCardIn 420ms var(--d-ease-out) both;
+}
+
+.d-app-mobile .d-face-quick-btn.ant-btn-primary {
+  min-height: 50px;
+  border-radius: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.22);
+}
+
+.d-app-mobile .d-session-create-drawer--mobile .ant-drawer-footer {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.d-app-mobile .d-face-modal-wrap--mobile.d-face-modal-wrap--sheet {
+  z-index: 1480 !important;
+}
+
 /* ——— رسائل ant ——— */
 .d-app-mobile .ant-message-notice-content {
   border-radius: 14px;

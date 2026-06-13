@@ -136,7 +136,7 @@ function rankFaceMatches(probe, gallery, opts = {}) {
       const emb = normalizeEmbedding(row.embedding);
       if (!emb) return null;
       const score = cosineSimilarity(p, emb);
-      return { patient_id: row.id, full_name: row.fullName, confidence: score };
+      return { patient_id: row.id, full_name: row.fullName, photo_url: row.photoUrl ?? null, confidence: score };
     })
     .filter(Boolean)
     .filter((r) => r.confidence >= minScore)
@@ -209,6 +209,7 @@ function evaluateStrictAutoMatch(avgMatches, perProbeMatches, opts = {}) {
       reason: 'STRONG_MATCH',
       patient_id: top.patient_id,
       full_name: top.full_name,
+      photo_url: top.photo_url ?? null,
       confidence: top.confidence,
       margin: second ? Math.round(margin * 1000) / 1000 : null,
     };
@@ -220,6 +221,7 @@ function evaluateStrictAutoMatch(avgMatches, perProbeMatches, opts = {}) {
       reason: 'VERIFIED',
       patient_id: top.patient_id,
       full_name: top.full_name,
+      photo_url: top.photo_url ?? null,
       confidence: top.confidence,
       margin: second ? Math.round(margin * 1000) / 1000 : null,
     };

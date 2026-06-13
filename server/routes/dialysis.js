@@ -81,7 +81,7 @@ async function attachPatientSessionStats(prisma, rows, hospitalClause) {
 /** علاقات خفيفة لقائمة الجلسات — بدون استهلاكات (تُجلب في GET /sessions/:id) */
 const SESSION_LIST_INCLUDE = {
   hospital: { select: { id: true, name: true, code: true } },
-  dialysisPatient: { select: { fullName: true, id: true, kind: true } },
+  dialysisPatient: { select: { fullName: true, id: true, kind: true, photoUrl: true, faceEnrolledAt: true } },
   location: { select: { id: true, hallName: true, bedCode: true } },
   shiftSlot: { select: { id: true, name: true, startMinutes: true } },
 };
@@ -104,11 +104,16 @@ const patientPhotoMulter = multer({
   }),
   limits: { fileSize: 4 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (!/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
-      cb(new Error('يجب رفع صورة (JPEG/PNG/WebP/GIF)'));
+    if (/^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype)) {
+      cb(null, true);
       return;
     }
-    cb(null, true);
+    const ext = (path.extname(file.originalname || '') || '').toLowerCase();
+    if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('يجب رفع صورة (JPEG/PNG/WebP/GIF)'));
   },
 });
 
@@ -126,6 +131,27 @@ function audit(req) {
     createdByUserId: uid ?? undefined,
     updatedByUserId: uid ?? undefined,
   };
+}
+
+function parsePortraitBase64(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  const m = trimmed.match(/^data:image\/\w+;base64,(.+)$/i);
+  const b64 = m ? m[1] : trimmed;
+  try {
+    const buf = Buffer.from(b64, 'base64');
+    if (buf.length < 64 || buf.length > 4 * 1024 * 1024) return null;
+    return buf;
+  } catch {
+    return null;
+  }
+}
+
+function saveDialysisPatientPortraitBuffer(patientId, buffer) {
+  const dir = path.join(dialysisUploadsRoot, 'dialysis-patients', String(patientId));
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'photo.jpg'), buffer);
+  return `/uploads/dialysis-patients/${patientId}/photo.jpg`;
 }
 
 function normBiometricId(v) {
@@ -1466,6 +1492,43 @@ router.post(
   }
 );
 
+/** حفظ صورة المريض من base64 — أكثر موثوقية من multipart على الموبايل */
+router.post(
+  '/patients/:id/photo-data',
+  authenticateToken,
+  requirePermission('dialysis:patient:edit'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const id = parseInt(req.params.id, 10);
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+      const patient = await prisma.dialysisPatient.findFirst({ where: { id, hospitalId } });
+      if (!patient) return res.status(404).json({ error: 'المريض غير موجود' });
+
+      const portraitBuf = parsePortraitBase64(
+        req.body?.portrait_jpeg_base64 ?? req.body?.portrait_base64
+      );
+      if (!portraitBuf) return res.status(400).json({ error: 'صورة غير صالحة' });
+
+      const photoUrl = saveDialysisPatientPortraitBuffer(id, portraitBuf);
+      const updated = await prisma.dialysisPatient.update({
+        where: { id },
+        data: { photoUrl, ...audit(req) },
+      });
+      res.json({
+        photo_url: photoUrl,
+        photoUrl,
+        patient: stripFaceEmbeddingFromPatient(updated),
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل حفظ الصورة' });
+    }
+  }
+);
+
 /** تسجيل بصمة وجه اختياري (embedding من المتصفح — لا يؤثر على البصمة/الجلسات الحالية) */
 router.post(
   '/patients/:id/face-enroll',
@@ -1522,15 +1585,21 @@ router.post(
       };
 
       const now = new Date();
+      const portraitBuf = parsePortraitBase64(b.portrait_jpeg_base64 ?? b.portrait_base64);
+      const updateData = {
+        faceEmbeddingJson: embedding,
+        faceEnrolledAt: now,
+        faceConsentAt: now,
+        faceEnrollMetaJson: faceMeta,
+        ...audit(req),
+      };
+      if (portraitBuf) {
+        updateData.photoUrl = saveDialysisPatientPortraitBuffer(id, portraitBuf);
+      }
+
       const updated = await prisma.dialysisPatient.update({
         where: { id },
-        data: {
-          faceEmbeddingJson: embedding,
-          faceEnrolledAt: now,
-          faceConsentAt: now,
-          faceEnrollMetaJson: faceMeta,
-          ...audit(req),
-        },
+        data: updateData,
       });
       res.json({
         ok: true,
@@ -1604,13 +1673,14 @@ router.post(
           faceEnrolledAt: { not: null },
           faceEmbeddingJson: { not: null },
         },
-        select: { id: true, fullName: true, faceEmbeddingJson: true },
+        select: { id: true, fullName: true, faceEmbeddingJson: true, photoUrl: true },
         take: 2000,
       });
 
       const gallery = rows.map((r) => ({
         id: r.id,
         fullName: r.fullName,
+        photoUrl: r.photoUrl,
         embedding: r.faceEmbeddingJson,
       }));
 
@@ -3360,11 +3430,11 @@ router.get(
       };
       const rows = await prisma.dialysisPatient.findMany({
         where,
-        select: { id: true, fullName: true, kind: true },
+        select: { id: true, fullName: true, kind: true, faceEnrolledAt: true },
         orderBy: { fullName: 'asc' },
         take: 300,
       });
-      res.json(rows);
+      res.json(rows.map((r) => stripFaceEmbeddingFromPatient(r)));
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل البحث عن المرضى' });

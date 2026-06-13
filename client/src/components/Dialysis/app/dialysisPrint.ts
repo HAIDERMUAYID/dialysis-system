@@ -15,6 +15,7 @@ export interface DialysisPrintHeaderOptions {
   hospitalLabel: string;
   filters: DialysisPrintFilterChip[];
   printedAt: string;
+  printedBy?: string;
   sessionCount?: number;
   logoUrl?: string;
 }
@@ -32,93 +33,116 @@ export function escapeDialysisPrintHtml(v: string): string {
 export const DIALYSIS_PRINT_HEADER_CSS = `
 .dialysis-print-header{
   margin-bottom:18px;
-  padding:16px 18px 14px;
-  border:2px solid #157c67;
+  padding:0;
+  border:1px solid #cbd5e1;
   border-radius:16px;
-  background:linear-gradient(165deg,#f0fdf9 0%,#fff 42%,#f8fafc 100%);
+  background:#fff;
+  overflow:hidden;
   break-inside:avoid-page;
+  box-shadow:0 4px 18px rgba(15,81,50,.08);
+  font-family:'Cairo',Tahoma,'Segoe UI',Arial,sans-serif;
+  letter-spacing:normal;
+  word-spacing:normal;
+}
+.dialysis-print-header::before{
+  content:'';
+  display:block;
+  height:5px;
+  background:linear-gradient(90deg,#0f5132,#157c67,#28b2e1);
 }
 .dialysis-print-header-top{
   display:flex;
   gap:16px;
   align-items:flex-start;
-  padding-bottom:12px;
-  border-bottom:2px solid #bae6fd;
-  margin-bottom:12px;
+  padding:16px 18px 12px;
+  border-bottom:1px solid #e2e8f0;
+  margin-bottom:0;
+  background:linear-gradient(180deg,#f8fafc 0%,#fff 100%);
 }
 .dialysis-print-logo-wrap{
   flex-shrink:0;
-  width:76px;height:76px;
+  width:72px;height:72px;
   display:flex;align-items:center;justify-content:center;
-  background:#fff;border-radius:50%;
+  background:#fff;border-radius:14px;
   border:2px solid #157c67;
-  box-shadow:0 4px 14px rgba(21,124,103,.18);
-  animation:dialysis-print-logo-pulse 3.2s ease-in-out infinite;
+  box-shadow:0 3px 12px rgba(21,124,103,.15);
 }
-.dialysis-print-logo{width:58px;height:58px;object-fit:contain}
-@keyframes dialysis-print-logo-pulse{
-  0%,100%{transform:scale(1)}
-  50%{transform:scale(1.06)}
-}
+.dialysis-print-logo{width:54px;height:54px;object-fit:contain}
 .dialysis-print-titles{flex:1;min-width:0;overflow:visible}
 .dialysis-print-ministry{
-  font-size:11px;font-weight:700;color:#157c67;
-  letter-spacing:.02em;margin-bottom:4px;
+  font-size:10px;font-weight:800;color:#157c67;
+  margin-bottom:3px;
 }
 .dialysis-print-system{
-  font-size:13px;font-weight:800;color:#0c4a6e;margin-bottom:2px;
+  font-size:12px;font-weight:800;color:#0c4a6e;margin-bottom:2px;
 }
 .dialysis-print-title{
-  margin:0;font-size:20px;font-weight:900;color:#134e7c;line-height:1.35;
-  word-break:break-word;
+  margin:0;font-size:19px;font-weight:900;color:#0f5132;line-height:1.35;
+  word-break:break-word;letter-spacing:normal;
 }
 .dialysis-print-subtitle{
-  margin:6px 0 0;font-size:12px;color:#64748b;line-height:1.45;
+  margin:5px 0 0;font-size:11px;color:#64748b;line-height:1.45;font-weight:600;
+  letter-spacing:normal;
 }
 .dialysis-print-scope{
-  display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;
+  display:flex;flex-wrap:wrap;gap:10px;
+  padding:12px 18px;
+  background:#f8fafc;
+  border-bottom:1px solid #e2e8f0;
+  margin-bottom:0;
 }
 .dialysis-print-scope-card{
   flex:1 1 220px;
   padding:10px 14px;
   border-radius:12px;
-  border:1px solid #a7f3d0;
+  border:1px solid #bbf7d0;
   background:linear-gradient(135deg,#ecfdf5,#fff);
 }
 .dialysis-print-scope-card .label{
-  display:block;font-size:10px;font-weight:700;color:#047857;
-  letter-spacing:0;margin-bottom:4px;
+  display:block;font-size:9px;font-weight:800;color:#047857;
+  margin-bottom:3px;letter-spacing:normal;
 }
 .dialysis-print-scope-card .value{
-  display:block;font-size:14px;font-weight:800;color:#064e3b;line-height:1.35;
+  display:block;font-size:13px;font-weight:800;color:#064e3b;line-height:1.35;
+  letter-spacing:normal;
+}
+.dialysis-print-filters{
+  padding:12px 18px 10px;
 }
 .dialysis-print-filters h3{
-  margin:0 0 8px;font-size:12px;font-weight:800;color:#0c4a6e;
+  margin:0 0 8px;font-size:11px;font-weight:900;color:#0f5132;
+  letter-spacing:normal;
 }
 .dialysis-print-filter-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:7px;
 }
 .dialysis-print-filter-chip{
-  padding:7px 10px;
+  padding:6px 9px;
   border-radius:10px;
-  border:1px solid #dbeafe;
+  border:1px solid #e2e8f0;
   background:#fff;
 }
 .dialysis-print-filter-chip .l{
-  display:block;font-size:9px;font-weight:700;color:#64748b;margin-bottom:2px;
+  display:block;font-size:8px;font-weight:800;color:#94a3b8;margin-bottom:2px;
+  letter-spacing:normal;
 }
 .dialysis-print-filter-chip .v{
-  display:block;font-size:11px;font-weight:700;color:#0f172a;word-break:break-word;
+  display:block;font-size:10px;font-weight:800;color:#0f172a;word-break:break-word;
+  letter-spacing:normal;
 }
 .dialysis-print-meta{
-  margin-top:10px;padding-top:8px;
-  border-top:1px dashed #cbd5e1;
-  font-size:10px;color:#64748b;
-  display:flex;flex-wrap:wrap;gap:8px 16px;
+  margin:0;
+  padding:9px 18px 12px;
+  border-top:1px solid #e2e8f0;
+  background:#fafafa;
+  font-size:9px;color:#64748b;
+  display:flex;flex-wrap:wrap;gap:8px 20px;
+  letter-spacing:normal;
 }
-.dialysis-print-meta strong{color:#334155}
+.dialysis-print-meta strong{color:#334155;font-weight:800}
+.dialysis-print-meta .printed-by{color:#0f5132;font-weight:700}
 `;
 
 /** خط عربي موحّد للطباعة وPDF */
@@ -217,11 +241,13 @@ const PDF_CONTENT_WIDTH_PX = 750;
 
 async function waitForPrintFonts(doc: Document): Promise<void> {
   try {
+    await doc.fonts?.load("700 12px 'Cairo'");
+    await doc.fonts?.load("800 12px 'Cairo'");
     await doc.fonts?.ready;
   } catch {
     /* ignore */
   }
-  await new Promise((r) => setTimeout(r, 450));
+  await new Promise((r) => setTimeout(r, 900));
 }
 
 function getOrCreateFooterHost(doc: Document): HTMLElement {
@@ -244,9 +270,9 @@ async function renderPdfFooterCanvas(
 ): Promise<HTMLCanvasElement | null> {
   const host = getOrCreateFooterHost(doc);
   host.innerHTML = `
-<div class="pdf-footer-strip" dir="rtl" style="width:${PDF_CONTENT_WIDTH_PX}px;font-family:'Cairo',Tahoma,sans-serif;font-size:11px;color:#51657a;display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #dbeaf5;padding:7px 4px 5px;background:#fff;">
-  <span style="font-weight:600">${escapeDialysisPrintHtml(footerText)}</span>
-  <span style="font-weight:700">صفحة ${pageIndex} من ${totalPages}</span>
+<div class="pdf-footer-strip" dir="rtl" style="width:${PDF_CONTENT_WIDTH_PX}px;font-family:'Cairo',Tahoma,sans-serif;font-size:10px;color:#475569;display:flex;justify-content:space-between;align-items:center;border-top:2px solid #157c67;padding:8px 6px 6px;background:#fff;">
+  <span style="font-weight:700;color:#0f5132">${escapeDialysisPrintHtml(footerText)}</span>
+  <span style="font-weight:800;color:#64748b">صفحة ${pageIndex} من ${totalPages}</span>
 </div>`;
   const el = host.firstElementChild as HTMLElement | null;
   if (!el) return null;
@@ -270,8 +296,16 @@ function collectDialysisPdfBlocks(body: HTMLElement): HTMLElement[] {
     ) {
       continue;
     }
-    if (el.classList.contains('print-kpi-wrap')) {
-      el.querySelectorAll('.print-kpi-section').forEach((s) => blocks.push(s as HTMLElement));
+    if (el.classList.contains('print-kpi-wrap') || el.classList.contains('print-kpi-dashboard')) {
+      if (el.classList.contains('print-kpi-wrap')) {
+        el.querySelectorAll('.print-kpi-section').forEach((s) => blocks.push(s as HTMLElement));
+      } else {
+        blocks.push(el);
+      }
+      continue;
+    }
+    if (el.classList.contains('print-hero-metrics')) {
+      blocks.push(el);
       continue;
     }
     if (el.classList.contains('divider')) continue;
@@ -555,9 +589,12 @@ export function buildDialysisPrintHeaderHtml(opts: DialysisPrintHeaderOptions): 
     opts.sessionCount != null
       ? `<span><strong>عدد الجلسات في التقرير:</strong> ${opts.sessionCount}</span>`
       : '';
+  const printedByLine = opts.printedBy
+    ? `<span class="printed-by"><strong>طبع بواسطة:</strong> ${esc(opts.printedBy)}</span>`
+    : '';
 
   return `
-<header class="dialysis-print-header" dir="rtl">
+<header class="dialysis-print-header" dir="rtl" lang="ar">
   <div class="dialysis-print-header-top">
     <div class="dialysis-print-logo-wrap">
       <img class="dialysis-print-logo" src="${logo}" alt="${esc(DIALYSIS_SYSTEM_TITLE)}" />
@@ -580,6 +617,7 @@ export function buildDialysisPrintHeaderHtml(opts: DialysisPrintHeaderOptions): 
     <div class="dialysis-print-filter-grid">${filterHtml}</div>
   </div>
   <div class="dialysis-print-meta">
+    ${printedByLine}
     <span><strong>وقت الطباعة:</strong> ${esc(opts.printedAt)}</span>
     ${countLine}
   </div>

@@ -322,8 +322,58 @@
   font-weight: 500;
 }
 
+.d-report-session-card__id-name .d-report-patient-cell {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-report-session-card__id-name .d-report-patient-cell__name {
+  font-size: 13px;
+}
+
+.d-report-session-card__recon-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.d-report-patient-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.d-report-patient-cell__avatar {
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+}
+
+.d-report-patient-cell__name {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-report-recon-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.d-report-match-badge.ant-tag {
+  margin: 0;
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+
 .d-report-session-card__type.ant-tag,
-.d-report-session-card__recon.ant-tag,
 .d-report-session-card__hosp.ant-tag {
   margin: 0;
   font-size: 10px;
@@ -335,10 +385,39 @@
   text-overflow: ellipsis;
 }
 
-.d-report-session-card__bottom .d-report-session-card__recon.ant-tag {
-  flex: 1 1 auto;
-  text-align: center;
-  max-width: none;
+.d-report-session-card__bottom .d-report-match-badge.ant-tag {
+  margin-inline-end: 0;
+  flex-shrink: 0;
+}
+
+.d-report-session-card__face-btn {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  border-radius: 999px !important;
+  font-weight: 600;
+}
+
+.d-stat-entry-form--mobile .d-stat-entry-form__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.d-stat-entry-form--mobile .d-session-face-missing-card {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 991px) {
+  .d-report-session-card__bottom {
+    align-items: center;
+  }
+
+  .d-report-session-card__face-btn {
+    width: 100%;
+    margin-top: 4px;
+    min-height: 36px;
+  }
 }
 
 .d-report-page--mobile .d-report-extended-hint {

@@ -41,6 +41,7 @@ import {
   FilterOutlined,
   UserOutlined,
   ScanOutlined,
+  CameraOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs, { Dayjs } from 'dayjs';
@@ -59,9 +60,13 @@ import DialysisMobileFab from '../DialysisMobileFab';
 import SessionMobileCard from './SessionMobileCard';
 import './sessions-page.css';
 import { DIALYSIS_FACE_ENABLED } from '../../face/dialysisFaceConfig';
+import DialysisFaceMissingPrompt from '../../face/DialysisFaceMissingPrompt';
 
 const DialysisFaceIdentifyModal = lazy(
   () => import('../../face/DialysisFaceIdentifyModal')
+);
+const DialysisFaceEnrollModal = lazy(
+  () => import('../../face/DialysisFaceEnrollModal')
 );
 
 const { Text } = Typography;
@@ -91,6 +96,7 @@ interface PatientLite {
   id: number;
   fullName: string;
   kind?: string;
+  hasFaceEnrolled?: boolean;
 }
 interface LocLite {
   id: number;
@@ -215,6 +221,7 @@ const SessionsPage: React.FC = () => {
   const canCreate = usePermission('dialysis:session:create');
   const canEdit = usePermission('dialysis:session:edit');
   const canDelete = usePermission('dialysis:session:delete');
+  const canEditPatient = usePermission('dialysis:patient:edit');
 
   const [rows, setRows] = useState<SessionRow[]>([]);
   const [kpis, setKpis] = useState<SessionKpis | null>(null);
@@ -233,6 +240,13 @@ const SessionsPage: React.FC = () => {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [faceIdentifyOpen, setFaceIdentifyOpen] = useState(false);
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
+  const [faceEnrollQuickStart, setFaceEnrollQuickStart] = useState(false);
+  const [faceEnrollTarget, setFaceEnrollTarget] = useState<{
+    id: number;
+    name: string;
+    hasFaceEnrolled: boolean;
+  } | null>(null);
   const [patientMatchMethod, setPatientMatchMethod] = useState<'MANUAL' | 'FACE'>('MANUAL');
   const [form] = Form.useForm();
   const [patients, setPatients] = useState<PatientLite[]>([]);
@@ -245,11 +259,26 @@ const SessionsPage: React.FC = () => {
 
   const [clinicalOpen, setClinicalOpen] = useState(false);
 
-  useDialysisOverlayLock(isMobile && (drawerOpen || clinicalOpen || faceIdentifyOpen));
+  useDialysisOverlayLock(
+    isMobile && (drawerOpen || clinicalOpen || faceIdentifyOpen || faceEnrollOpen)
+  );
   const [clinicalId, setClinicalId] = useState<number | null>(null);
   const [clinicalHospitalId, setClinicalHospitalId] = useState<number | null>(null);
 
   const watchedSessionDate = Form.useWatch('session_date', form);
+  const watchedPatientId = Form.useWatch('dialysis_patient_id', form);
+
+  const selectedPatient = useMemo(
+    () => patients.find((p) => p.id === watchedPatientId),
+    [patients, watchedPatientId]
+  );
+
+  const showFaceMissingAlert = Boolean(
+    DIALYSIS_FACE_ENABLED &&
+      canEditPatient &&
+      selectedPatient &&
+      !selectedPatient.hasFaceEnrolled
+  );
 
   const isSessionToday = Boolean(
     watchedSessionDate && dayjs(watchedSessionDate).isSame(dayjs(), 'day')
@@ -376,6 +405,36 @@ const SessionsPage: React.FC = () => {
     [form, fetchAndApplyHints]
   );
 
+  const openFaceEnrollForPatient = useCallback(
+    (patient: PatientLite, quickStart = false) => {
+      setFaceEnrollTarget({
+        id: patient.id,
+        name: patient.fullName,
+        hasFaceEnrolled: Boolean(patient.hasFaceEnrolled),
+      });
+      setFaceEnrollQuickStart(quickStart);
+      setFaceEnrollOpen(true);
+    },
+    []
+  );
+
+  const closeFaceEnroll = useCallback(() => {
+    setFaceEnrollOpen(false);
+    setFaceEnrollQuickStart(false);
+    setFaceEnrollTarget(null);
+  }, []);
+
+  const handleFaceEnrolled = useCallback(() => {
+    if (!faceEnrollTarget) return;
+    const patientId = faceEnrollTarget.id;
+    setPatients((prev) =>
+      prev.map((p) => (p.id === patientId ? { ...p, hasFaceEnrolled: true } : p))
+    );
+    setFaceEnrollTarget((prev) =>
+      prev ? { ...prev, hasFaceEnrolled: true } : null
+    );
+  }, [faceEnrollTarget]);
+
   const reloadSlots = useCallback(
     async (date: Dayjs | null) => {
       if (hospitalId == null || !date) {
@@ -475,9 +534,20 @@ const SessionsPage: React.FC = () => {
         notes: v.notes ?? null,
         patient_match_method: patientMatchMethod,
       });
+      const createdPatient = patients.find((p) => p.id === v.dialysis_patient_id);
+      const shouldPromptFaceEnroll = Boolean(
+        DIALYSIS_FACE_ENABLED &&
+          canEditPatient &&
+          faceHospitalId != null &&
+          createdPatient &&
+          !createdPatient.hasFaceEnrolled
+      );
       message.success('تم إنشاء الجلسة');
       setDrawerOpen(false);
       load();
+      if (shouldPromptFaceEnroll && createdPatient) {
+        openFaceEnrollForPatient(createdPatient, true);
+      }
     } catch (e: unknown) {
       const err = e as { errorFields?: unknown; response?: { status?: number; data?: { error?: string } } };
       if (err.errorFields) return;
@@ -792,6 +862,43 @@ const SessionsPage: React.FC = () => {
     setClinicalOpen(true);
   };
 
+  const faceModals = (
+    <>
+      {DIALYSIS_FACE_ENABLED && faceHospitalId != null ? (
+        <Suspense fallback={null}>
+          <DialysisFaceIdentifyModal
+            open={faceIdentifyOpen}
+            onClose={() => setFaceIdentifyOpen(false)}
+            hospitalId={faceHospitalId}
+            onSelect={(patientId) => handleFacePatientSelected(patientId)}
+          />
+        </Suspense>
+      ) : null}
+
+      {DIALYSIS_FACE_ENABLED && faceHospitalId != null && faceEnrollTarget ? (
+        <Suspense fallback={null}>
+          <DialysisFaceEnrollModal
+            open={faceEnrollOpen}
+            onClose={closeFaceEnroll}
+            patientId={faceEnrollTarget.id}
+            hospitalId={faceHospitalId}
+            patientName={faceEnrollTarget.name}
+            hasFaceEnrolled={faceEnrollTarget.hasFaceEnrolled}
+            quickStart={faceEnrollQuickStart}
+            sessionHint={
+              faceEnrollQuickStart
+                ? isMobile
+                  ? 'تم إنشاء الجلسة ✓ — أكمل تسجيل الوجه (خطوة واحدة).'
+                  : 'تم إنشاء الجلسة — أكمل تسجيل الوجه للمريض (خطوة واحدة سريعة).'
+                : undefined
+            }
+            onEnrolled={handleFaceEnrolled}
+          />
+        </Suspense>
+      ) : null}
+    </>
+  );
+
   const pageBody = (
     <div className={isMobile ? 'd-sessions-page' : undefined}>
       <div className="d-page-header">
@@ -1040,14 +1147,20 @@ const SessionsPage: React.FC = () => {
           zIndex={isMobile ? 1310 : 1000}
           open={drawerOpen}
           onClose={() => {
-            if (faceIdentifyOpen) return;
+            if (faceIdentifyOpen || faceEnrollOpen) return;
             setDrawerOpen(false);
           }}
-          maskClosable={!faceIdentifyOpen && !isMobile}
-          keyboard={!faceIdentifyOpen}
+          maskClosable={!faceIdentifyOpen && !faceEnrollOpen && !isMobile}
+          keyboard={!faceIdentifyOpen && !faceEnrollOpen}
           destroyOnClose
           footer={
-            <Space className="d-session-create-drawer__footer" wrap>
+            <Space direction="vertical" size={10} className="d-session-create-drawer__footer-wrap">
+              {isMobile && showFaceMissingAlert ? (
+                <Text type="secondary" className="d-session-face-footer-hint">
+                  بعد إنشاء الجلسة سيُفتح تسجيل الوجه تلقائياً
+                </Text>
+              ) : null}
+              <Space className="d-session-create-drawer__footer" wrap>
               <Button
                 type="primary"
                 size="large"
@@ -1060,10 +1173,11 @@ const SessionsPage: React.FC = () => {
               <Button
                 size="large"
                 onClick={() => setDrawerOpen(false)}
-                disabled={faceIdentifyOpen}
+                disabled={faceIdentifyOpen || faceEnrollOpen}
               >
                 إلغاء
               </Button>
+              </Space>
             </Space>
           }
         >
@@ -1136,7 +1250,7 @@ const SessionsPage: React.FC = () => {
             )}
             {DIALYSIS_FACE_ENABLED && faceHospitalId != null && (
               <Button
-                type="default"
+                type={isMobile ? 'primary' : 'default'}
                 size="large"
                 block
                 className="d-face-quick-btn"
@@ -1157,13 +1271,26 @@ const SessionsPage: React.FC = () => {
                 showSearch
                 placeholder="ابحث بالاسم — يظهر طارئ أو دائم"
                 optionFilterProp="label"
+                listHeight={isMobile ? 280 : 256}
                 onChange={() => setPatientMatchMethod('MANUAL')}
                 options={patients.map((p) => ({
                   value: p.id,
-                  label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
+                  label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})${
+                    p.hasFaceEnrolled ? '' : ' — بلا بصمة'
+                  }`,
                 }))}
               />
             </Form.Item>
+            {showFaceMissingAlert && selectedPatient ? (
+              <DialysisFaceMissingPrompt
+                patient={selectedPatient}
+                isMobile={isMobile}
+                onEnroll={() => openFaceEnrollForPatient(selectedPatient)}
+                footerHint={
+                  isMobile ? 'بعد إنشاء الجلسة سيُفتح تسجيل الوجه تلقائياً' : undefined
+                }
+              />
+            ) : null}
             {patientMatchMethod === 'FACE' ? (
               <Alert
                 type="success"
@@ -1299,17 +1426,6 @@ const SessionsPage: React.FC = () => {
         </Drawer>
       )}
 
-      {DIALYSIS_FACE_ENABLED && faceHospitalId != null ? (
-        <Suspense fallback={null}>
-          <DialysisFaceIdentifyModal
-            open={faceIdentifyOpen}
-            onClose={() => setFaceIdentifyOpen(false)}
-            hospitalId={faceHospitalId}
-            onSelect={(patientId) => handleFacePatientSelected(patientId)}
-          />
-        </Suspense>
-      ) : null}
-
       <DialysisSessionClinicalDrawer
         open={clinicalOpen}
         sessionId={clinicalId}
@@ -1335,7 +1451,7 @@ const SessionsPage: React.FC = () => {
         icon={<PlusOutlined />}
         label="جلسة"
         ariaLabel="جلسة غسيل جديدة"
-        visible={!drawerOpen && !clinicalOpen && !faceIdentifyOpen}
+        visible={!drawerOpen && !clinicalOpen && !faceIdentifyOpen && !faceEnrollOpen}
         onClick={() => {
           if (mergedScope) {
             message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إنشاء جلسة');
@@ -1348,15 +1464,30 @@ const SessionsPage: React.FC = () => {
 
     return (
       <>
-        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null || drawerOpen || clinicalOpen}>
+        <DialysisPullRefresh
+          onRefresh={load}
+          disabled={
+            hospitalId == null ||
+            drawerOpen ||
+            clinicalOpen ||
+            faceEnrollOpen ||
+            faceIdentifyOpen
+          }
+        >
           {pageBody}
         </DialysisPullRefresh>
         {fab}
+        {faceModals}
       </>
     );
   }
 
-  return pageBody;
+  return (
+    <>
+      {pageBody}
+      {faceModals}
+    </>
+  );
 };
 
 export default SessionsPage;

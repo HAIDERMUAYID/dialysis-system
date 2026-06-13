@@ -448,4 +448,105 @@ export function minPairwiseSimilarity(descriptors: number[][]): number {
   return minSim;
 }
 
+/** لقطة سريعة من منتصف الكاميرا — موثوقة بعد نجاح التعرف بالوجه */
+export function captureVideoCenterPortraitBlob(
+  video: HTMLVideoElement,
+  mirrored = false
+): Promise<Blob | null> {
+  const vw = video.videoWidth || 0;
+  const vh = video.videoHeight || 0;
+  if (vw < 16 || vh < 16) return Promise.resolve(null);
+
+  const side = Math.min(vw, vh) * 0.72;
+  const x = Math.max(0, Math.round((vw - side) / 2));
+  const y = Math.max(0, Math.round((vh - side) / 2));
+  const w = Math.round(side);
+  const h = Math.round(side);
+  const outSize = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = outSize;
+  canvas.height = outSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.resolve(null);
+
+  ctx.save();
+  if (mirrored) {
+    ctx.translate(outSize, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, x, y, w, h, 0, 0, outSize, outSize);
+  ctx.restore();
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
+  });
+}
+
+/** لقطة صورة وجه من الكاميرا — تُستخدم كصورة المريض */
+export async function captureFacePortraitBlob(
+  video: HTMLVideoElement,
+  mirrored = false
+): Promise<Blob | null> {
+  const faceapi = await getFaceApi();
+  await loadDialysisFaceModels();
+
+  const vw = video.videoWidth || 640;
+  const vh = video.videoHeight || 480;
+  const detections = await faceapi
+    .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+    .withFaceLandmarks();
+
+  if (!detections.length) {
+    const side = Math.min(vw, vh) * 0.62;
+    const x = Math.max(0, Math.round((vw - side) / 2));
+    const y = Math.max(0, Math.round((vh - side) / 2));
+    const w = Math.round(side);
+    const h = Math.round(side);
+    const outSize = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = outSize;
+    canvas.height = outSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.save();
+    if (mirrored) {
+      ctx.translate(outSize, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, x, y, w, h, 0, 0, outSize, outSize);
+    ctx.restore();
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
+    });
+  }
+
+  const box = detections[0].detection.box as { x: number; y: number; width: number; height: number };
+  const padX = box.width * 0.28;
+  const padY = box.height * 0.35;
+  const x = Math.max(0, Math.round(box.x - padX));
+  const y = Math.max(0, Math.round(box.y - padY));
+  const w = Math.min(vw - x, Math.round(box.width + padX * 2));
+  const h = Math.min(vh - y, Math.round(box.height + padY * 2));
+  if (w < 8 || h < 8) return null;
+
+  const outSize = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = outSize;
+  canvas.height = outSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.save();
+  if (mirrored) {
+    ctx.translate(outSize, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, x, y, w, h, 0, 0, outSize, outSize);
+  ctx.restore();
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
+  });
+}
+
 export { FACE_ENROLL_MIN_PAIRWISE };

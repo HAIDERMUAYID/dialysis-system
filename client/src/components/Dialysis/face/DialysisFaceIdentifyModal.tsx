@@ -9,6 +9,8 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { captureVerifiedFaceDescriptors } from './dialysisFaceRuntime';
+import { captureVideoCenterPortraitBlob } from '../face/dialysisFaceRuntime';
+import { ensureDialysisPatientPortrait } from '../app/dialysisPatientPhoto';
 import {
   FACE_AUTO_SCAN_COOLDOWN_MS,
   FACE_AUTO_SCAN_STABLE_FAST_MS,
@@ -33,6 +35,7 @@ export interface FaceMatchRow {
   patient_id: number;
   full_name: string;
   confidence: number;
+  photo_url?: string | null;
 }
 
 interface AutoMatchResult {
@@ -41,6 +44,7 @@ interface AutoMatchResult {
   message?: string;
   patient_id?: number;
   full_name?: string;
+  photo_url?: string | null;
   confidence?: number;
 }
 
@@ -92,8 +96,20 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
   const cameraReady = cameraPhase === 'ready';
   const qualityOk = Boolean(quality?.ok && quality.level !== 'poor');
 
-  const applyMatch = useCallback(
-    (patientId: number, patientName: string, confidence?: number) => {
+  const completeMatch = useCallback(
+    async (
+      patientId: number,
+      patientName: string,
+      confidence?: number,
+      photoUrl?: string | null,
+      portraitBlob?: Blob | null
+    ) => {
+      await ensureDialysisPatientPortrait(
+        patientId,
+        hospitalId,
+        portraitBlob ?? null,
+        Boolean(photoUrl)
+      );
       setScanPhase('success');
       setStatusText(`تم التعرف: ${patientName}`);
       dialysisHaptic('success');
@@ -105,7 +121,7 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
       onSelect(patientId, patientName);
       onClose();
     },
-    [onClose, onSelect]
+    [hospitalId, onClose, onSelect]
   );
 
   const runIdentify = useCallback(async () => {
@@ -144,6 +160,8 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
         return;
       }
 
+      const portraitBlob = await captureVideoCenterPortraitBlob(video, facing === 'user');
+
       const { data } = await axios.post<{
         matches: FaceMatchRow[];
         enrolled_count: number;
@@ -165,10 +183,12 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
       }
 
       if (data.auto_match?.ok && data.auto_match.patient_id != null) {
-        applyMatch(
+        await completeMatch(
           data.auto_match.patient_id,
           data.auto_match.full_name || `#${data.auto_match.patient_id}`,
-          data.auto_match.confidence
+          data.auto_match.confidence,
+          data.auto_match.photo_url,
+          portraitBlob
         );
         return;
       }
@@ -182,7 +202,13 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
       if (data.matches?.length === 1) {
         const row = data.matches[0];
         if (row.confidence >= FACE_STRONG_MATCH_THRESHOLD) {
-          applyMatch(row.patient_id, row.full_name, row.confidence);
+          await completeMatch(
+            row.patient_id,
+            row.full_name,
+            row.confidence,
+            row.photo_url,
+            portraitBlob
+          );
           return;
         }
       }
@@ -204,7 +230,7 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
       lastScanRef.current = Date.now();
       if (!cancelledRef.current) setScanning(false);
     }
-  }, [applyMatch, cameraPhase, hospitalId, setError, videoRef]);
+  }, [completeMatch, cameraPhase, facing, hospitalId, setError, videoRef]);
 
   useEffect(() => {
     if (!open) {
@@ -276,7 +302,14 @@ const DialysisFaceIdentifyModal: React.FC<Props> = ({
   }, [open, cameraReady, scanning, scanPhase, qualityOk, quality, runIdentify]);
 
   const pickMatch = (row: FaceMatchRow) => {
-    applyMatch(row.patient_id, row.full_name, row.confidence);
+    void (async () => {
+      const video = videoRef.current;
+      const blob =
+        video && cameraPhase === 'ready'
+          ? await captureVideoCenterPortraitBlob(video, facing === 'user')
+          : null;
+      await completeMatch(row.patient_id, row.full_name, row.confidence, row.photo_url, blob);
+    })();
   };
 
   const videoStyle = {

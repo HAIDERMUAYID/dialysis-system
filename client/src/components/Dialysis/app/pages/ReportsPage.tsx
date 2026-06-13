@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import {
   Button,
   DatePicker,
@@ -39,6 +39,7 @@ import {
   RiseOutlined,
   PieChartOutlined,
   FilterOutlined,
+  CameraOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs, { Dayjs } from 'dayjs';
@@ -58,10 +59,33 @@ import {
   escapeDialysisPrintHtml,
   type DialysisPrintFilterChip,
 } from '../dialysisPrint';
+import { sessionPatientPhotoUrl } from '../dialysisPatientPhoto';
+import {
+  DIALYSIS_REPORT_PRINT_CSS,
+  buildPrintHeroMetrics,
+  buildPrintKpiDashboard,
+  buildPrintKpiSection,
+  buildPrintSectionHead,
+  buildPrintSessionRowHtml,
+} from '../dialysisReportPrint';
 import { useDialysisMobile } from '../useDialysisMobile';
+import { useDialysisOverlayLock } from '../useDialysisOverlayLock';
+import DialysisPullRefresh from '../DialysisPullRefresh';
 import ReportSessionMobileCard from './ReportSessionMobileCard';
+import DialysisFaceMissingPrompt from '../../face/DialysisFaceMissingPrompt';
+import { DIALYSIS_FACE_ENABLED } from '../../face/dialysisFaceConfig';
+import './sessions-page.css';
+import {
+  type ReconRowStatus,
+  PatientMatchBadge,
+  ReconStatusIcon,
+  ReportPatientCell,
+  patientMatchLabel,
+  reconPrintSymbol,
+} from './reportSessionDisplay';
 import './dialysis-reports.css';
 import { usePermission } from '../../../../hooks/usePermission';
+import { useAuth } from '../../../../context/AuthContext';
 import { formatDialysisCalendarDate } from '../../dialysisConstants';
 import {
   ResponsiveContainer,
@@ -80,6 +104,10 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 
+const DialysisFaceEnrollModal = lazy(
+  () => import('../../face/DialysisFaceEnrollModal')
+);
+
 const { Text, Title } = Typography;
 const { TextArea } = Input;
 
@@ -87,6 +115,14 @@ interface PatientLookupRow {
   id: number;
   fullName: string;
   kind?: string;
+  hasFaceEnrolled?: boolean;
+  faceEnrolledAt?: string | null;
+}
+
+function patientHasFaceEnrolled(
+  p?: { hasFaceEnrolled?: boolean; faceEnrolledAt?: string | null } | null
+): boolean {
+  return Boolean(p?.hasFaceEnrolled ?? p?.faceEnrolledAt);
 }
 
 interface StatEntryRow {
@@ -112,7 +148,15 @@ interface SessionReportRow {
   shift?: string | null;
   startedAt?: string | null;
   notes?: string | null;
-  dialysisPatient?: { id: number; fullName: string } | null;
+  patientMatchMethod?: 'MANUAL' | 'FACE' | null;
+  dialysisPatient?: {
+    id: number;
+    fullName: string;
+    photoUrl?: string | null;
+    photo_url?: string | null;
+    hasFaceEnrolled?: boolean;
+    faceEnrolledAt?: string | null;
+  } | null;
   location?: { hallName: string; bedCode: string } | null;
   created_by_display?: string | null;
   created_by_username?: string | null;
@@ -181,20 +225,11 @@ const INTAKE_ACCENT_HEX: Record<string, string> = {
   EMERGENCY: '#ef4444',
 };
 
-type ReconRowStatus = 'matched' | 'missing' | 'supply' | 'na';
-
 const RECON_STATUS_LABEL: Record<ReconRowStatus, string> = {
   matched: 'مسجّل في الإحصاء',
   missing: 'غير مسجّل في الإحصاء',
   supply: 'فرق في المواد',
   na: 'لا ينطبق',
-};
-
-const RECON_TAG_COLOR: Record<ReconRowStatus, string> = {
-  matched: 'success',
-  missing: 'warning',
-  supply: 'volcano',
-  na: 'default',
 };
 
 function sessionStatCoverageKey(r: SessionReportRow): string | null {
@@ -321,6 +356,7 @@ const PLACEHOLDER = `{
 
 const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant = 'reports' }) => {
   const { hospitalId, hospitals } = useDialysisContext();
+  const { user } = useAuth();
   const effectiveHospitalId = useEffectiveDialysisHospitalId();
   /** عمود المستشفى يظهر فقط عند عرض «كل المستشفيات» */
   const showHospitalInReports = hospitalId === ALL_MY_HOSPITALS;
@@ -331,6 +367,19 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
   const canBulk = usePermission('dialysis:stats:bulk');
   const canStatsEntry = usePermission('dialysis:stats:entry');
   const canStatWrite = canStatsEntry || canBulk;
+  const canEditPatient = usePermission('dialysis:patient:edit');
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
+  const [faceEnrollQuickStart, setFaceEnrollQuickStart] = useState(false);
+  const [faceEnrollTarget, setFaceEnrollTarget] = useState<{
+    id: number;
+    name: string;
+    hasFaceEnrolled: boolean;
+  } | null>(null);
+  const [faceEnrollContext, setFaceEnrollContext] = useState<'stat' | 'report' | null>(null);
+
+  useDialysisOverlayLock(
+    isMobile && (filtersDrawerOpen || faceEnrollOpen)
+  );
 
   const [range, setRange] = useState<[Dayjs, Dayjs]>([dayjs().startOf('month'), dayjs()]);
   const [result, setResult] = useState<ReconResult | null>(null);
@@ -340,6 +389,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
   const [statRows, setStatRows] = useState<StatEntryRow[]>([]);
   const [statLoading, setStatLoading] = useState(false);
   const [patientOptions, setPatientOptions] = useState<PatientLookupRow[]>([]);
+  const [reportPatientOptions, setReportPatientOptions] = useState<PatientLookupRow[]>([]);
   const [entryForm] = Form.useForm();
   const [sessionRows, setSessionRows] = useState<SessionReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
@@ -351,6 +401,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
   const [filterShift, setFilterShift] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterPatientId, setFilterPatientId] = useState<number | undefined>(undefined);
+  const [filterPatientMatch, setFilterPatientMatch] = useState<string>('');
   const [filterRecon, setFilterRecon] = useState<'' | ReconRowStatus>('');
   const [statCoverageKeys, setStatCoverageKeys] = useState<Set<string>>(() => new Set());
   const [supplyMismatchKeys, setSupplyMismatchKeys] = useState<Set<string>>(() => new Set());
@@ -394,9 +445,85 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     loadPatientOptions();
   }, [loadPatientOptions]);
 
+  const loadReportPatients = useCallback(async () => {
+    if (hospitalId == null || variant !== 'reports') return;
+    try {
+      const { data } = await axios.get<PatientLookupRow[]>('/api/dialysis/patients', {
+        params: { hospital_id: hospitalId },
+      });
+      setReportPatientOptions(Array.isArray(data) ? data : []);
+    } catch {
+      /* optional */
+    }
+  }, [hospitalId, variant]);
+
+  useEffect(() => {
+    loadReportPatients();
+  }, [loadReportPatients]);
+
   useEffect(() => {
     entryForm.setFieldsValue({ session_date: listDate });
   }, [listDate, entryForm]);
+
+  const watchedEntryPatientId = Form.useWatch('dialysis_patient_id', entryForm);
+  const selectedEntryPatient = useMemo(
+    () => patientOptions.find((p) => p.id === watchedEntryPatientId),
+    [patientOptions, watchedEntryPatientId]
+  );
+  const showEntryFaceMissing = Boolean(
+    DIALYSIS_FACE_ENABLED &&
+      canEditPatient &&
+      canStatWrite &&
+      selectedEntryPatient &&
+      !patientHasFaceEnrolled(selectedEntryPatient)
+  );
+
+  const faceHospitalId = effectiveHospitalId;
+
+  const openFaceEnrollForPatient = useCallback(
+    (patient: PatientLookupRow, quickStart = false, context: 'stat' | 'report' = 'stat') => {
+      setFaceEnrollTarget({
+        id: patient.id,
+        name: patient.fullName,
+        hasFaceEnrolled: patientHasFaceEnrolled(patient),
+      });
+      setFaceEnrollQuickStart(quickStart);
+      setFaceEnrollContext(context);
+      setFaceEnrollOpen(true);
+    },
+    []
+  );
+
+  const closeFaceEnroll = useCallback(() => {
+    setFaceEnrollOpen(false);
+    setFaceEnrollQuickStart(false);
+    setFaceEnrollTarget(null);
+    setFaceEnrollContext(null);
+  }, []);
+
+  const handleFaceEnrolled = useCallback(() => {
+    if (!faceEnrollTarget) return;
+    const patientId = faceEnrollTarget.id;
+    const patch = (list: PatientLookupRow[]) =>
+      list.map((p) => (p.id === patientId ? { ...p, hasFaceEnrolled: true } : p));
+    setPatientOptions(patch);
+    setReportPatientOptions(patch);
+    setSessionRows((prev) =>
+      prev.map((r) =>
+        r.dialysisPatient?.id === patientId
+          ? {
+              ...r,
+              dialysisPatient: r.dialysisPatient
+                ? { ...r.dialysisPatient, hasFaceEnrolled: true, faceEnrolledAt: new Date().toISOString() }
+                : r.dialysisPatient,
+            }
+          : r
+      )
+    );
+    setFaceEnrollTarget((prev) =>
+      prev ? { ...prev, hasFaceEnrolled: true } : null
+    );
+  }, [faceEnrollTarget]);
 
   const submitStatEntry = async () => {
     if (hospitalId == null) return;
@@ -415,6 +542,14 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
         shift: v.shift || 'MORNING',
       });
       message.success('تم تسجيل الاسم في السجل الإحصائي');
+      const createdPatient = patientOptions.find((p) => p.id === v.dialysis_patient_id);
+      const shouldPromptFaceEnroll = Boolean(
+        DIALYSIS_FACE_ENABLED &&
+          canEditPatient &&
+          faceHospitalId != null &&
+          createdPatient &&
+          !patientHasFaceEnrolled(createdPatient)
+      );
       entryForm.resetFields();
       entryForm.setFieldsValue({
         session_date: listDate,
@@ -422,6 +557,9 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
       });
       loadStatEntries();
       loadPatientOptions();
+      if (shouldPromptFaceEnroll && createdPatient) {
+        openFaceEnrollForPatient(createdPatient, true, 'stat');
+      }
     } catch (e: unknown) {
       const err = e as { errorFields?: unknown; response?: { data?: { error?: string } } };
       if (err.errorFields) return;
@@ -523,7 +661,17 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
           message.error('فشل تحميل الجلسات');
           return { data: [] as SessionReportRow[] };
         });
-      setSessionRows(Array.isArray(sessionsRes.data) ? sessionsRes.data : []);
+      setSessionRows(
+        (Array.isArray(sessionsRes.data) ? sessionsRes.data : []).map((r) => ({
+          ...r,
+          dialysisPatient: r.dialysisPatient
+            ? {
+                ...r.dialysisPatient,
+                hasFaceEnrolled: patientHasFaceEnrolled(r.dialysisPatient),
+              }
+            : r.dialysisPatient,
+        }))
+      );
 
       const coverageRes = await axios
         .get<{ keys: string[] }>('/api/dialysis/statistical/coverage-keys', {
@@ -561,6 +709,18 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     loadReportData();
   }, [loadReportData]);
 
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') loadReportData();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [loadReportData]);
+
   const hallOptions = useMemo(() => {
     const uniq = new Set<string>();
     sessionRows.forEach((r) => {
@@ -576,6 +736,11 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
       if (filterShift && (r.shift || '').toUpperCase() !== filterShift) return false;
       if (filterStatus && (r.status || '').toUpperCase() !== filterStatus) return false;
       if (filterPatientId && r.dialysisPatient?.id !== filterPatientId) return false;
+      if (filterPatientMatch === 'FACE' && r.patientMatchMethod !== 'FACE') return false;
+      if (filterPatientMatch === 'MANUAL' && r.patientMatchMethod === 'FACE') return false;
+      if (filterPatientMatch === 'NO_FACE' && patientHasFaceEnrolled(r.dialysisPatient)) {
+        return false;
+      }
       if (filterRecon) {
         const rs = computeReconStatus(r, statCoverageKeys, supplyMismatchKeys);
         if (rs !== filterRecon) return false;
@@ -589,6 +754,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     filterShift,
     filterStatus,
     filterPatientId,
+    filterPatientMatch,
     filterRecon,
     statCoverageKeys,
     supplyMismatchKeys,
@@ -754,6 +920,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     setFilterShift('');
     setFilterStatus('');
     setFilterPatientId(undefined);
+    setFilterPatientMatch('');
     setFilterRecon('');
   };
 
@@ -774,7 +941,8 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
         'نوع الجلسة': INTAKE_LABEL_AR[r.intakeKind || ''] || '—',
         'الحالة': STATUS_LABEL_AR[(r.status || '').toUpperCase()] || r.status || '—',
         'اسم الموظف': sessionCreatorDisplayName(r),
-        'مطابقة الإحصاء': RECON_STATUS_LABEL[recon],
+        'طريقة الإدخال': patientMatchLabel(r.patientMatchMethod),
+        'مطابقة الإحصاء': reconPrintSymbol(recon),
         'ملاحظات': r.notes || '—',
       });
       return row;
@@ -854,8 +1022,9 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     if (filterStatus) n += 1;
     if (filterRecon) n += 1;
     if (filterPatientId) n += 1;
+    if (filterPatientMatch) n += 1;
     return n;
-  }, [filterHall, filterType, filterShift, filterStatus, filterRecon, filterPatientId]);
+  }, [filterHall, filterType, filterShift, filterStatus, filterRecon, filterPatientId, filterPatientMatch]);
 
   const esc = escapeDialysisPrintHtml;
 
@@ -863,27 +1032,39 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     () =>
       filteredReportRows
         .map((r, i) => {
-          const hosp = esc(r.hospital?.name || '—');
-          const patient = esc(r.dialysisPatient?.fullName || '—');
-          const hall = esc(r.location?.hallName || '—');
-          const bed = esc(r.location?.bedCode || '—');
-          const date = esc(formatDialysisCalendarDate(r.sessionDate));
-          const time = esc(r.startedAt ? dayjs(r.startedAt).format('HH:mm') : '—');
-          const shift = esc(SHIFT_LABEL_AR[(r.shift || '').toUpperCase()] || '—');
-          const intake = esc(INTAKE_LABEL_AR[r.intakeKind || ''] || '—');
-          const status = esc(STATUS_LABEL_AR[(r.status || '').toUpperCase()] || r.status || '—');
-          const creator = esc(sessionCreatorDisplayName(r));
           const recon = computeReconStatus(r, statCoverageKeys, supplyMismatchKeys);
-          const reconAr = esc(RECON_STATUS_LABEL[recon]);
-          const notes = esc(r.notes || '—');
-          const hospCell = showHospitalInReports ? `<td>${hosp}</td>` : '';
-          return `<tr><td>${i + 1}</td>${hospCell}<td>${patient}</td><td>${hall}</td><td>${bed}</td><td>${date}</td><td>${time}</td><td>${shift}</td><td>${intake}</td><td>${status}</td><td>${creator}</td><td>${reconAr}</td><td>${notes}</td></tr>`;
+          const ik = r.intakeKind || '';
+          const st = (r.status || '').toUpperCase();
+          return buildPrintSessionRowHtml(
+            {
+              index: i + 1,
+              showHospital: showHospitalInReports,
+              hospitalName: r.hospital?.name,
+              patientName: r.dialysisPatient?.fullName || '—',
+              patientPhotoUrl: sessionPatientPhotoUrl(r.dialysisPatient),
+              hall: r.location?.hallName || '—',
+              bed: r.location?.bedCode || '—',
+              date: formatDialysisCalendarDate(r.sessionDate),
+              time: r.startedAt ? dayjs(r.startedAt).format('HH:mm') : '—',
+              shift: SHIFT_LABEL_AR[(r.shift || '').toUpperCase()] || '—',
+              intakeKind: ik,
+              intakeLabel: INTAKE_LABEL_AR[ik] || '—',
+              status: st,
+              statusLabel: STATUS_LABEL_AR[st] || r.status || '—',
+              creator: sessionCreatorDisplayName(r),
+              matchMethod: r.patientMatchMethod,
+              matchLabel: patientMatchLabel(r.patientMatchMethod),
+              recon,
+              notes: r.notes || '—',
+            },
+            esc
+          );
         })
         .join(''),
     [filteredReportRows, showHospitalInReports, statCoverageKeys, supplyMismatchKeys]
   );
 
-  const sessionsPrintColspan = showHospitalInReports ? 13 : 12;
+  const sessionsPrintColspan = showHospitalInReports ? 14 : 13;
   const sessionsPrintHospitalTh = showHospitalInReports ? '<th>المستشفى</th>' : '';
 
   const sessionReportColumns = useMemo(
@@ -900,7 +1081,18 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
             },
           ]
         : []),
-      { title: 'اسم المريض', key: 'p', render: (_: unknown, r: SessionReportRow) => r.dialysisPatient?.fullName || '—' },
+      {
+        title: 'المريض',
+        key: 'p',
+        width: 200,
+        render: (_: unknown, r: SessionReportRow) => (
+          <ReportPatientCell
+            name={r.dialysisPatient?.fullName}
+            photoUrl={sessionPatientPhotoUrl(r.dialysisPatient)}
+            cacheKey={r.dialysisPatient?.id}
+          />
+        ),
+      },
       { title: 'الصالة', key: 'h', render: (_: unknown, r: SessionReportRow) => r.location?.hallName || '—' },
       { title: 'السرير', key: 'b', render: (_: unknown, r: SessionReportRow) => r.location?.bedCode || '—' },
       {
@@ -951,12 +1143,22 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
         },
       },
       {
-        title: 'مطابقة الإحصاء',
+        title: 'الإدخال',
+        key: 'pm',
+        width: 110,
+        align: 'center' as const,
+        render: (_: unknown, r: SessionReportRow) => (
+          <PatientMatchBadge method={r.patientMatchMethod} compact />
+        ),
+      },
+      {
+        title: 'إحصاء',
         key: 'rc',
-        width: 160,
+        width: 72,
+        align: 'center' as const,
         render: (_: unknown, r: SessionReportRow) => {
           const rs = computeReconStatus(r, statCoverageKeys, supplyMismatchKeys);
-          return <Tag color={RECON_TAG_COLOR[rs]}>{RECON_STATUS_LABEL[rs]}</Tag>;
+          return <ReconStatusIcon status={rs} />;
         },
       },
       { title: 'ملاحظات', dataIndex: 'notes', render: (n?: string | null) => n || '—' },
@@ -1020,15 +1222,31 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
       />
       <Select
         className="d-report-filter-field"
+        value={filterPatientMatch || ''}
+        onChange={setFilterPatientMatch}
+        placeholder="طريقة الإدخال / الوجه"
+        options={[
+          { value: '', label: 'كل طرق الإدخال' },
+          { value: 'FACE', label: 'تعرف بالوجه' },
+          { value: 'MANUAL', label: 'يدوي' },
+          ...(DIALYSIS_FACE_ENABLED
+            ? [{ value: 'NO_FACE', label: 'مرضى بلا بصمة' }]
+            : []),
+        ]}
+      />
+      <Select
+        className="d-report-filter-field"
         allowClear
         showSearch
         optionFilterProp="label"
         value={filterPatientId}
         onChange={(v) => setFilterPatientId(v)}
         placeholder="المريض"
-        options={patientOptions.map((p) => ({
+        options={reportPatientOptions.map((p) => ({
           value: p.id,
-          label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
+          label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})${
+            patientHasFaceEnrolled(p) ? '' : ' — بلا بصمة'
+          }`,
         }))}
       />
     </>
@@ -1294,43 +1512,41 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
       .map((r) => `<tr><td>${esc(r.name)}</td><td>${r.value}</td></tr>`)
       .join('');
 
-    const kpiSec = (title: string, cards: { n: string | number; l: string }[]) => {
-      const cells = cards
-        .map(
-          (c) =>
-            `<div class="kpi compact"><div class="n">${c.n}</div><div class="l">${esc(c.l)}</div></div>`
-        )
-        .join('');
-      return `<div class="print-kpi-section"><h4>${esc(title)}</h4><div class="print-kpi-row">${cells}</div></div>`;
-    };
+    const kpiDashboard = buildPrintKpiDashboard(
+      [
+        buildPrintKpiSection('توزيع الجلسات حسب النوع', [
+          { n: kpis.scheduled, l: 'مجدولة' },
+          { n: kpis.unscheduled, l: 'غير مجدولة' },
+          { n: kpis.emergency, l: 'طارئة' },
+        ], esc),
+        buildPrintKpiSection('توزيع الجلسات حسب النوبة', [
+          { n: kpis.morning, l: 'صباحية' },
+          { n: kpis.evening, l: 'مسائية' },
+          { n: '—', l: '' },
+        ], esc),
+        buildPrintKpiSection('حالة الجلسات', [
+          { n: kpis.active, l: 'نشطة' },
+          { n: kpis.completed, l: 'منتهية' },
+          { n: kpis.cancelled, l: 'ملغاة' },
+        ], esc),
+        buildPrintKpiSection('مطابقة الجلسات مع الإحصاء', [
+          { n: kpis.reconMatched, l: 'مسجّلة' },
+          { n: kpis.reconMissing, l: 'غير مسجّلة' },
+          { n: kpis.reconSupply, l: 'فرق مواد' },
+        ], esc),
+      ].join('')
+    );
 
-    const kpiBlock = `
-<div class="print-kpi-wrap">
-  ${kpiSec('ملخص عام للفترة', [
-    { n: kpis.total, l: 'إجمالي الجلسات' },
-    { n: kpis.uniquePatients, l: 'مرضى مختلفون' },
-    { n: `${kpis.statCoveragePct}%`, l: 'نسبة تغطية الإحصاء' },
-  ])}
-  ${kpiSec('توزيع الجلسات حسب النوع', [
-    { n: kpis.scheduled, l: 'مجدولة' },
-    { n: kpis.unscheduled, l: 'غير مجدولة' },
-    { n: kpis.emergency, l: 'طارئة' },
-  ])}
-  ${kpiSec('توزيع الجلسات حسب النوبة', [
-    { n: kpis.morning, l: 'صباحية' },
-    { n: kpis.evening, l: 'مسائية' },
-  ])}
-  ${kpiSec('حالة الجلسات', [
-    { n: kpis.active, l: 'نشطة' },
-    { n: kpis.completed, l: 'منتهية' },
-    { n: kpis.cancelled, l: 'ملغاة' },
-  ])}
-  ${kpiSec('مطابقة الجلسات مع الإحصاء', [
-    { n: kpis.reconMatched, l: 'مسجّلة في الإحصاء' },
-    { n: kpis.reconMissing, l: 'غير مسجّلة' },
-    { n: kpis.reconSupply, l: 'فرق في المواد' },
-  ])}
-</div>`;
+    const heroMetrics = buildPrintHeroMetrics(
+      [
+        { value: kpis.total, label: 'إجمالي الجلسات', primary: true },
+        { value: kpis.uniquePatients, label: 'مرضى مختلفون' },
+        { value: `${kpis.statCoveragePct}%`, label: 'تغطية الإحصاء' },
+        { value: kpis.completed, label: 'جلسات منتهية' },
+        { value: filteredReportRows.length, label: 'بعد الفلاتر' },
+      ],
+      esc
+    );
 
     const hospitalPrintRowsHtml = hospitalDistributionRows
       .map(
@@ -1344,8 +1560,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
 <div class="print-charts-row single">
   <div class="chart-box"><h4>توزيع الجلسات حسب المستشفى</h4>${buildPrintHBars(chartByHospital, CHART_PALETTE, esc)}</div>
 </div>
-<div class="sec" style="margin-bottom:12px"><h3 style="margin:8px 0">جدول التوزيع حسب المستشفى</h3>
-<table class="data"><thead><tr><th>المستشفى</th><th>عدد الجلسات</th><th>النسبة %</th></tr></thead><tbody>${hospitalPrintRowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div>`
+<div class="sec" style="margin-bottom:12px">${buildPrintSectionHead('جدول التوزيع حسب المستشفى', esc)}<div class="sessions-table-wrap"><table class="data" dir="rtl" lang="ar"><thead><tr><th>المستشفى</th><th>عدد الجلسات</th><th>النسبة %</th></tr></thead><tbody>${hospitalPrintRowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div></div>`
       : '';
 
     const chartsBlock = `
@@ -1370,6 +1585,7 @@ ${hospitalChartsPrint}
       hospitalLabel: reportHospitalLabel,
       filters: reportPrintFilters,
       printedAt,
+      printedBy: user?.name?.trim() || user?.username || undefined,
       sessionCount: filteredReportRows.length,
     });
 
@@ -1382,46 +1598,7 @@ ${DIALYSIS_PRINT_BASE_CSS}
 ${DIALYSIS_PRINT_HEADER_CSS}
 ${DIALYSIS_PRINT_SIGNATURE_CSS}
 ${DIALYSIS_PDF_CAPTURE_CSS}
-.print-kpi-wrap{margin:12px 0 18px;display:flex;flex-direction:column;gap:12px}
-.print-kpi-section{break-inside:avoid-page;border:1px solid #cfe8f6;border-radius:12px;padding:10px 12px;background:linear-gradient(180deg,#fafdff 0%,#fff 100%)}
-.print-kpi-section h4{margin:0 0 10px;font-size:13px;font-weight:800;color:#0c4a6e;border-bottom:2px solid #28b2e1;padding-bottom:6px}
-.print-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.print-kpi-row.four{grid-template-columns:repeat(4,1fr)}
-.kpi.compact{border:1px solid #dbeaf5;border-radius:10px;padding:8px 6px;text-align:center;background:#fff}
-.kpi.compact .n{font-size:20px;font-weight:900;color:#157c67}
-.kpi.compact .l{font-size:11px;color:#475569;margin-top:2px}
-.print-charts-title{font-size:15px;font-weight:800;color:#0c4a6e;margin:16px 0 10px;padding-bottom:6px;border-bottom:2px solid #bae6fd}
-.print-charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;break-inside:avoid-page}
-.print-charts-row.three{grid-template-columns:1fr 1fr 1fr}
-.print-charts-row.single{grid-template-columns:1fr;max-width:420px;margin-inline:auto}
-.chart-box{border:1px solid #dbeaf5;border-radius:12px;padding:10px 12px;background:#fafdff;break-inside:avoid}
-.chart-box h4{margin:0 0 10px;font-size:12px;font-weight:700;color:#134e7c}
-.chart-empty{margin:8px 0;color:#94a3b8;font-size:11px;text-align:center}
-.hbar-chart{width:100%}
-.hbar-row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:11px}
-.hbar-name{flex:0 0 92px;text-align:end;color:#334155;word-break:break-word}
-.hbar-track{flex:1;height:15px;background:#e8f4fc;border-radius:8px;overflow:hidden;min-width:40px}
-.hbar-fill{height:100%;border-radius:8px;min-width:2px}
-.hbar-num{flex:0 0 26px;font-weight:800;text-align:start;color:#0f172a}
-.pie-wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
-.pie-legend{display:flex;flex-direction:column;gap:4px;font-size:10px;color:#334155}
-.pie-legend span{display:flex;align-items:center;gap:6px}
-.pie-legend i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.trend-svg{display:block;max-width:100%;margin:0 auto}
-.sec{margin-top:14px;break-inside:avoid-page}
-.sec h3{margin:0 0 10px;font-size:16px;font-weight:800;color:#0c4a6e;break-after:avoid-page}
-.sec.sessions{margin-top:18px}
-.divider{height:4px;border:0;background:linear-gradient(90deg,#28b2e1,#bae6fd);border-radius:999px;margin:16px 0}
-table.data{width:100%;border-collapse:collapse;page-break-inside:auto;font-size:11px}
-table.data thead{display:table-header-group}
-table.data tfoot{display:table-footer-group}
-table.data tr{page-break-inside:avoid;page-break-after:auto}
-table.data th,table.data td{border:1px solid #dbeaf5;padding:5px 7px;vertical-align:middle}
-table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-weight:700;color:#0c4a6e}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.print-signature{display:none}
-.print-signature-top .print-signature{display:none}
-.print-footer{display:none}
+${DIALYSIS_REPORT_PRINT_CSS}
 .preview-tools{
   position:sticky;
   top:0;
@@ -1452,6 +1629,9 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
   border-color:#157c67;
   color:#fff;
 }
+.print-signature{display:none}
+.print-signature-top .print-signature{display:none}
+.print-footer{display:none}
 @media print{
   @page{size:A4;margin:7mm 7mm 18mm 7mm}
   body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -1472,12 +1652,12 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
     left:0;
     right:0;
     bottom:0;
-    border-top:1px dashed #dbeaf5;
+    border-top:2px solid #157c67;
     background:transparent;
     padding:4px 7px;
     align-items:center;
     justify-content:space-between;
-    font-size:11px;
+    font-size:10px;
     color:#51657a;
   }
   .page-num::after{
@@ -1496,24 +1676,25 @@ ${forPdfCapture ? '' : `<div class="print-signature-top">${DIALYSIS_PRINT_SIGNAT
 
 ${printHeaderHtml}
 
-${kpiBlock}
+${heroMetrics}
+${kpiDashboard}
 ${chartsBlock}
 
-${shouldShowExtendedSections ? `<hr class="divider"><div class="sec"><h3>أكثر عشرة مرضى حضوراً للغسل</h3>
-<table class="data"><thead><tr><th>الترتيب</th><th>اسم المريض</th><th>عدد الجلسات</th></tr></thead><tbody>${topRowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div>` : ''}
+${shouldShowExtendedSections ? `<hr class="divider"><div class="sec">${buildPrintSectionHead('أكثر عشرة مرضى حضوراً للغسل', esc)}<div class="sessions-table-wrap"><table class="data" dir="rtl" lang="ar"><thead><tr><th>الترتيب</th><th>اسم المريض</th><th>عدد الجلسات</th></tr></thead><tbody>${topRowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div></div>` : ''}
 
-${shouldShowExtendedSections ? `<div class="sec"><h3>ملخص الجلسات شهرياً</h3>
-<table class="data"><thead><tr><th>الشهر</th><th>الإجمالي</th><th>صباحية</th><th>مسائية</th><th>مجدولة</th><th>غير مجدولة</th><th>طارئة</th><th>مرضى فريدون</th><th>معدل يومي</th></tr></thead><tbody>${monthlyRowsHtml || '<tr><td colspan="9">—</td></tr>'}</tbody></table></div>` : ''}
+${shouldShowExtendedSections ? `<div class="sec">${buildPrintSectionHead('ملخص الجلسات شهرياً', esc)}<div class="sessions-table-wrap"><table class="data" dir="rtl" lang="ar"><thead><tr><th>الشهر</th><th>الإجمالي</th><th>صباحية</th><th>مسائية</th><th>مجدولة</th><th>غير مجدولة</th><th>طارئة</th><th>مرضى فريدون</th><th>معدل يومي</th></tr></thead><tbody>${monthlyRowsHtml || '<tr><td colspan="9">—</td></tr>'}</tbody></table></div></div>` : ''}
 
-${shouldShowExtendedSections ? `<div class="sec"><h3>تفصيل حسب نوع الجلسة والنوبة</h3><div class="two">
-<div><h4 style="margin:0 0 6px;font-size:13px">حسب نوع الجلسة</h4><table class="data"><thead><tr><th>النوع</th><th>العدد</th></tr></thead><tbody>${typeRowsHtml}</tbody></table></div>
-<div><h4 style="margin:0 0 6px;font-size:13px">حسب النوبة</h4><table class="data"><thead><tr><th>النوبة</th><th>العدد</th></tr></thead><tbody>${shiftRowsHtml}</tbody></table></div>
+${shouldShowExtendedSections ? `<div class="sec">${buildPrintSectionHead('تفصيل حسب نوع الجلسة والنوبة', esc)}<div class="two">
+<div class="sessions-table-wrap"><h4 style="margin:0 0 6px;font-size:11px;font-weight:800;color:#0f5132;padding:8px 10px 0">حسب نوع الجلسة</h4><table class="data" dir="rtl" lang="ar"><thead><tr><th>النوع</th><th>العدد</th></tr></thead><tbody>${typeRowsHtml}</tbody></table></div>
+<div class="sessions-table-wrap"><h4 style="margin:0 0 6px;font-size:11px;font-weight:800;color:#0f5132;padding:8px 10px 0">حسب النوبة</h4><table class="data" dir="rtl" lang="ar"><thead><tr><th>النوبة</th><th>العدد</th></tr></thead><tbody>${shiftRowsHtml}</tbody></table></div>
 </div></div>` : ''}
 
-<hr class="divider"><div class="sec sessions"><h3>سجل الجلسات التفصيلي</h3>
-<table class="data"><thead><tr><th>#</th>${sessionsPrintHospitalTh}<th>اسم المريض</th><th>الصالة</th><th>رقم السرير</th><th>تاريخ الجلسة</th><th>الوقت</th><th>النوبة</th><th>نوع الجلسة</th><th>الحالة</th><th>اسم الموظف</th><th>مطابقة الإحصاء</th><th>ملاحظات</th></tr></thead>
+<hr class="divider"><div class="sec sessions">
+${buildPrintSectionHead('سجل الجلسات التفصيلي', esc, { subtitle: printSessionSummary, count: filteredReportRows.length })}
+<div class="sessions-table-wrap">
+<table class="data" dir="rtl" lang="ar"><thead><tr><th>#</th>${sessionsPrintHospitalTh}<th>المريض</th><th>الصالة</th><th>السرير</th><th>التاريخ</th><th>الوقت</th><th>النوبة</th><th>النوع</th><th>الحالة</th><th>الموظف</th><th>الإدخال</th><th>إحصاء</th><th>ملاحظات</th></tr></thead>
 <tbody>${printSessionsRowsHtml || `<tr><td colspan="${sessionsPrintColspan}">لا توجد بيانات</td></tr>`}</tbody></table>
-</div>
+</div></div>
 ${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATURE_HTML}</div><div class="pdf-footer-template">شعبة الكلية الصناعية – وحدة الحوكمة</div>` : ''}
 <div class="print-footer"><div>شعبة الكلية الصناعية – وحدة الحوكمة</div><div class="page-num"></div></div>
 </body></html>`;
@@ -1553,7 +1734,32 @@ ${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATUR
   };
 
 
-  return (
+  const faceModals =
+    DIALYSIS_FACE_ENABLED && faceHospitalId != null && faceEnrollTarget ? (
+      <Suspense fallback={null}>
+        <DialysisFaceEnrollModal
+          open={faceEnrollOpen}
+          onClose={closeFaceEnroll}
+          patientId={faceEnrollTarget.id}
+          hospitalId={faceHospitalId}
+          patientName={faceEnrollTarget.name}
+          hasFaceEnrolled={faceEnrollTarget.hasFaceEnrolled}
+          quickStart={faceEnrollQuickStart}
+          sessionHint={
+            faceEnrollQuickStart
+              ? faceEnrollContext === 'stat'
+                ? isMobile
+                  ? 'تمت الإضافة للسجل ✓ — أكمل تسجيل الوجه (خطوة واحدة).'
+                  : 'تمت الإضافة للسجل — أكمل تسجيل الوجه للمريض (خطوة واحدة سريعة).'
+                : undefined
+              : undefined
+          }
+          onEnrolled={handleFaceEnrolled}
+        />
+      </Suspense>
+    ) : null;
+
+  const pageContent = (
     <>
       {variant === 'reports' ? (
         <>
@@ -1849,9 +2055,28 @@ ${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATUR
                               accentColor={INTAKE_ACCENT_HEX[ik] || '#6366f1'}
                               statusLabel={STATUS_LABEL_AR[st] || row.status || '—'}
                               statusColor={STATUS_TAG_COLOR[st] || 'default'}
-                              reconLabel={RECON_STATUS_LABEL[rs]}
-                              reconColor={RECON_TAG_COLOR[rs]}
+                              reconStatus={rs}
                               creatorName={sessionCreatorDisplayName(row)}
+                              showFaceEnroll={
+                                DIALYSIS_FACE_ENABLED &&
+                                canEditPatient &&
+                                Boolean(row.dialysisPatient?.id) &&
+                                !patientHasFaceEnrolled(row.dialysisPatient)
+                              }
+                              onFaceEnroll={
+                                row.dialysisPatient?.id
+                                  ? () =>
+                                      openFaceEnrollForPatient(
+                                        {
+                                          id: row.dialysisPatient!.id!,
+                                          fullName: row.dialysisPatient!.fullName,
+                                          hasFaceEnrolled: patientHasFaceEnrolled(row.dialysisPatient),
+                                        },
+                                        false,
+                                        'report'
+                                      )
+                                  : undefined
+                              }
                             />
                           </List.Item>
                         );
@@ -1913,41 +2138,76 @@ ${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATUR
                     session_date: listDate,
                     shift: 'MORNING',
                   }}
+                  className={isMobile ? 'd-stat-entry-form--mobile' : undefined}
                 >
-                  <Space wrap style={{ width: '100%', marginBottom: 16 }} align="start">
+                  <div className={isMobile ? 'd-stat-entry-form__grid' : undefined}>
                     <Form.Item
                       name="dialysis_patient_id"
                       label="المريض"
                       rules={[{ required: true, message: 'اختر المريض' }]}
-                      style={{ minWidth: 240, flex: 1 }}
+                      style={isMobile ? { width: '100%' } : { minWidth: 240, flex: 1 }}
                     >
                       <Select
                         showSearch
+                        size={isMobile ? 'large' : undefined}
                         placeholder="ابحث واختر الاسم"
                         optionFilterProp="label"
+                        listHeight={isMobile ? 280 : 256}
                         options={patientOptions.map((p) => ({
                           value: p.id,
-                          label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
+                          label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})${
+                            patientHasFaceEnrolled(p) ? '' : ' — بلا بصمة'
+                          }`,
                         }))}
                         onDropdownVisibleChange={(open) => open && loadPatientOptions()}
                       />
                     </Form.Item>
+                    {showEntryFaceMissing && selectedEntryPatient ? (
+                      <DialysisFaceMissingPrompt
+                        patient={selectedEntryPatient}
+                        isMobile={isMobile}
+                        onEnroll={() => openFaceEnrollForPatient(selectedEntryPatient, false, 'stat')}
+                        footerHint={
+                          isMobile ? 'بعد الإضافة للسجل سيُفتح تسجيل الوجه تلقائياً' : undefined
+                        }
+                      />
+                    ) : null}
                     <Form.Item
                       name="session_date"
                       label="تاريخ الغسل (في السجل الإحصائي)"
                       rules={[{ required: true }]}
+                      style={isMobile ? { width: '100%' } : undefined}
                     >
-                      <DatePicker format="YYYY-MM-DD" />
+                      <DatePicker
+                        size={isMobile ? 'large' : undefined}
+                        style={isMobile ? { width: '100%' } : undefined}
+                        format="YYYY-MM-DD"
+                      />
                     </Form.Item>
-                    <Form.Item name="shift" label="الوردية" rules={[{ required: true }]}>
-                      <Select options={SHIFT_OPTIONS} style={{ minWidth: 120 }} />
+                    <Form.Item
+                      name="shift"
+                      label="الوردية"
+                      rules={[{ required: true }]}
+                      style={isMobile ? { width: '100%' } : undefined}
+                    >
+                      <Select
+                        size={isMobile ? 'large' : undefined}
+                        options={SHIFT_OPTIONS}
+                        style={isMobile ? { width: '100%' } : { minWidth: 120 }}
+                      />
                     </Form.Item>
-                    <Form.Item label=" ">
-                      <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
+                    <Form.Item label={isMobile ? undefined : ' '} style={isMobile ? { width: '100%' } : undefined}>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        size={isMobile ? 'large' : undefined}
+                        block={isMobile}
+                        icon={<PlusOutlined />}
+                      >
                         إضافة للسجل
                       </Button>
                     </Form.Item>
-                  </Space>
+                  </div>
                 </Form>
 
                 <div className="d-toolbar">
@@ -2134,6 +2394,28 @@ ${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATUR
           )}
         </>
       )}
+    </>
+  );
+
+  if (isMobile) {
+    const onRefresh = variant === 'reports' ? loadReportData : loadStatEntries;
+    return (
+      <>
+        <DialysisPullRefresh
+          onRefresh={onRefresh}
+          disabled={hospitalId == null || filtersDrawerOpen || faceEnrollOpen}
+        >
+          {pageContent}
+        </DialysisPullRefresh>
+        {faceModals}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {pageContent}
+      {faceModals}
     </>
   );
 };
