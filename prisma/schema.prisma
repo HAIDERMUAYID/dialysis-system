@@ -465,6 +465,12 @@ enum DialysisSessionIntakeKind {
   EMERGENCY
 }
 
+/// طريقة تحديد المريض عند إنشاء الجلسة
+enum DialysisSessionPatientMatchMethod {
+  MANUAL
+  FACE
+}
+
 enum DialysisInventoryTxnType {
   RECEIPT
   ADJUSTMENT
@@ -573,6 +579,12 @@ model DialysisPatient {
   labsFollowUpJson Json?               @map("labs_follow_up_json")
   /// مسار نسبي تحت /uploads — صورة شخصية للمريض
   photoUrl          String?             @map("photo_url")
+  /// بصمة وجه رقمية (128 بُعد) — اختياري؛ لا تُرسَل للعميل
+  faceEmbeddingJson Json?               @map("face_embedding_json")
+  faceEnrolledAt    DateTime?           @map("face_enrolled_at")
+  faceConsentAt     DateTime?           @map("face_consent_at")
+  /// جودة التسجيل، الكامره، إصدار النموذج — لا تُرسَل للعميل
+  faceEnrollMetaJson Json?              @map("face_enroll_meta_json")
   promotedAt        DateTime?           @map("promoted_at")
   createdByUserId   Int?                @map("created_by_user_id")
   updatedByUserId   Int?                @map("updated_by_user_id")
@@ -867,6 +879,8 @@ model DialysisSession {
   status            DialysisSessionStatus @default(ACTIVE)
   /// مجدولة حسب جدول الأسبوع / غير مجدولة / طارئة
   intakeKind        DialysisSessionIntakeKind? @map("intake_kind")
+  /// يدوي من القائمة أو تعرف بالوجه
+  patientMatchMethod DialysisSessionPatientMatchMethod? @default(MANUAL) @map("patient_match_method")
   startedAt         DateTime?             @map("started_at")
   endedAt           DateTime?             @map("ended_at")
   locationId        Int?                  @map("location_id")
@@ -909,6 +923,7 @@ model DialysisSession {
   @@index([dialysisPatientId, sessionDate])
   @@index([status])
   @@index([intakeKind])
+  @@index([patientMatchMethod])
   @@index([locationId])
   @@index([shiftSlotId])
   @@index([machineId])

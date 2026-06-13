@@ -49,6 +49,12 @@ import '../dialysis-brand.css';
 import {
   buildDialysisPrintHeaderHtml,
   DIALYSIS_PRINT_HEADER_CSS,
+  DIALYSIS_PDF_CAPTURE_CSS,
+  DIALYSIS_PRINT_BASE_CSS,
+  DIALYSIS_PRINT_FONT_TAGS,
+  DIALYSIS_PRINT_SIGNATURE_CSS,
+  DIALYSIS_PRINT_SIGNATURE_HTML,
+  downloadDialysisPrintHtmlAsPdf,
   escapeDialysisPrintHtml,
   type DialysisPrintFilterChip,
 } from '../dialysisPrint';
@@ -73,8 +79,6 @@ import {
   Area,
 } from 'recharts';
 import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -788,8 +792,13 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
   }, [reportDateFrom, reportDateTo]);
 
   const printTitle = useMemo(() => {
-    return `تقرير الجلسات (${reportDateFrom.format('YYYY-MM-DD')} → ${reportDateTo.format('YYYY-MM-DD')})`;
+    return `من ${reportDateFrom.format('YYYY-MM-DD')} إلى ${reportDateTo.format('YYYY-MM-DD')}`;
   }, [reportDateFrom, reportDateTo]);
+
+  const printSessionSummary = useMemo(() => {
+    const n = filteredReportRows.length;
+    return `${n} ${n === 1 ? 'جلسة' : 'جلسة'} بعد تطبيق الفلاتر`;
+  }, [filteredReportRows.length]);
 
   const reportHospitalLabel = useMemo(
     () => getHospitalScopeLabel(hospitalId, hospitals),
@@ -1267,7 +1276,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
     </>
   );
 
-  const printReport = (openPrintDialog = true) => {
+  const buildPrintReportDocumentHtml = (forPdfCapture = false) => {
     const printedAt = dayjs().format('YYYY-MM-DD HH:mm');
     const topRowsHtml = topPatients
       .map((r, idx) => `<tr><td>${idx + 1}</td><td>${esc(r.name)}</td><td>${r.count}</td></tr>`)
@@ -1297,28 +1306,28 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
 
     const kpiBlock = `
 <div class="print-kpi-wrap">
-  ${kpiSec('١ — ملخص عام', [
+  ${kpiSec('ملخص عام للفترة', [
     { n: kpis.total, l: 'إجمالي الجلسات' },
-    { n: kpis.uniquePatients, l: 'مرضى فريدون' },
-    { n: `${kpis.statCoveragePct}%`, l: 'تغطية الإحصاء' },
+    { n: kpis.uniquePatients, l: 'مرضى مختلفون' },
+    { n: `${kpis.statCoveragePct}%`, l: 'نسبة تغطية الإحصاء' },
   ])}
-  ${kpiSec('٢ — حسب نوع الجلسة', [
+  ${kpiSec('توزيع الجلسات حسب النوع', [
     { n: kpis.scheduled, l: 'مجدولة' },
     { n: kpis.unscheduled, l: 'غير مجدولة' },
     { n: kpis.emergency, l: 'طارئة' },
   ])}
-  ${kpiSec('٣ — حسب النوبة', [
+  ${kpiSec('توزيع الجلسات حسب النوبة', [
     { n: kpis.morning, l: 'صباحية' },
     { n: kpis.evening, l: 'مسائية' },
   ])}
-  ${kpiSec('٤ — حالة الجلسة', [
+  ${kpiSec('حالة الجلسات', [
     { n: kpis.active, l: 'نشطة' },
     { n: kpis.completed, l: 'منتهية' },
     { n: kpis.cancelled, l: 'ملغاة' },
   ])}
-  ${kpiSec('٥ — مطابقة الإحصاء', [
-    { n: kpis.reconMatched, l: 'مسجّل في الإحصاء' },
-    { n: kpis.reconMissing, l: 'غير مسجّل' },
+  ${kpiSec('مطابقة الجلسات مع الإحصاء', [
+    { n: kpis.reconMatched, l: 'مسجّلة في الإحصاء' },
+    { n: kpis.reconMissing, l: 'غير مسجّلة' },
     { n: kpis.reconSupply, l: 'فرق في المواد' },
   ])}
 </div>`;
@@ -1340,7 +1349,7 @@ const ReportsPage: React.FC<{ variant?: 'reports' | 'statistics' }> = ({ variant
       : '';
 
     const chartsBlock = `
-<div class="print-charts-title">المخططات البيانية</div>
+<div class="print-charts-title">الرسوم البيانية والتحليلات</div>
 ${hospitalChartsPrint}
 <div class="print-charts-row">
   <div class="chart-box"><h4>توزيع الجلسات على الصالات</h4>${buildPrintHBars(chartByHall, CHART_PALETTE, esc)}</div>
@@ -1356,8 +1365,8 @@ ${hospitalChartsPrint}
 </div>`;
 
     const printHeaderHtml = buildDialysisPrintHeaderHtml({
-      reportTitle: 'لوحة التقارير والإحصاءات — جلسات الغسل',
-      reportSubtitle: printTitle,
+      reportTitle: 'تقرير جلسات الغسل الكلوي',
+      reportSubtitle: `${printTitle} — ${printSessionSummary}`,
       hospitalLabel: reportHospitalLabel,
       filters: reportPrintFilters,
       printedAt,
@@ -1367,10 +1376,12 @@ ${hospitalChartsPrint}
     const html = `<!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8" />
 <title>${esc(printTitle)}</title>
+${DIALYSIS_PRINT_FONT_TAGS}
 <style>
-*{box-sizing:border-box}
-html,body{font-family:Tahoma,'Segoe UI',Arial,sans-serif;background:#fff;color:#0f172a;margin:0;padding:14px 16px;font-size:12px;line-height:1.45}
+${DIALYSIS_PRINT_BASE_CSS}
 ${DIALYSIS_PRINT_HEADER_CSS}
+${DIALYSIS_PRINT_SIGNATURE_CSS}
+${DIALYSIS_PDF_CAPTURE_CSS}
 .print-kpi-wrap{margin:12px 0 18px;display:flex;flex-direction:column;gap:12px}
 .print-kpi-section{break-inside:avoid-page;border:1px solid #cfe8f6;border-radius:12px;padding:10px 12px;background:linear-gradient(180deg,#fafdff 0%,#fff 100%)}
 .print-kpi-section h4{margin:0 0 10px;font-size:13px;font-weight:800;color:#0c4a6e;border-bottom:2px solid #28b2e1;padding-bottom:6px}
@@ -1409,6 +1420,7 @@ table.data th,table.data td{border:1px solid #dbeaf5;padding:5px 7px;vertical-al
 table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-weight:700;color:#0c4a6e}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .print-signature{display:none}
+.print-signature-top .print-signature{display:none}
 .print-footer{display:none}
 .preview-tools{
   position:sticky;
@@ -1444,17 +1456,16 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
   @page{size:A4;margin:7mm 7mm 18mm 7mm}
   body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .no-print{display:none !important}
-  .print-signature{
+  .print-signature-top .print-signature-stamp{
     display:block;
     position:fixed;
     left:1mm;
     bottom:0.5mm;
-    width:230px;
-    opacity:.75;
+    width:220px;
+    opacity:.78;
     z-index:2147483647;
     pointer-events:none;
   }
-  .print-signature svg{width:100%;height:auto;display:block}
   .print-footer{
     display:flex;
     position:fixed;
@@ -1473,7 +1484,7 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
     content:"صفحة " counter(page) " من " counter(pages);
   }
 }
-</style></head><body>
+</style></head><body${forPdfCapture ? ' class="pdf-capture"' : ''}>
 <div class="preview-tools no-print">
   <div class="preview-tools__meta">وضع المعاينة للطباعة/PDF</div>
   <div class="preview-tools__actions">
@@ -1481,73 +1492,37 @@ table.data th{background:linear-gradient(180deg,#e0f2fe 0%,#dbeafe 100%);font-we
     <button class="primary" onclick="window.close()">رجوع للنظام</button>
   </div>
 </div>
-<div class="print-signature" aria-hidden="true">
-  <svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#ffffff" stop-opacity=".38"/>
-        <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <g>
-      <rect x="15" y="15" width="570" height="270" rx="28" ry="28" fill="none" stroke="#0a4fb4" stroke-width="6"/>
-      <rect x="28" y="28" width="544" height="244" rx="22" ry="22" fill="none" stroke="#0a4fb4" stroke-width="2"/>
-      <rect x="52" y="52" width="496" height="196" rx="18" ry="18" fill="none" stroke="#0a4fb4" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/>
-      <g fill="none" stroke="#0a4fb4" stroke-width="2.6" opacity=".9">
-        <path d="M55 85 q22-22 50-35" />
-        <path d="M545 85 q-22-22 -50-35" />
-        <path d="M55 215 q22 22 50 35" />
-        <path d="M545 215 q-22 22 -50 35" />
-      </g>
-    </g>
-    <rect x="28" y="28" width="544" height="60" rx="20" ry="20" fill="url(#shine)" />
-    <g transform="translate(95,70) scale(0.5)">
-      <g fill="none" stroke="#0a4fb4" stroke-width="3">
-        <circle cx="0" cy="0" r="40" />
-        <circle cx="0" cy="0" r="26" stroke-width="2"/>
-      </g>
-      <path d="M -20 0 h 10 l 5 -10 l 6 20 l 7 -15 h 20" fill="none" stroke="#0a4fb4" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <g transform="translate(20,-20)" fill="#0a4fb4">
-        <rect x="-4" y="-12" width="8" height="24" rx="2"/>
-        <rect x="-12" y="-4" width="24" height="8" rx="2"/>
-      </g>
-    </g>
-    <g fill="#0a4fb4" stroke="#0a4fb4">
-      <text x="300" y="120" text-anchor="middle" style="font-family:'Aref Ruqaa',serif; font-size:46px; font-weight:700;">المهندس حيدر الحكيم</text>
-      <path d="M170 132 q130 28 260 0" fill="none" stroke-width="3"/>
-      <text x="300" y="198" text-anchor="middle" style="font-family:'Cairo',sans-serif; font-size:24px; font-weight:800;">مسؤول وحدة الحوكمة</text>
-      <text x="300" y="228" text-anchor="middle" style="font-family:'Cairo',sans-serif; font-size:21px; font-weight:700;">شعبة الكلية الصناعية – مستشفى الحكيم العام</text>
-    </g>
-    <g fill="#0a4fb4">
-      <circle cx="96" cy="238" r="3"/>
-      <circle cx="504" cy="238" r="3"/>
-    </g>
-  </svg>
-</div>
+${forPdfCapture ? '' : `<div class="print-signature-top">${DIALYSIS_PRINT_SIGNATURE_HTML}</div>`}
 
 ${printHeaderHtml}
 
 ${kpiBlock}
 ${chartsBlock}
 
-${shouldShowExtendedSections ? `<hr class="divider"><div class="sec"><h3>أكثر 10 مراجعين غسلات في الفترة</h3>
+${shouldShowExtendedSections ? `<hr class="divider"><div class="sec"><h3>أكثر عشرة مرضى حضوراً للغسل</h3>
 <table class="data"><thead><tr><th>الترتيب</th><th>اسم المريض</th><th>عدد الجلسات</th></tr></thead><tbody>${topRowsHtml || '<tr><td colspan="3">—</td></tr>'}</tbody></table></div>` : ''}
 
-${shouldShowExtendedSections ? `<div class="sec"><h3>الإحصاءات الشهرية</h3>
+${shouldShowExtendedSections ? `<div class="sec"><h3>ملخص الجلسات شهرياً</h3>
 <table class="data"><thead><tr><th>الشهر</th><th>الإجمالي</th><th>صباحية</th><th>مسائية</th><th>مجدولة</th><th>غير مجدولة</th><th>طارئة</th><th>مرضى فريدون</th><th>معدل يومي</th></tr></thead><tbody>${monthlyRowsHtml || '<tr><td colspan="9">—</td></tr>'}</tbody></table></div>` : ''}
 
-${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (نوع الجلسة والنوبة)</h3><div class="two">
+${shouldShowExtendedSections ? `<div class="sec"><h3>تفصيل حسب نوع الجلسة والنوبة</h3><div class="two">
 <div><h4 style="margin:0 0 6px;font-size:13px">حسب نوع الجلسة</h4><table class="data"><thead><tr><th>النوع</th><th>العدد</th></tr></thead><tbody>${typeRowsHtml}</tbody></table></div>
 <div><h4 style="margin:0 0 6px;font-size:13px">حسب النوبة</h4><table class="data"><thead><tr><th>النوبة</th><th>العدد</th></tr></thead><tbody>${shiftRowsHtml}</tbody></table></div>
 </div></div>` : ''}
 
-<hr class="divider"><div class="sec sessions"><h3>كل الجلسات حسب الفلاتر</h3>
+<hr class="divider"><div class="sec sessions"><h3>سجل الجلسات التفصيلي</h3>
 <table class="data"><thead><tr><th>#</th>${sessionsPrintHospitalTh}<th>اسم المريض</th><th>الصالة</th><th>رقم السرير</th><th>تاريخ الجلسة</th><th>الوقت</th><th>النوبة</th><th>نوع الجلسة</th><th>الحالة</th><th>اسم الموظف</th><th>مطابقة الإحصاء</th><th>ملاحظات</th></tr></thead>
 <tbody>${printSessionsRowsHtml || `<tr><td colspan="${sessionsPrintColspan}">لا توجد بيانات</td></tr>`}</tbody></table>
 </div>
+${forPdfCapture ? `<div class="print-signature-bottom">${DIALYSIS_PRINT_SIGNATURE_HTML}</div><div class="pdf-footer-template">شعبة الكلية الصناعية – وحدة الحوكمة</div>` : ''}
 <div class="print-footer"><div>شعبة الكلية الصناعية – وحدة الحوكمة</div><div class="page-num"></div></div>
 </body></html>`;
 
+    return html;
+  };
+
+  const printReport = (openPrintDialog = true) => {
+    const html = buildPrintReportDocumentHtml(false);
     const w = window.open('', '_blank');
     if (!w) {
       message.error('المتصفح منع نافذة الطباعة.');
@@ -1563,51 +1538,16 @@ ${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (
   };
 
   const downloadReportPdf = async () => {
-    const reportRoot = document.querySelector('.d-report-print') as HTMLElement | null;
-    if (!reportRoot) {
-      message.error('تعذر تحديد محتوى التقرير للتنزيل.');
-      return;
-    }
-
     setPdfLoading(true);
-    reportRoot.classList.add('d-report-exporting-pdf');
     try {
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      const canvas = await html2canvas(reportRoot, {
-        scale: Math.min(window.devicePixelRatio || 2, 2.2),
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 6;
-      const usableWidth = pageWidth - margin * 2;
-      const usableHeight = pageHeight - margin * 2;
-      const imageHeight = (canvas.height * usableWidth) / canvas.width;
-      const imageData = canvas.toDataURL('image/jpeg', 0.95);
-
-      let remainingHeight = imageHeight;
-      pdf.addImage(imageData, 'JPEG', margin, margin, usableWidth, imageHeight, undefined, 'FAST');
-      remainingHeight -= usableHeight;
-
-      while (remainingHeight > 0) {
-        pdf.addPage();
-        const offsetY = margin - (imageHeight - remainingHeight);
-        pdf.addImage(imageData, 'JPEG', margin, offsetY, usableWidth, imageHeight, undefined, 'FAST');
-        remainingHeight -= usableHeight;
-      }
-
+      const html = buildPrintReportDocumentHtml(true);
       const filename = `dialysis-report-${reportDateFrom.format('YYYYMMDD')}-${reportDateTo.format('YYYYMMDD')}.pdf`;
-      pdf.save(filename);
+      await downloadDialysisPrintHtmlAsPdf(html, filename);
       message.success('تم تنزيل PDF بنجاح');
     } catch (error) {
       console.error('Dialysis report PDF export failed:', error);
-      message.error('فشل تنزيل PDF. حاول مرة أخرى.');
+      message.error('فشل تنزيل PDF. حاول مرة أخرى أو استخدم «طباعة / حفظ PDF».');
     } finally {
-      reportRoot.classList.remove('d-report-exporting-pdf');
       setPdfLoading(false);
     }
   };
@@ -1744,7 +1684,7 @@ ${shouldShowExtendedSections ? `<div class="sec"><h3>جداول تفصيلية (
                         {reportHospitalLabel}
                       </Title>
                       <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
-                        {printTitle} — {filteredReportRows.length} جلسة بعد تطبيق الفلاتر
+                        {printTitle} — {printSessionSummary}
                       </Text>
                       {isMobile ? (
                         <>

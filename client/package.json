@@ -12,6 +12,7 @@
     "@types/node": "^16.18.68",
     "@types/react": "^18.2.42",
     "@types/react-dom": "^18.2.17",
+    "@vladmandic/face-api": "^1.7.15",
     "antd": "^5.11.5",
     "axios": "^1.6.2",
     "chart.js": "^4.4.0",

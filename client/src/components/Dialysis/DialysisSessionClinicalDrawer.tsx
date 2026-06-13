@@ -64,6 +64,7 @@ interface ItemOpt {
   id: number;
   name: string;
   baseUnitLabel: string;
+  drugCatalogId?: number | null;
 }
 
 interface WarehouseOpt {
@@ -118,7 +119,11 @@ const DialysisSessionClinicalDrawer: React.FC<Props> = ({
       ]);
       setWarehouses(wh.data);
       setItems(it.data);
-      setConsWarehouse((prev) => prev ?? wh.data[0]?.id);
+      setConsWarehouse((prev) => {
+        if (prev && wh.data.some((w) => w.id === prev)) return prev;
+        const general = wh.data.find((w) => w.type === 'GENERAL_MEDICAL');
+        return general?.id ?? wh.data[0]?.id;
+      });
     } catch {
       /* ignore */
     }
@@ -187,6 +192,20 @@ const DialysisSessionClinicalDrawer: React.FC<Props> = ({
       cancelled = true;
     };
   }, [consWarehouse, consItem, hospitalId]);
+
+  const selectedWarehouse = warehouses.find((w) => w.id === consWarehouse);
+  const consumptionItems = items.filter((i) => {
+    if (selectedWarehouse?.type === 'PHARMACY') return i.drugCatalogId != null;
+    if (selectedWarehouse?.type === 'GENERAL_MEDICAL') return !i.drugCatalogId;
+    return true;
+  });
+
+  useEffect(() => {
+    if (consItem && !consumptionItems.some((i) => i.id === consItem)) {
+      setConsItem(undefined);
+      setConsBatch(undefined);
+    }
+  }, [consItem, consumptionItems]);
 
   const saveClinical = async () => {
     if (!sessionId || !hospitalId || !canEdit) return;
@@ -443,10 +462,17 @@ const DialysisSessionClinicalDrawer: React.FC<Props> = ({
                       style={{ minWidth: 140, flex: 1 }}
                       placeholder="المستودع"
                       value={consWarehouse}
-                      onChange={(v) => setConsWarehouse(v)}
+                      onChange={(v) => {
+                        setConsWarehouse(v);
+                        setConsItem(undefined);
+                        setConsBatch(undefined);
+                      }}
                       options={warehouses.map((w) => ({
                         value: w.id,
-                        label: w.name,
+                        label:
+                          w.type === 'PHARMACY'
+                            ? `${w.name} (صيدلية)`
+                            : `${w.name} (مستلزمات)`,
                       }))}
                     />
                     <Select
@@ -459,7 +485,7 @@ const DialysisSessionClinicalDrawer: React.FC<Props> = ({
                         setConsItem(v);
                         setConsBatch(undefined);
                       }}
-                      options={items.map((i) => ({
+                      options={consumptionItems.map((i) => ({
                         value: i.id,
                         label: `${i.name} (${i.baseUnitLabel})`,
                       }))}

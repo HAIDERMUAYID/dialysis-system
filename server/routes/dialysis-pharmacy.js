@@ -19,6 +19,7 @@ const {
 } = require('../utils/dialysisItemUnits');
 const { purgeInactiveDialysisItemsInventory } = require('../utils/purgeDialysisItemInventory');
 const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
+const { assertItemMatchesWarehouseType } = require('../utils/dialysisInventoryScope');
 
 const router = express.Router();
 
@@ -1086,8 +1087,24 @@ router.get(
         });
       }
 
+      const phBatchItemIds = await prisma.dialysisInventoryBatch.findMany({
+        where: { hospitalId, warehouseId: ph.id },
+        distinct: ['itemId'],
+        select: { itemId: true },
+      });
+      const legacyPharmacyItemIds = phBatchItemIds.map((b) => b.itemId);
+
       const items = await prisma.dialysisItem.findMany({
-        where: { hospitalId, isActive: 1 },
+        where: {
+          hospitalId,
+          isActive: 1,
+          OR: [
+            { drugCatalogId: { not: null } },
+            ...(legacyPharmacyItemIds.length
+              ? [{ id: { in: legacyPharmacyItemIds } }]
+              : []),
+          ],
+        },
         include: {
           units: { orderBy: [{ levelOrder: 'asc' }, { id: 'asc' }] },
           drugCatalog: {
@@ -1409,6 +1426,7 @@ router.post(
         }
         const it = await tx.dialysisItem.findFirst({ where: { id: itemId, hospitalId } });
         if (!it) throw new Error('صنف غير موجود');
+        assertItemMatchesWarehouseType(it, 'PHARMACY');
 
         const ledgerNoteParts = [
           b.note,

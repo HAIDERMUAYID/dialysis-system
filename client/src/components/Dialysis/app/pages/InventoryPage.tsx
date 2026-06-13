@@ -9,17 +9,14 @@ const { Text } = Typography;
 
 const InventoryPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
-  const canManageLocation = usePermission('dialysis:location:manage');
-  const canManagePharmacyInv = usePermission('dialysis:pharmacy:inventory');
-  const canManage = canManageLocation || canManagePharmacyInv;
+  const canManage = usePermission('dialysis:location:manage');
   if (hospitalId == null) return null;
   return (
     <>
       <div className="d-page-header">
         <h2>المستودع والمواد</h2>
         <Text className="sub">
-          تعريف أصناف المستلزمات والأدوية المستخدمة في الجلسات، وتسجيل دفعات المخزون حسب المستودع مع تنبيهات
-          الصلاحية.
+          مستودع المستلزمات العامة (فلاتر، أكياس، مستهلكات…) — منفصل عن مخزن أدوية صيدلية الغسل.
         </Text>
       </div>
       {hospitalId === ALL_MY_HOSPITALS ? (

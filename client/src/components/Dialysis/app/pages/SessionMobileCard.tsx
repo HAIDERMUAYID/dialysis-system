@@ -18,6 +18,7 @@ export interface SessionMobileCardRow {
   sessionDate: string;
   status: string;
   intakeKind?: string | null;
+  patientMatchMethod?: 'MANUAL' | 'FACE' | null;
   startedAt?: string | null;
   dialysisPatient?: { fullName: string; kind?: string };
   location?: { hallName: string; bedCode: string } | null;
@@ -36,6 +37,8 @@ interface SessionMobileCardProps {
   statusMeta: StatusMeta;
   intakeLabel?: string;
   intakeColor?: string;
+  matchLabel?: string;
+  matchColor?: string;
   canEdit: boolean;
   canDelete: boolean;
   onOpenRecord: () => void;
@@ -49,6 +52,8 @@ const SessionMobileCard: React.FC<SessionMobileCardProps> = ({
   statusMeta,
   intakeLabel,
   intakeColor,
+  matchLabel,
+  matchColor,
   canEdit,
   canDelete,
   onOpenRecord,
@@ -102,6 +107,9 @@ const SessionMobileCard: React.FC<SessionMobileCardProps> = ({
         ) : (
           <Tag>غير مصنّف</Tag>
         )}
+        {matchLabel ? (
+          <Tag color={matchColor || 'default'}>{matchLabel}</Tag>
+        ) : null}
       </div>
 
       <div className="d-session-card__creator">

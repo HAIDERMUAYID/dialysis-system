@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import {
   Table,
   Button,
@@ -40,6 +40,7 @@ import {
   ClearOutlined,
   FilterOutlined,
   UserOutlined,
+  ScanOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs, { Dayjs } from 'dayjs';
@@ -56,6 +57,11 @@ import DialysisPullRefresh from '../DialysisPullRefresh';
 import DialysisMobileFab from '../DialysisMobileFab';
 import SessionMobileCard from './SessionMobileCard';
 import './sessions-page.css';
+import { DIALYSIS_FACE_ENABLED } from '../../face/dialysisFaceConfig';
+
+const DialysisFaceIdentifyModal = lazy(
+  () => import('../../face/DialysisFaceIdentifyModal')
+);
 
 const { Text } = Typography;
 const MOBILE_PAGE_SIZE = 15;
@@ -70,6 +76,7 @@ interface SessionRow {
   shift: string;
   status: string;
   intakeKind?: string | null;
+  patientMatchMethod?: 'MANUAL' | 'FACE' | null;
   startedAt?: string | null;
   endedAt?: string | null;
   dialysisPatient?: { fullName: string; kind?: string };
@@ -137,6 +144,16 @@ const INTAKE_KIND_LABEL: Record<string, { label: string; color: string }> = {
   OFF_SCHEDULE: { label: 'غير مجدولة', color: 'orange' },
   EMERGENCY: { label: 'غسلة طارئة', color: 'volcano' },
 };
+
+const PATIENT_MATCH_LABEL: Record<string, { label: string; color: string }> = {
+  MANUAL: { label: 'يدوي', color: 'default' },
+  FACE: { label: 'تعرف بالوجه', color: 'purple' },
+};
+
+function patientMatchDisplay(method?: string | null): { label: string; color: string } {
+  if (method === 'FACE') return PATIENT_MATCH_LABEL.FACE;
+  return PATIENT_MATCH_LABEL.MANUAL;
+}
 
 const KPI_ICON_BG: Record<string, string> = {
   total: 'linear-gradient(135deg,#6366f1,#4f46e5)',
@@ -209,10 +226,13 @@ const SessionsPage: React.FC = () => {
   ]);
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
   const [filterIntakeKind, setFilterIntakeKind] = useState<string | undefined>();
+  const [filterPatientMatch, setFilterPatientMatch] = useState<string | undefined>();
   const [filterPatientId, setFilterPatientId] = useState<number | undefined>();
   const [searchName, setSearchName] = useState('');
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [faceIdentifyOpen, setFaceIdentifyOpen] = useState(false);
+  const [patientMatchMethod, setPatientMatchMethod] = useState<'MANUAL' | 'FACE'>('MANUAL');
   const [form] = Form.useForm();
   const [patients, setPatients] = useState<PatientLite[]>([]);
   const [locations, setLocations] = useState<LocLite[]>([]);
@@ -259,11 +279,12 @@ const SessionsPage: React.FC = () => {
     if (dr.date_to) params.date_to = dr.date_to;
     if (filterStatus) params.status = filterStatus;
     if (filterIntakeKind) params.intake_kind = filterIntakeKind;
+    if (filterPatientMatch) params.patient_match_method = filterPatientMatch;
     if (filterPatientId) params.dialysis_patient_id = filterPatientId;
     const q = searchName.trim();
     if (q) params.search = q;
     return params;
-  }, [period, customRange, filterStatus, filterIntakeKind, filterPatientId, searchName]);
+  }, [period, customRange, filterStatus, filterIntakeKind, filterPatientMatch, filterPatientId, searchName]);
 
   const load = useCallback(async () => {
     if (hospitalId == null) return;
@@ -290,7 +311,7 @@ const SessionsPage: React.FC = () => {
 
   useEffect(() => {
     setMobilePage(1);
-  }, [period, customRange, filterStatus, filterIntakeKind, filterPatientId, searchName, hospitalId]);
+  }, [period, customRange, filterStatus, filterIntakeKind, filterPatientMatch, filterPatientId, searchName, hospitalId]);
 
   useEffect(() => {
     if (hospitalId == null) return;
@@ -342,6 +363,16 @@ const SessionsPage: React.FC = () => {
     [hospitalId, form]
   );
 
+  const handleFacePatientSelected = useCallback(
+    (patientId: number) => {
+      setPatientMatchMethod('FACE');
+      form.setFieldsValue({ dialysis_patient_id: patientId });
+      const sd = (form.getFieldValue('session_date') as Dayjs | undefined) ?? dayjs();
+      void fetchAndApplyHints(patientId, sd);
+    },
+    [form, fetchAndApplyHints]
+  );
+
   const reloadSlots = useCallback(
     async (date: Dayjs | null) => {
       if (hospitalId == null || !date) {
@@ -361,6 +392,9 @@ const SessionsPage: React.FC = () => {
     [hospitalId]
   );
 
+  const faceHospitalId =
+    typeof hospitalId === 'number' ? hospitalId : effectiveHospitalId;
+
   const openCreate = () => {
     if (mergedScope) {
       message.warning('لإنشاء جلسة جديدة اختر مستشفى واحداً من القائمة أعلاه.');
@@ -369,6 +403,7 @@ const SessionsPage: React.FC = () => {
     loadRefs();
     form.resetFields();
     setIntakeHints(null);
+    setPatientMatchMethod('MANUAL');
     form.setFieldsValue({ session_date: dayjs(), started_at: dayjs() });
     reloadSlots(dayjs());
     setDrawerOpen(true);
@@ -379,6 +414,7 @@ const SessionsPage: React.FC = () => {
     setCustomRange([dayjs().subtract(7, 'day').startOf('day'), dayjs().endOf('day')]);
     setFilterStatus(undefined);
     setFilterIntakeKind(undefined);
+    setFilterPatientMatch(undefined);
     setFilterPatientId(undefined);
     setSearchName('');
   };
@@ -434,6 +470,7 @@ const SessionsPage: React.FC = () => {
         heart_rate_pre: v.heart_rate_pre ?? null,
         temperature_pre_c: v.temperature_pre_c ?? null,
         notes: v.notes ?? null,
+        patient_match_method: patientMatchMethod,
       });
       message.success('تم إنشاء الجلسة');
       setDrawerOpen(false);
@@ -542,6 +579,9 @@ const SessionsPage: React.FC = () => {
                 ) : (
                   <Tag>غير مصنّف</Tag>
                 )}
+                <Tag color={patientMatchDisplay(r.patientMatchMethod).color}>
+                  {patientMatchDisplay(r.patientMatchMethod).label}
+                </Tag>
                 <Tag color={STATUS_LABEL[r.status]?.color || 'default'}>
                   {STATUS_LABEL[r.status]?.label ?? r.status}
                 </Tag>
@@ -640,6 +680,17 @@ const SessionsPage: React.FC = () => {
           ) : (
             <Text type="secondary">—</Text>
           ),
+      },
+      {
+        title: 'نوع الإضافة',
+        dataIndex: 'patientMatchMethod',
+        key: 'pm',
+        width: 120,
+        responsive: ['md'],
+        render: (m: string | null | undefined) => {
+          const meta = patientMatchDisplay(m);
+          return <Tag color={meta.color}>{meta.label}</Tag>;
+        },
       },
       {
         title: 'الشفت',
@@ -866,6 +917,17 @@ const SessionsPage: React.FC = () => {
           />
           <Select
             allowClear
+            placeholder="نوع الإضافة"
+            style={{ minWidth: 150 }}
+            value={filterPatientMatch}
+            onChange={setFilterPatientMatch}
+            options={[
+              { value: 'MANUAL', label: 'يدوي' },
+              { value: 'FACE', label: 'تعرف بالوجه' },
+            ]}
+          />
+          <Select
+            allowClear
             showSearch
             placeholder="المريض"
             style={{ minWidth: 200 }}
@@ -906,6 +968,7 @@ const SessionsPage: React.FC = () => {
                     const intake = r.intakeKind
                       ? INTAKE_KIND_LABEL[r.intakeKind]
                       : undefined;
+                    const match = patientMatchDisplay(r.patientMatchMethod);
                     return (
                       <SessionMobileCard
                         key={r.id}
@@ -914,6 +977,8 @@ const SessionsPage: React.FC = () => {
                         statusMeta={statusMeta}
                         intakeLabel={intake?.label}
                         intakeColor={intake?.color}
+                        matchLabel={match.label}
+                        matchColor={match.color}
                         canEdit={canEdit}
                         canDelete={canDelete}
                         onOpenRecord={() => openClinical(r)}
@@ -960,17 +1025,44 @@ const SessionsPage: React.FC = () => {
 
       {canCreate && (
         <Drawer
+          className={`d-session-create-drawer${isMobile ? ' d-session-create-drawer--mobile' : ''}`}
           title={
             <Space direction="vertical" size={0}>
               <span>جلسة غسيل جديدة</span>
             </Space>
           }
           placement={isMobile ? 'bottom' : 'right'}
-          height={isMobile ? '85%' : undefined}
+          height={isMobile ? '92%' : undefined}
           width={isMobile ? undefined : 500}
+          zIndex={isMobile ? 1310 : 1000}
           open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
+          onClose={() => {
+            if (faceIdentifyOpen) return;
+            setDrawerOpen(false);
+          }}
+          maskClosable={!faceIdentifyOpen && !isMobile}
+          keyboard={!faceIdentifyOpen}
           destroyOnClose
+          footer={
+            <Space className="d-session-create-drawer__footer" wrap>
+              <Button
+                type="primary"
+                size="large"
+                icon={<CalendarOutlined />}
+                onClick={submit}
+                disabled={hasConflict || registrationBlocked}
+              >
+                إنشاء الجلسة
+              </Button>
+              <Button
+                size="large"
+                onClick={() => setDrawerOpen(false)}
+                disabled={faceIdentifyOpen}
+              >
+                إلغاء
+              </Button>
+            </Space>
+          }
         >
           <Form
             form={form}
@@ -1039,6 +1131,18 @@ const SessionsPage: React.FC = () => {
                 }
               />
             )}
+            {DIALYSIS_FACE_ENABLED && faceHospitalId != null && (
+              <Button
+                type="default"
+                size="large"
+                block
+                icon={<ScanOutlined />}
+                style={{ marginBottom: 12 }}
+                onClick={() => setFaceIdentifyOpen(true)}
+              >
+                التحقق بالوجه — آمن (اختياري)
+              </Button>
+            )}
             <Form.Item
               name="dialysis_patient_id"
               label="المريض"
@@ -1049,12 +1153,21 @@ const SessionsPage: React.FC = () => {
                 showSearch
                 placeholder="ابحث بالاسم — يظهر طارئ أو دائم"
                 optionFilterProp="label"
+                onChange={() => setPatientMatchMethod('MANUAL')}
                 options={patients.map((p) => ({
                   value: p.id,
                   label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
                 }))}
               />
             </Form.Item>
+            {patientMatchMethod === 'FACE' ? (
+              <Alert
+                type="success"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="تم تحديد المريض عبر التعرف بالوجه"
+              />
+            ) : null}
             <Row gutter={12}>
               <Col xs={24} sm={12}>
                 <Form.Item
@@ -1178,22 +1291,19 @@ const SessionsPage: React.FC = () => {
                 },
               ]}
             />
-
-            <Space>
-              <Button
-                type="primary"
-                size="large"
-                icon={<CalendarOutlined />}
-                onClick={submit}
-                disabled={hasConflict || registrationBlocked}
-              >
-                إنشاء الجلسة
-              </Button>
-              <Button size="large" onClick={() => setDrawerOpen(false)}>
-                إلغاء
-              </Button>
-            </Space>
           </Form>
+
+          {DIALYSIS_FACE_ENABLED && faceHospitalId != null && !isMobile && (
+            <Suspense fallback={null}>
+              <DialysisFaceIdentifyModal
+                open={faceIdentifyOpen}
+                onClose={() => setFaceIdentifyOpen(false)}
+                hospitalId={faceHospitalId}
+                nestedInDrawer
+                onSelect={(patientId) => handleFacePatientSelected(patientId)}
+              />
+            </Suspense>
+          )}
         </Drawer>
       )}
 
@@ -1212,6 +1322,7 @@ const SessionsPage: React.FC = () => {
         }}
         onSaved={() => load()}
       />
+
     </div>
   );
 
@@ -1221,7 +1332,7 @@ const SessionsPage: React.FC = () => {
         icon={<PlusOutlined />}
         label="جلسة"
         ariaLabel="جلسة غسيل جديدة"
-        visible
+        visible={!drawerOpen}
         onClick={() => {
           if (mergedScope) {
             message.warning('اختر مستشفى واحداً من القائمة (☰) أو من حسابك قبل إنشاء جلسة');
@@ -1234,10 +1345,20 @@ const SessionsPage: React.FC = () => {
 
     return (
       <>
-        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null || drawerOpen}>
           {pageBody}
         </DialysisPullRefresh>
         {fab}
+        {DIALYSIS_FACE_ENABLED && faceHospitalId != null && (
+          <Suspense fallback={null}>
+            <DialysisFaceIdentifyModal
+              open={faceIdentifyOpen}
+              onClose={() => setFaceIdentifyOpen(false)}
+              hospitalId={faceHospitalId}
+              onSelect={(patientId) => handleFacePatientSelected(patientId)}
+            />
+          </Suspense>
+        )}
       </>
     );
   }

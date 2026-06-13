@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import {
   Avatar,
   Button,
@@ -27,6 +27,7 @@ import {
   MedicineBoxOutlined,
   PrinterOutlined,
   EditOutlined,
+  ScanOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -47,6 +48,7 @@ import DialysisBrandLogo from '../DialysisBrandLogo';
 import { DIALYSIS_MINISTRY_LINE, DIALYSIS_SYSTEM_TITLE } from '../dialysisBrand';
 import '../dialysis-brand.css';
 import './patient-medical-record.css';
+import { DIALYSIS_FACE_ENABLED } from '../../face/dialysisFaceConfig';
 import {
   PatientDossierCover,
   PatientDossierSessionTimeline,
@@ -56,6 +58,10 @@ import {
   type SessionDossierRow,
   type TreatmentHistoryRow,
 } from './PatientDossierViews';
+
+const DialysisFaceEnrollModal = lazy(
+  () => import('../../face/DialysisFaceEnrollModal')
+);
 
 const { Text, Paragraph } = Typography;
 
@@ -99,6 +105,8 @@ interface PatientDossier {
   anticoagulantStandard?: string | null;
   labsFollowUpJson?: unknown;
   photoUrl?: string | null;
+  faceEnrolledAt?: string | null;
+  hasFaceEnrolled?: boolean;
   created_by_display?: string | null;
 }
 
@@ -286,6 +294,7 @@ const PatientMedicalRecordPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<DossierPayload | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
   /** يفعّل تخطيط الطباعة: كل الجلسات، كل الإحصاء، وتجهيز الجداول قبل الحوار */
   const [printLayout, setPrintLayout] = useState(false);
 
@@ -675,6 +684,17 @@ const PatientMedicalRecordPage: React.FC = () => {
                       {isMobile ? 'تعديل' : 'تعديل البيانات'}
                     </Button>
                   )}
+                  {DIALYSIS_FACE_ENABLED && canEdit && patient && (
+                    <Button
+                      block={isMobile}
+                      icon={<ScanOutlined />}
+                      onClick={() => setFaceEnrollOpen(true)}
+                    >
+                      {patient.hasFaceEnrolled || patient.faceEnrolledAt
+                        ? 'إعادة تسجيل الوجه'
+                        : 'تسجيل الوجه (اختياري)'}
+                    </Button>
+                  )}
                 </Space>
               </div>
             </div>
@@ -789,6 +809,13 @@ const PatientMedicalRecordPage: React.FC = () => {
                             <Descriptions.Item label="البصمة / المعرف">
                               {patient.biometricId ?? '—'}
                             </Descriptions.Item>
+                            {DIALYSIS_FACE_ENABLED ? (
+                              <Descriptions.Item label="تسجيل الوجه">
+                                {patient.hasFaceEnrolled || patient.faceEnrolledAt
+                                  ? `مسجّل${patient.faceEnrolledAt ? ` — ${formatDialysisCalendarDate(patient.faceEnrolledAt)}` : ''}`
+                                  : 'غير مسجّل (اختياري)'}
+                              </Descriptions.Item>
+                            ) : null}
                             <Descriptions.Item label="المدينة">
                               {patient.city ?? '—'}
                             </Descriptions.Item>
@@ -1132,6 +1159,20 @@ const PatientMedicalRecordPage: React.FC = () => {
             load();
           }}
         />
+      )}
+
+      {DIALYSIS_FACE_ENABLED && patient && (
+        <Suspense fallback={null}>
+          <DialysisFaceEnrollModal
+            open={faceEnrollOpen}
+            onClose={() => setFaceEnrollOpen(false)}
+            patientId={patient.id}
+            hospitalId={patient.hospitalId}
+            patientName={patient.fullName}
+            hasFaceEnrolled={Boolean(patient.hasFaceEnrolled || patient.faceEnrolledAt)}
+            onEnrolled={() => load()}
+          />
+        </Suspense>
       )}
     </div>
   );

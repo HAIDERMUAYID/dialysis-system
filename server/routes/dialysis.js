@@ -24,8 +24,59 @@ const {
 } = require('../utils/dialysisItemUnits');
 const { purgeDialysisItemInventory } = require('../utils/purgeDialysisItemInventory');
 const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
+const {
+  parseWarehouseType,
+  itemWhereForWarehouseType,
+  assertItemMatchesWarehouseType,
+} = require('../utils/dialysisInventoryScope');
+const {
+  validateEnrollmentSamples,
+  identifyFaceStrict,
+  stripFaceEmbeddingFromPatient,
+} = require('../utils/dialysisFaceMatch');
 
 const router = express.Router();
+
+/** يُزيل حقول ثقيلة من صف قائمة المرضى قبل الإرسال للعميل */
+function stripPatientListRow(row) {
+  const base = stripFaceEmbeddingFromPatient(row);
+  const {
+    labsFollowUpJson: _labs,
+    viralMarkersJson: _viral,
+    notes: _notes,
+    kidneyFailureCause: _kfc,
+    vascularAccessNote: _van,
+    addressLine: _addr,
+    ...rest
+  } = base;
+  return rest;
+}
+
+/** إحصائيات الجلسات لكل مريض — استعلام واحد مجمّع */
+async function attachPatientSessionStats(prisma, rows, hospitalClause) {
+  if (!rows.length) return rows;
+  const ids = rows.map((r) => r.id);
+  const agg = await prisma.dialysisSession.groupBy({
+    by: ['dialysisPatientId'],
+    where: {
+      dialysisPatientId: { in: ids },
+      hospitalId: hospitalClause,
+    },
+    _count: { id: true },
+    _max: { sessionDate: true },
+  });
+  const map = Object.fromEntries(
+    agg.map((a) => [
+      a.dialysisPatientId,
+      { sessionTotal: a._count.id, lastSessionDate: a._max.sessionDate },
+    ])
+  );
+  return rows.map((r) => ({
+    ...r,
+    sessionTotal: map[r.id]?.sessionTotal ?? 0,
+    lastSessionDate: map[r.id]?.lastSessionDate ?? null,
+  }));
+}
 
 /** علاقات خفيفة لقائمة الجلسات — بدون استهلاكات (تُجلب في GET /sessions/:id) */
 const SESSION_LIST_INCLUDE = {
@@ -311,6 +362,7 @@ function buildDialysisSessionsWhere(hospitalClause, query) {
   const dateTo = query.date_to;
   const status = query.status;
   const intakeKindRaw = query.intake_kind;
+  const patientMatchMethodRaw = query.patient_match_method;
   const pidRaw = query.dialysis_patient_id;
   const search = query.search;
   const locationIdRaw = query.location_id;
@@ -342,6 +394,13 @@ function buildDialysisSessionsWhere(hospitalClause, query) {
     intakeKindFilter = String(intakeKindRaw).trim();
   }
 
+  let patientMatchMethodFilter = undefined;
+  if (patientMatchMethodRaw === 'FACE') {
+    patientMatchMethodFilter = 'FACE';
+  } else if (patientMatchMethodRaw === 'MANUAL') {
+    patientMatchMethodFilter = 'MANUAL';
+  }
+
   return {
     hospitalId: hospitalClause,
     ...(sessionDateWhere !== undefined
@@ -357,6 +416,11 @@ function buildDialysisSessionsWhere(hospitalClause, query) {
         ? { intakeKind: null }
         : { intakeKind: intakeKindFilter }
       : {}),
+    ...(patientMatchMethodFilter === 'FACE'
+      ? { patientMatchMethod: 'FACE' }
+      : patientMatchMethodFilter === 'MANUAL'
+        ? { OR: [{ patientMatchMethod: 'MANUAL' }, { patientMatchMethod: null }] }
+        : {}),
     ...(Number.isFinite(pid) ? { dialysisPatientId: pid } : {}),
     ...(Number.isFinite(locationId) ? { locationId } : {}),
     ...(Number.isFinite(shiftSlotId) ? { shiftSlotId } : {}),
@@ -629,7 +693,8 @@ router.get(
         take: 500,
       });
       rows = await attachUsernames(prisma, rows);
-      res.json(rows);
+      rows = await attachPatientSessionStats(prisma, rows, hospitalClause);
+      res.json(rows.map(stripPatientListRow));
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل جلب مرضى الغسل الكلوي' });
@@ -658,7 +723,7 @@ router.get(
       });
       if (!row) return res.status(404).json({ error: 'المريض غير موجود' });
       row = (await attachUsernames(prisma, [row]))[0];
-      res.json(row);
+      res.json(stripFaceEmbeddingFromPatient(row));
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل جلب المريض' });
@@ -846,7 +911,7 @@ router.get(
       };
 
       res.json({
-        patient: withUser,
+        patient: stripFaceEmbeddingFromPatient(withUser),
         sessions: sessionsWithUsers,
         schedules,
         statisticalEntries: statisticalWithUsers,
@@ -1393,10 +1458,218 @@ router.post(
         where: { id },
         data: { photoUrl, ...audit(req) },
       });
-      res.json({ photo_url: photoUrl, patient: updated });
+      res.json({ photo_url: photoUrl, patient: stripFaceEmbeddingFromPatient(updated) });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل حفظ الصورة' });
+    }
+  }
+);
+
+/** تسجيل بصمة وجه اختياري (embedding من المتصفح — لا يؤثر على البصمة/الجلسات الحالية) */
+router.post(
+  '/patients/:id/face-enroll',
+  authenticateToken,
+  requirePermission('dialysis:patient:edit'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!id) return res.status(400).json({ error: 'معرّف المريض غير صالح' });
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+
+      const patient = await prisma.dialysisPatient.findFirst({ where: { id, hospitalId } });
+      if (!patient) return res.status(404).json({ error: 'المريض غير موجود' });
+
+      const b = req.body;
+      if (b.consent !== true && b.consent !== 1 && b.consent !== '1') {
+        return res.status(400).json({ error: 'موافقة المريض على تسجيل الوجه مطلوبة' });
+      }
+
+      let embedding = null;
+      let pairwise = null;
+      const list = b.embeddings ?? b.embedding_list;
+      if (Array.isArray(list) && list.length) {
+        const validation = validateEnrollmentSamples(list);
+        if (!validation.ok) {
+          return res.status(400).json({ error: validation.error });
+        }
+        embedding = validation.embedding;
+        pairwise = validation.pairwise;
+      } else {
+        const validation = validateEnrollmentSamples([b.embedding ?? b.face_embedding].filter(Boolean));
+        if (!validation.ok) {
+          return res.status(400).json({ error: validation.error || 'بصمة الوجه غير صالحة أو ناقصة' });
+        }
+        embedding = validation.embedding;
+        pairwise = validation.pairwise;
+      }
+      if (!embedding) {
+        return res.status(400).json({ error: 'بصمة الوجه غير صالحة أو ناقصة' });
+      }
+
+      const metaRaw = b.meta && typeof b.meta === 'object' ? b.meta : {};
+      const faceMeta = {
+        pipeline_version: metaRaw.pipeline_version || 'face-api-aligned-v2',
+        camera_facing: metaRaw.camera_facing || null,
+        enroll_quality: metaRaw.enroll_quality ?? null,
+        liveness_passed: Boolean(metaRaw.liveness_passed),
+        sample_count: metaRaw.sample_count ?? (Array.isArray(list) ? list.length : 1),
+        pairwise_similarity: metaRaw.pairwise_similarity ?? pairwise ?? null,
+        enrolled_at: new Date().toISOString(),
+      };
+
+      const now = new Date();
+      const updated = await prisma.dialysisPatient.update({
+        where: { id },
+        data: {
+          faceEmbeddingJson: embedding,
+          faceEnrolledAt: now,
+          faceConsentAt: now,
+          faceEnrollMetaJson: faceMeta,
+          ...audit(req),
+        },
+      });
+      res.json({
+        ok: true,
+        face_enrolled_at: now.toISOString(),
+        patient: stripFaceEmbeddingFromPatient(updated),
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: e.message || 'فشل تسجيل الوجه' });
+    }
+  }
+);
+
+router.delete(
+  '/patients/:id/face-enroll',
+  authenticateToken,
+  requirePermission('dialysis:patient:edit'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const id = parseInt(req.params.id, 10);
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+      const patient = await prisma.dialysisPatient.findFirst({ where: { id, hospitalId } });
+      if (!patient) return res.status(404).json({ error: 'المريض غير موجود' });
+
+      const updated = await prisma.dialysisPatient.update({
+        where: { id },
+        data: {
+          faceEmbeddingJson: null,
+          faceEnrolledAt: null,
+          faceConsentAt: null,
+          faceEnrollMetaJson: null,
+          ...audit(req),
+        },
+      });
+      res.json({ ok: true, patient: stripFaceEmbeddingFromPatient(updated) });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل إزالة تسجيل الوجه' });
+    }
+  }
+);
+
+/** مطابقة وجه — للاستخدام لاحقاً عند إنشاء الجلسة (لا يغيّر السلوك الحالي) */
+router.post(
+  '/patients/identify-face',
+  authenticateToken,
+  requireAnyPermission('dialysis:view', 'dialysis:session:create'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+
+      const probeList = Array.isArray(req.body?.embeddings)
+        ? req.body.embeddings
+        : req.body?.embedding ?? req.body?.face_embedding
+          ? [req.body.embedding ?? req.body.face_embedding]
+          : [];
+
+      if (!probeList.length) {
+        return res.status(400).json({ error: 'بصمة الوجه للمطابقة غير صالحة' });
+      }
+
+      const rows = await prisma.dialysisPatient.findMany({
+        where: {
+          hospitalId,
+          faceEnrolledAt: { not: null },
+          faceEmbeddingJson: { not: null },
+        },
+        select: { id: true, fullName: true, faceEmbeddingJson: true },
+        take: 2000,
+      });
+
+      const gallery = rows.map((r) => ({
+        id: r.id,
+        fullName: r.fullName,
+        embedding: r.faceEmbeddingJson,
+      }));
+
+      const topK = parseInt(String(req.body?.top_k ?? 5), 10) || 5;
+      const result = identifyFaceStrict(probeList, gallery, { topK });
+
+      if (result.error) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        matches: result.matches,
+        enrolled_count: gallery.length,
+        auto_match: result.auto_match,
+        probe_count: result.probe_count,
+        pipeline_version: 'face-api-aligned-v2',
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل مطابقة الوجه' });
+    }
+  }
+);
+
+/** إحصاءات تسجيل الوجه — للمتابعة التشغيلية */
+router.get(
+  '/patients/face-stats',
+  authenticateToken,
+  requireAnyPermission('dialysis:view', 'dialysis:patient:edit'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const hospitalId = await requireDialysisHospital(prisma, req, res);
+      if (hospitalId == null) return;
+
+      const enrolled = await prisma.dialysisPatient.findMany({
+        where: {
+          hospitalId,
+          faceEnrolledAt: { not: null },
+          faceEmbeddingJson: { not: null },
+        },
+        select: { id: true, faceEnrollMetaJson: true },
+      });
+
+      const v2 = enrolled.filter((r) => {
+        const m = r.faceEnrollMetaJson;
+        return m && typeof m === 'object' && m.pipeline_version === 'face-api-aligned-v2';
+      }).length;
+
+      res.json({
+        enrolled_count: enrolled.length,
+        aligned_v2_count: v2,
+        needs_reenroll_count: enrolled.length - v2,
+        pipeline_current: 'face-api-aligned-v2',
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل جلب إحصاءات الوجه' });
     }
   }
 );
@@ -2015,8 +2288,13 @@ router.get(
     try {
       const hospitalId = await requireDialysisHospital(prisma, req, res);
       if (hospitalId == null) return;
+      const warehouseType = parseWarehouseType(req.query.warehouse_type ?? req.query.type);
       const rows = await prisma.dialysisWarehouse.findMany({
-        where: { hospitalId, isActive: 1 },
+        where: {
+          hospitalId,
+          isActive: 1,
+          ...(warehouseType ? { type: warehouseType } : {}),
+        },
       });
       res.json(rows);
     } catch (e) {
@@ -2036,8 +2314,13 @@ router.get(
     try {
       const hospitalId = await requireDialysisHospital(prisma, req, res);
       if (hospitalId == null) return;
+      const warehouseType = parseWarehouseType(req.query.warehouse_type ?? req.query.type);
       const rows = await prisma.dialysisItem.findMany({
-        where: { hospitalId, isActive: 1 },
+        where: {
+          hospitalId,
+          isActive: 1,
+          ...itemWhereForWarehouseType(warehouseType),
+        },
         orderBy: { name: 'asc' },
         include: { units: true },
       });
@@ -2321,9 +2604,22 @@ router.get(
         const wh = await prisma.dialysisWarehouse.findFirst({ where: { id: warehouseId, hospitalId } });
         if (!wh) return res.status(404).json({ error: 'مستودع غير موجود' });
       }
+      const warehouseTypeQuery = parseWarehouseType(req.query.warehouse_type ?? req.query.type);
+      let scopeWarehouseType = warehouseTypeQuery;
+      if (!scopeWarehouseType && warehouseId) {
+        const whRow = await prisma.dialysisWarehouse.findFirst({
+          where: { id: warehouseId, hospitalId },
+          select: { type: true },
+        });
+        scopeWarehouseType = whRow?.type ?? null;
+      }
 
       const items = await prisma.dialysisItem.findMany({
-        where: { hospitalId, isActive: 1 },
+        where: {
+          hospitalId,
+          isActive: 1,
+          ...itemWhereForWarehouseType(scopeWarehouseType),
+        },
         select: {
           id: true,
           name: true,
@@ -2366,6 +2662,7 @@ router.get(
 
       res.json({
         warehouse_id: warehouseId,
+        warehouse_type: scopeWarehouseType,
         items: itemsOut,
       });
     } catch (e) {
@@ -2461,6 +2758,12 @@ router.post(
         if (!wh) throw new Error('مستودع غير موجود');
         const it = await tx.dialysisItem.findFirst({ where: { id: itemId, hospitalId } });
         if (!it) throw new Error('صنف غير موجود');
+        assertItemMatchesWarehouseType(it, wh.type);
+        if (wh.type === 'PHARMACY') {
+          const err = new Error('استلام أدوية الصيدلية يتم من «مخزن صيدلية الغسل» فقط');
+          err.code = 400;
+          throw err;
+        }
 
         const unitCost = parseCost();
         const receiptNotes = b.receipt_notes ?? b.receiptNotes ?? null;
@@ -2735,6 +3038,8 @@ router.post(
         sessionDateYmd,
       });
 
+      const patientMatchMethod = b.patient_match_method === 'FACE' ? 'FACE' : 'MANUAL';
+
       let shift = b.shift || shiftFromLocalDate(startedAt);
       if (prefetchedSlot) {
         shift = legacyShiftFromSlot(prefetchedSlot);
@@ -2770,6 +3075,7 @@ router.post(
             shift,
             shiftSlotId,
             intakeKind,
+            patientMatchMethod,
             status: b.status || 'ACTIVE',
             startedAt,
             endedAt: b.ended_at ? new Date(b.ended_at) : null,

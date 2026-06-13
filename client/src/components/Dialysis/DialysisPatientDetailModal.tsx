@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import {
   Modal,
   Form,
@@ -18,8 +18,9 @@ import {
   InputNumber,
   Upload,
   Avatar,
+  Tag,
 } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusCircleOutlined, UploadOutlined, ScanOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -31,6 +32,9 @@ import {
   COUNTRY_OPTIONS,
 } from './dialysisConstants';
 import { useDialysisMobile } from './app/useDialysisMobile';
+import { DIALYSIS_FACE_ENABLED } from './face/dialysisFaceConfig';
+
+const DialysisFaceEnrollModal = lazy(() => import('./face/DialysisFaceEnrollModal'));
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -44,6 +48,8 @@ interface PatientApi {
   nationalId?: string | null;
   biometricId?: string | null;
   photoUrl?: string | null;
+  faceEnrolledAt?: string | null;
+  hasFaceEnrolled?: boolean;
   countryCode?: string | null;
   internalRecordNumber?: string | null;
   birthDate?: string | null;
@@ -112,6 +118,9 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
 }) => {
   const isMobile = useDialysisMobile();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
+  const [hasFaceEnrolled, setHasFaceEnrolled] = useState(false);
+  const [patientName, setPatientName] = useState('');
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<LocRow[]>([]);
@@ -212,6 +221,8 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
       setDayLoc(dl);
       setDayShift(ds);
       setAvatarUrl(p.photoUrl || null);
+      setHasFaceEnrolled(Boolean(p.hasFaceEnrolled || p.faceEnrolledAt));
+      setPatientName(p.fullName || '');
       if (uDays.length) await loadSlotsForDays(uDays);
     } catch {
       message.error('تعذر تحميل الملف');
@@ -408,28 +419,42 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
             </Avatar>
           </Col>
           {canEdit && patientId && (
-            <Col>
-              <Upload
-                showUploadList={false}
-                accept="image/*"
-                beforeUpload={async (file) => {
-                  try {
-                    const fd = new FormData();
-                    fd.append('photo', file as File);
-                    await axios.post(`/api/dialysis/patients/${patientId}/photo`, fd, {
-                      params: { hospital_id: hospitalId },
-                      headers: { 'Content-Type': 'multipart/form-data' },
-                    });
-                    setAvatarUrl(URL.createObjectURL(file as Blob));
-                    message.success('تم تحديث الصورة');
-                  } catch {
-                    message.error('فشل رفع الصورة');
-                  }
-                  return false;
-                }}
-              >
-                <Button icon={<UploadOutlined />}>رفع / تغيير الصورة</Button>
-              </Upload>
+            <Col flex="auto">
+              <Space direction="vertical" size="small" wrap>
+                <Upload
+                  showUploadList={false}
+                  accept="image/*"
+                  beforeUpload={async (file) => {
+                    try {
+                      const fd = new FormData();
+                      fd.append('photo', file as File);
+                      await axios.post(`/api/dialysis/patients/${patientId}/photo`, fd, {
+                        params: { hospital_id: hospitalId },
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                      });
+                      setAvatarUrl(URL.createObjectURL(file as Blob));
+                      message.success('تم تحديث الصورة');
+                    } catch {
+                      message.error('فشل رفع الصورة');
+                    }
+                    return false;
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>رفع / تغيير الصورة</Button>
+                </Upload>
+                {DIALYSIS_FACE_ENABLED && hospitalId != null && (
+                  <Space wrap>
+                    {hasFaceEnrolled ? (
+                      <Tag color="success">الوجه مسجّل</Tag>
+                    ) : (
+                      <Tag>الوجه غير مسجّل</Tag>
+                    )}
+                    <Button icon={<ScanOutlined />} onClick={() => setFaceEnrollOpen(true)}>
+                      {hasFaceEnrolled ? 'إعادة تسجيل الوجه' : 'تسجيل بصمة الوجه'}
+                    </Button>
+                  </Space>
+                )}
+              </Space>
             </Col>
           )}
         </Row>
@@ -454,8 +479,8 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
                   <Col xs={24} lg={12}>
                     <Form.Item
                       name="biometric_id"
-                      label="معرف البصمة"
-                      extra="فريد ضمن المستشفى — لا يُترك فارغاً للمريض الدائم عند الاعتماد النهائي"
+                      label="معرف البصمة (جهاز قديم)"
+                      extra="اختياري — يمكن استبداله بـ «تسجيل بصمة الوجه» أعلاه"
                     >
                       <Input placeholder="معرف البصمة" />
                     </Form.Item>
@@ -678,6 +703,23 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
             </Card>
           ))}
         </>
+      )}
+
+      {DIALYSIS_FACE_ENABLED && patientId && hospitalId != null && (
+        <Suspense fallback={null}>
+          <DialysisFaceEnrollModal
+            open={faceEnrollOpen}
+            onClose={() => setFaceEnrollOpen(false)}
+            patientId={patientId}
+            hospitalId={hospitalId}
+            patientName={patientName || `#${patientId}`}
+            hasFaceEnrolled={hasFaceEnrolled}
+            onEnrolled={() => {
+              setHasFaceEnrolled(true);
+              void loadPatient();
+            }}
+          />
+        </Suspense>
       )}
     </Modal>
   );

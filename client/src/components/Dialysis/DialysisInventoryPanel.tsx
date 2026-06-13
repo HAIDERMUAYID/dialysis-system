@@ -68,9 +68,15 @@ interface StockSummaryRow {
 interface Props {
   hospitalId: number;
   canManage: boolean;
+  /** مستودع المستلزمات العامة فقط — الأدوية في «مخزن صيدلية الغسل» */
+  warehouseType?: 'GENERAL_MEDICAL' | 'PHARMACY';
 }
 
-const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
+const DialysisInventoryPanel: React.FC<Props> = ({
+  hospitalId,
+  canManage,
+  warehouseType = 'GENERAL_MEDICAL',
+}) => {
   const isMobile = useDialysisMobile();
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
@@ -101,8 +107,13 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
 
   const loadStockSummary = useCallback(async () => {
     try {
+      const whId = warehouseFilter;
       const { data } = await axios.get<{ items: StockSummaryRow[] }>('/api/dialysis/inventory/summary', {
-        params: { hospital_id: hospitalId },
+        params: {
+          hospital_id: hospitalId,
+          warehouse_type: warehouseType,
+          ...(whId ? { warehouse_id: whId } : {}),
+        },
       });
       const map = new Map<number, StockSummaryRow>();
       (data.items ?? []).forEach((row) => map.set(row.id, row));
@@ -110,24 +121,31 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
     } catch {
       setStockByItem(new Map());
     }
-  }, [hospitalId]);
+  }, [hospitalId, warehouseType, warehouseFilter]);
 
   const loadWarehousesItems = useCallback(async () => {
     setItemsLoading(true);
     try {
       const [wh, it] = await Promise.all([
-        axios.get<WarehouseRow[]>('/api/dialysis/warehouses', { params: { hospital_id: hospitalId } }),
-        axios.get<ItemRow[]>('/api/dialysis/items', { params: { hospital_id: hospitalId } }),
+        axios.get<WarehouseRow[]>('/api/dialysis/warehouses', {
+          params: { hospital_id: hospitalId, warehouse_type: warehouseType },
+        }),
+        axios.get<ItemRow[]>('/api/dialysis/items', {
+          params: { hospital_id: hospitalId, warehouse_type: warehouseType },
+        }),
       ]);
       setWarehouses(wh.data);
       setItems(it.data);
-      setWarehouseFilter(wh.data[0]?.id);
+      setWarehouseFilter((prev) => {
+        if (prev && wh.data.some((w) => w.id === prev)) return prev;
+        return wh.data[0]?.id;
+      });
     } catch {
       message.error('تعذر تحميل المستودعات أو الأصناف. أعد فتح الصفحة.');
     } finally {
       setItemsLoading(false);
     }
-  }, [hospitalId]);
+  }, [hospitalId, warehouseType]);
 
   const loadBatches = useCallback(async () => {
     if (!warehouseFilter) {
@@ -148,9 +166,8 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
   }, [hospitalId, warehouseFilter]);
 
   useEffect(() => {
-    loadWarehousesItems();
     loadStockSummary();
-  }, [loadWarehousesItems, loadStockSummary]);
+  }, [loadStockSummary]);
 
   useEffect(() => {
     loadBatches();
@@ -219,9 +236,16 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
 
   const measureLabel = (k: string) => (k === 'WEIGHT_VOLUME' ? 'وزن أو حجم' : 'عدد (قطعة)');
 
+  useEffect(() => {
+    loadWarehousesItems();
+  }, [loadWarehousesItems]);
+
+  const generalWarehouseLabel =
+    warehouses.find((w) => w.type === 'GENERAL_MEDICAL')?.name ?? 'مستودع المستلزمات العامة';
+
   const warehouseOptions = warehouses.map((w) => ({
     value: w.id,
-    label: `${w.name} (${w.type === 'PHARMACY' ? 'صيدلية' : 'عام'})`,
+    label: w.name,
   }));
 
   const itemCols = [
@@ -317,14 +341,20 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
 
   const batchToolbar = (
     <div className="d-inv-toolbar">
-      <Select
-        style={{ minWidth: isMobile ? undefined : 220, width: isMobile ? '100%' : undefined }}
-        placeholder="اختر المستودع"
-        value={warehouseFilter}
-        onChange={(v) => setWarehouseFilter(v)}
-        options={warehouseOptions}
-        size={isMobile ? 'large' : 'middle'}
-      />
+      {warehouses.length > 1 ? (
+        <Select
+          style={{ minWidth: isMobile ? undefined : 220, width: isMobile ? '100%' : undefined }}
+          placeholder="اختر المستودع"
+          value={warehouseFilter}
+          onChange={(v) => setWarehouseFilter(v)}
+          options={warehouseOptions}
+          size={isMobile ? 'large' : 'middle'}
+        />
+      ) : (
+        <Text strong className="d-inv-warehouse-label">
+          {warehouses[0]?.name ?? generalWarehouseLabel}
+        </Text>
+      )}
       <Button icon={<ReloadOutlined />} onClick={() => loadBatches()} size={isMobile ? 'large' : 'middle'}>
         تحديث
       </Button>
@@ -354,7 +384,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
         <div className="d-inv-section-head">
           <h3>
             <InboxOutlined style={{ marginInlineEnd: 8 }} aria-hidden />
-            أصناف المستلزمات
+            أصناف المستلزمات العامة
           </h3>
           <Space wrap className="d-inv-toolbar">
             <Button icon={<ReloadOutlined />} onClick={() => { loadWarehousesItems(); loadStockSummary(); }} size={isMobile ? 'large' : 'middle'}>
@@ -377,8 +407,8 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
           </Space>
         </div>
         <Text type="secondary" className="d-inv-help">
-          كل صنف يُستخدم عند تسجيل استهلاك الجلسة أو الإدخال الإحصائي. حدّد اسماً واضحاً ووحدة المخزون (مثل:
-          أمبولة، كيس، غرام).
+          مستلزمات الغسل (فلاتر، أكياس، قساطر…) — وليس أدوية الصيدلية. لإدارة الأدوية استخدم «مخزن
+          صيدلية الغسل».
         </Text>
 
         {isMobile ? (
@@ -451,12 +481,12 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
 
       <section className="d-inv-section">
         <div className="d-inv-section-head">
-          <h3>دفعات المخزون</h3>
+          <h3>دفعات المخزون — {generalWarehouseLabel}</h3>
           {!isMobile ? batchToolbar : null}
         </div>
         {isMobile ? batchToolbar : null}
         <Text type="secondary" className="d-inv-help">
-          اختر المستودع ثم راجع الدفعات المتبقية وتواريخ الصلاحية. استلام دفعة جديدة يزيد الرصيد المتاح للجلسات.
+          دفعات مستودع المستلزمات العامة فقط. استلام أدوية الصيدلية يتم من صفحة «مخزن صيدلية الغسل».
         </Text>
 
         {isMobile ? (
@@ -520,7 +550,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       >
         <Form form={itemForm} layout="vertical" initialValues={{ measure_kind: 'COUNT' }}>
           <Form.Item name="name" label="اسم الصنف" rules={[{ required: true, message: 'مطلوب' }]}>
-            <Input size="large" placeholder="مثال: باراسيتامول، هيبرين" />
+            <Input size="large" placeholder="مثال: فلتر، كيس، قسطرة، هيبرين محلول" />
           </Form.Item>
           <Form.Item name="sku" label="رمز داخلي (اختياري)">
             <Input size="large" placeholder="للتعريف في التقارير" />
@@ -586,7 +616,7 @@ const DialysisInventoryPanel: React.FC<Props> = ({ hospitalId, canManage }) => {
       >
         <Form form={batchForm} layout="vertical">
           <Form.Item name="warehouse_id" label="المستودع" rules={[{ required: true, message: 'مطلوب' }]}>
-            <Select size="large" options={warehouseOptions} />
+            <Select size="large" options={warehouseOptions} disabled={warehouseOptions.length <= 1} />
           </Form.Item>
           <Form.Item name="item_id" label="الصنف" rules={[{ required: true, message: 'مطلوب' }]}>
             <Select

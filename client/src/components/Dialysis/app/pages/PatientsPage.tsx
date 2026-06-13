@@ -10,6 +10,7 @@ import {
   Space,
   Pagination,
   Spin,
+  Select,
 } from 'antd';
 import {
   PlusOutlined,
@@ -17,8 +18,12 @@ import {
   FileSearchOutlined,
   ReloadOutlined,
   EditOutlined,
+  CameraOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { ALL_MY_HOSPITALS, useDialysisContext, useEffectiveDialysisHospitalId } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
@@ -53,6 +58,36 @@ interface Row {
   dialysisStartDate?: string | null;
   sessionsPerWeek?: number | null;
   schedules?: ScheduleRow[];
+  hasFaceEnrolled?: boolean;
+  sessionTotal?: number;
+  lastSessionDate?: string | null;
+}
+
+type FaceFilter = 'all' | 'yes' | 'no';
+type SessionsFilter = 'all' | 'none' | 'has';
+type LastSessionFilter = 'all' | 'none' | '7d' | '30d' | '90d' | 'older30d';
+
+function formatSessionDate(value?: string | null): string {
+  if (!value) return '—';
+  const d = dayjs(value);
+  return d.isValid() ? d.format('YYYY-MM-DD') : '—';
+}
+
+function matchesLastSessionFilter(
+  lastSessionDate: string | null | undefined,
+  filter: LastSessionFilter
+): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'none') return !lastSessionDate;
+  if (!lastSessionDate) return false;
+  const d = dayjs(lastSessionDate);
+  if (!d.isValid()) return false;
+  const daysAgo = dayjs().startOf('day').diff(d.startOf('day'), 'day');
+  if (filter === '7d') return daysAgo <= 7;
+  if (filter === '30d') return daysAgo <= 30;
+  if (filter === '90d') return daysAgo <= 90;
+  if (filter === 'older30d') return daysAgo > 30;
+  return true;
 }
 
 function scheduleChipText(s: ScheduleRow): string {
@@ -81,6 +116,9 @@ const PatientsPage: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [faceFilter, setFaceFilter] = useState<FaceFilter>('all');
+  const [sessionsFilter, setSessionsFilter] = useState<SessionsFilter>('all');
+  const [lastSessionFilter, setLastSessionFilter] = useState<LastSessionFilter>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
@@ -109,15 +147,24 @@ const PatientsPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.fullName?.toLowerCase().includes(q) ||
-        (r.phone || '').toLowerCase().includes(q) ||
-        (r.nationalId || '').toLowerCase().includes(q) ||
-        (r.internalRecordNumber || '').toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    return rows.filter((r) => {
+      if (q) {
+        const hit =
+          r.fullName?.toLowerCase().includes(q) ||
+          (r.phone || '').toLowerCase().includes(q) ||
+          (r.nationalId || '').toLowerCase().includes(q) ||
+          (r.internalRecordNumber || '').toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (faceFilter === 'yes' && !r.hasFaceEnrolled) return false;
+      if (faceFilter === 'no' && r.hasFaceEnrolled) return false;
+      const total = r.sessionTotal ?? 0;
+      if (sessionsFilter === 'none' && total > 0) return false;
+      if (sessionsFilter === 'has' && total === 0) return false;
+      if (!matchesLastSessionFilter(r.lastSessionDate, lastSessionFilter)) return false;
+      return true;
+    });
+  }, [rows, search, faceFilter, sessionsFilter, lastSessionFilter]);
 
   const mobileSlice = useMemo(() => {
     const start = (cardPage - 1) * cardPageSize;
@@ -126,7 +173,16 @@ const PatientsPage: React.FC = () => {
 
   useEffect(() => {
     setCardPage(1);
-  }, [search]);
+  }, [search, faceFilter, sessionsFilter, lastSessionFilter]);
+
+  const hasActiveFilters =
+    faceFilter !== 'all' || sessionsFilter !== 'all' || lastSessionFilter !== 'all';
+
+  const clearFilters = () => {
+    setFaceFilter('all');
+    setSessionsFilter('all');
+    setLastSessionFilter('all');
+  };
 
   const pageBody = (
     <div className="d-patients-page">
@@ -173,6 +229,46 @@ const PatientsPage: React.FC = () => {
             </Button>
           )}
         </div>
+        <div className={`d-patients-filters${isMobile ? ' d-patients-filters--stack' : ''}`}>
+          <Select
+            value={faceFilter}
+            onChange={setFaceFilter}
+            className="d-patients-filter-select"
+            options={[
+              { value: 'all', label: 'بصمة الوجه: الكل' },
+              { value: 'yes', label: 'مسجّلة' },
+              { value: 'no', label: 'غير مسجّلة' },
+            ]}
+          />
+          <Select
+            value={sessionsFilter}
+            onChange={setSessionsFilter}
+            className="d-patients-filter-select"
+            options={[
+              { value: 'all', label: 'عدد الجلسات: الكل' },
+              { value: 'has', label: 'لديه جلسات' },
+              { value: 'none', label: 'بدون جلسات' },
+            ]}
+          />
+          <Select
+            value={lastSessionFilter}
+            onChange={setLastSessionFilter}
+            className="d-patients-filter-select"
+            options={[
+              { value: 'all', label: 'آخر جلسة: الكل' },
+              { value: '7d', label: 'خلال 7 أيام' },
+              { value: '30d', label: 'خلال 30 يوماً' },
+              { value: '90d', label: 'خلال 90 يوماً' },
+              { value: 'older30d', label: 'أقدم من 30 يوماً' },
+              { value: 'none', label: 'بدون جلسة مسجّلة' },
+            ]}
+          />
+          {hasActiveFilters ? (
+            <Button type="link" size="small" onClick={clearFilters}>
+              مسح الفلاتر
+            </Button>
+          ) : null}
+        </div>
         {isMobile && loading ? (
           <DialysisMobileSkeleton rows={4} />
         ) : isMobile ? (
@@ -207,6 +303,26 @@ const PatientsPage: React.FC = () => {
                     <div>
                       <dt>جلسات/أسبوع</dt>
                       <dd>{r.sessionsPerWeek != null ? r.sessionsPerWeek : '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>بصمة الوجه</dt>
+                      <dd>
+                        {r.hasFaceEnrolled ? (
+                          <Tag color="success" icon={<CheckCircleOutlined />}>
+                            مسجّلة
+                          </Tag>
+                        ) : (
+                          <Tag icon={<CloseCircleOutlined />}>غير مسجّلة</Tag>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>عدد الجلسات</dt>
+                      <dd>{r.sessionTotal ?? 0}</dd>
+                    </div>
+                    <div>
+                      <dt>آخر جلسة</dt>
+                      <dd>{formatSessionDate(r.lastSessionDate)}</dd>
                     </div>
                   </dl>
                   <div className="d-patient-card-schedule">
@@ -323,6 +439,46 @@ const PatientsPage: React.FC = () => {
                 }
                 return labels.join('، ');
               },
+            },
+            {
+              title: 'بصمة الوجه',
+              key: 'face',
+              width: 120,
+              filters: [
+                { text: 'مسجّلة', value: true },
+                { text: 'غير مسجّلة', value: false },
+              ],
+              onFilter: (value, r: Row) => Boolean(r.hasFaceEnrolled) === value,
+              render: (_: unknown, r: Row) =>
+                r.hasFaceEnrolled ? (
+                  <Tag color="success" icon={<CameraOutlined />}>
+                    مسجّلة
+                  </Tag>
+                ) : (
+                  <Tag color="default">غير مسجّلة</Tag>
+                ),
+            },
+            {
+              title: 'عدد الجلسات',
+              dataIndex: 'sessionTotal',
+              key: 'sessionTotal',
+              width: 110,
+              sorter: (a: Row, b: Row) => (a.sessionTotal ?? 0) - (b.sessionTotal ?? 0),
+              render: (n: number | undefined) => (
+                <Text strong={Boolean(n)}>{n ?? 0}</Text>
+              ),
+            },
+            {
+              title: 'آخر جلسة',
+              dataIndex: 'lastSessionDate',
+              key: 'lastSessionDate',
+              width: 120,
+              sorter: (a: Row, b: Row) => {
+                const ta = a.lastSessionDate ? dayjs(a.lastSessionDate).valueOf() : 0;
+                const tb = b.lastSessionDate ? dayjs(b.lastSessionDate).valueOf() : 0;
+                return ta - tb;
+              },
+              render: (v: string | null | undefined) => formatSessionDate(v),
             },
             { title: 'الملف', dataIndex: 'internalRecordNumber', key: 'rec', width: 110 },
             { title: 'الهاتف', dataIndex: 'phone', key: 'phone', width: 130 },
