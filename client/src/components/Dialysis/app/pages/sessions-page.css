@@ -88,9 +88,10 @@
     background: #fff;
     border: 1px solid #e8ecf4;
     border-radius: 16px;
-    padding: 14px;
+    padding: 14px 14px 14px 18px;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
     min-width: 0;
+    position: relative;
   }
 
   .d-session-card__head {
@@ -216,14 +217,14 @@
     min-height: 48px;
     padding: 10px 16px;
     border-radius: 14px;
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(13, 148, 136, 0.1) 100%);
+    border: 1px solid rgba(21, 124, 103, 0.28);
+    background: linear-gradient(135deg, rgba(21, 124, 103, 0.06) 0%, rgba(40, 178, 225, 0.08) 100%);
     font-weight: 600;
   }
 
   .d-face-quick-btn.ant-btn .anticon {
     font-size: 18px;
-    color: #4f46e5;
+    color: #157c67;
   }
 
   .d-session-face-missing-alert .ant-alert-action {
@@ -238,9 +239,9 @@
     margin-bottom: 14px;
     padding: 14px;
     border-radius: 16px;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    background: linear-gradient(135deg, rgba(254, 243, 199, 0.55) 0%, rgba(255, 251, 235, 0.95) 100%);
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(21, 124, 103, 0.28);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.85) 0%, rgba(240, 253, 250, 0.98) 100%);
+    box-shadow: 0 4px 16px rgba(21, 124, 103, 0.08);
   }
 
   .d-session-face-missing-card__head {
@@ -258,7 +259,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, #157c67, #0d9488);
     color: #fff;
     font-size: 18px;
   }

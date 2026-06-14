@@ -1,4 +1,5 @@
-# Dependencies
+# IDE
+.agents/
 node_modules/
 client/node_modules/
 
