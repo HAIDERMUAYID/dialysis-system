@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { Spin, Typography, Tag, Empty, message } from 'antd';
 import {
   TeamOutlined,
@@ -8,93 +8,33 @@ import {
   ThunderboltOutlined,
   CalendarOutlined,
 } from '@ant-design/icons';
-import axios from 'axios';
 import dayjs from 'dayjs';
 import { ALL_MY_HOSPITALS, useDialysisContext } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
+import { useDialysisOverview } from '../hooks';
 import DialysisPullRefresh from '../DialysisPullRefresh';
 import DialysisMobileSkeleton from '../DialysisMobileSkeleton';
+import DialysisPageHeader from '../DialysisPageHeader';
+import DialysisOperationalAlerts from '../DialysisOperationalAlerts';
 import { Link } from 'react-router-dom';
+import './overview-page.css';
 
 const { Title, Text } = Typography;
-
-interface ActiveRow {
-  id: number;
-  hospital?: { name: string; code?: string | null };
-  startedAt?: string | null;
-  dialysisPatient?: { fullName: string };
-  location?: { hallName: string; bedCode: string } | null;
-}
-
-const STAT_COLORS: Record<string, string> = {
-  patients: 'linear-gradient(135deg,#3b82f6,#2563eb)',
-  locations: 'linear-gradient(135deg,#22c55e,#16a34a)',
-  slots: 'linear-gradient(135deg,#f59e0b,#d97706)',
-  machines: 'linear-gradient(135deg,#06b6d4,#0891b2)',
-  active: 'linear-gradient(135deg,#ef4444,#b91c1c)',
-  today: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
-};
 
 const OverviewPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
   const isMobile = useDialysisMobile();
   const mergedScope = hospitalId === ALL_MY_HOSPITALS;
-  const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState({
-    patients: 0,
-    locations: 0,
-    slots: 0,
-    machines: 0,
-    active: 0,
-    today: 0,
-  });
-  const [active, setActive] = useState<ActiveRow[]>([]);
-  const [statsReady, setStatsReady] = useState(false);
+
+  const { stats, active, loading, isSuccess, refetch, error } = useDialysisOverview(hospitalId);
 
   useEffect(() => {
-    setStatsReady(false);
-  }, [hospitalId]);
-
-  const load = useCallback(async () => {
-    if (hospitalId == null) return;
-    setLoading(true);
-    const today = dayjs().format('YYYY-MM-DD');
-    const params = { hospital_id: hospitalId };
-    try {
-      const [pat, locs, slots, machs, act, kpis] = await Promise.all([
-        axios.get('/api/dialysis/patients', { params }),
-        axios.get('/api/dialysis/locations', { params }),
-        axios.get('/api/dialysis/shift-slots', { params }),
-        axios.get('/api/dialysis/machines', { params }),
-        axios.get('/api/dialysis/sessions/active', { params }),
-        axios.get<{ total: number; active: number }>('/api/dialysis/sessions/kpis', {
-          params: { ...params, date: today },
-        }),
-      ]);
-      setStats({
-        patients: Array.isArray(pat.data) ? pat.data.length : 0,
-        locations: Array.isArray(locs.data) ? locs.data.length : 0,
-        slots: Array.isArray(slots.data) ? slots.data.length : 0,
-        machines: Array.isArray(machs.data) ? machs.data.length : 0,
-        active: Array.isArray(act.data) ? act.data.length : 0,
-        today: typeof kpis.data?.total === 'number' ? kpis.data.total : 0,
-      });
-      setActive(Array.isArray(act.data) ? act.data.slice(0, 6) : []);
-    } catch {
+    if (error) {
       message.error('تعذر تحميل ملخص النظام. تحقق من الاتصال وأعد المحاولة.');
-    } finally {
-      setLoading(false);
-      setStatsReady(true);
     }
-  }, [hospitalId]);
+  }, [error]);
 
-  const showMobileSkeleton = isMobile && loading && !statsReady;
-
-  useEffect(() => {
-    load();
-    const t = window.setInterval(load, 30_000);
-    return () => window.clearInterval(t);
-  }, [load]);
+  const showMobileSkeleton = isMobile && loading && !isSuccess;
 
   const cards = [
     { key: 'patients', label: 'مرضى مسجّلون', value: stats.patients, icon: <TeamOutlined />, link: '/dialysis/patients' },
@@ -103,55 +43,46 @@ const OverviewPage: React.FC = () => {
     { key: 'locations', label: 'أسرة/قاعات', value: stats.locations, icon: <ApartmentOutlined />, link: '/dialysis/halls' },
     { key: 'slots', label: 'شفتات معرّفة', value: stats.slots, icon: <ClockCircleOutlined />, link: '/dialysis/shifts' },
     { key: 'machines', label: 'أجهزة الغسل', value: stats.machines, icon: <HddOutlined />, link: '/dialysis/machines' },
-  ];
+  ] as const;
 
   const body = (
     <Spin spinning={loading && !isMobile}>
-      <div className="d-page-header">
-        <h2>نظرة عامة</h2>
-        <Text className="sub">ملخص بيانات وحدة الغسل الكلوي. يتم تحديث البيانات كل 30 ثانية.</Text>
-      </div>
+      <DialysisPageHeader
+        title="نظرة عامة"
+        subtitle="ملخص بيانات وحدة الغسل الكلوي. يتم تحديث البيانات كل 30 ثانية."
+      />
+
+      <DialysisOperationalAlerts />
 
       {showMobileSkeleton ? (
         <DialysisMobileSkeleton rows={6} variant="stat" />
       ) : (
-        <div
-          className={`d-stat-grid${isMobile && loading ? ' d-stat-grid--refresh' : ''}`}
-        >
+        <div className={`d-stat-grid${isMobile && loading ? ' d-stat-grid--refresh' : ''}`}>
           {cards.map((c) => (
-            <Link key={c.key} to={c.link} className="d-stat" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={c.key} to={c.link} className="d-stat">
               <div className="d-stat-info">
                 <span className="d-stat-label">{c.label}</span>
                 <span className="d-stat-value">{c.value}</span>
               </div>
-              <span className="d-stat-icon" style={{ background: STAT_COLORS[c.key] }}>
-                {c.icon}
-              </span>
+              <span className={`d-stat-icon d-stat-icon--${c.key}`}>{c.icon}</span>
             </Link>
           ))}
         </div>
       )}
 
-      <div className="d-card" style={{ marginTop: 18 }}>
-        <Title level={5} className="d-card-title">جلسات قيد التشغيل</Title>
+      <div className="d-card d-overview-active-section">
+        <Title level={5} className="d-card-title">
+          جلسات قيد التشغيل
+        </Title>
         {active.length === 0 ? (
           <Empty description="لا توجد جلسات نشطة الآن" />
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div className="d-overview-active-list">
             {active.map((s) => (
-              <div
-                key={s.id}
-                className="d-active-summary-row"
-                style={{
-                  padding: '10px 12px',
-                  border: '1px solid #eef0f4',
-                  borderRadius: 10,
-                  background: '#fafbff',
-                }}
-              >
+              <div key={s.id} className="d-active-summary-row d-active-summary-row--boxed">
                 <div>
                   {mergedScope && s.hospital?.name ? (
-                    <Tag color="geekblue" style={{ marginInlineEnd: 6 }}>
+                    <Tag color="geekblue" className="d-overview-scope-tag">
                       {s.hospital.name}
                     </Tag>
                   ) : null}
@@ -168,7 +99,7 @@ const OverviewPage: React.FC = () => {
                 </Text>
               </div>
             ))}
-            <Link to="/dialysis/live" style={{ alignSelf: 'flex-end' }}>
+            <Link to="/dialysis/live" className="d-overview-active-more">
               عرض جميع الجلسات النشطة ←
             </Link>
           </div>
@@ -177,9 +108,13 @@ const OverviewPage: React.FC = () => {
     </Spin>
   );
 
+  const handleRefresh = async () => {
+    await refetch();
+  };
+
   if (isMobile) {
     return (
-      <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+      <DialysisPullRefresh onRefresh={handleRefresh} disabled={hospitalId == null}>
         {body}
       </DialysisPullRefresh>
     );

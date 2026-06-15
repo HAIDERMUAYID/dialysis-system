@@ -241,3 +241,63 @@ Authorization: Bearer <token>
 - 403: ممنوع الوصول
 - 404: غير موجود
 - 500: خطأ في الخادم
+
+---
+
+## وحدة الغسل الكلوي (D-IRS) — `/api/dialysis`
+
+> **نطاق المستشفى:** أغلب المسارات تتطلب `hospital_id` (query) — رقم مستشفى واحد، أو القيمة الخاصة `ALL` لدمج كل المستشفيات المسموح بها للمستخدم.  
+> **تسمية الحقول:** JSON من الخادم يستخدم `snake_case` في query/body حيث يُذكر أدناه؛ الاستجابات قد تتضمن حقولاً بصيغة camelCase من Prisma/العميل.
+
+### صلاحيات شائعة
+
+| Permission | الاستخدام |
+|------------|-----------|
+| `dialysis:view` | قراءة مرضى، جلسات، قاعة، تقارير |
+| `dialysis:patient:create` | إضافة مريض |
+| `dialysis:session:create` / `edit` | جلسات |
+| `dialysis:pharmacy:view` | صيدلية الغسل |
+| `dialysis:access:manage` | إدارة الوصول + audit log |
+| `dialysis:reconciliation` | مطابقة إحصائية |
+
+### مرضى
+
+| Method | Path | ملاحظات |
+|--------|------|---------|
+| GET | `/api/dialysis/patients` | `hospital_id`, `search`, `face_filter`, `sessions_filter`, `last_session_filter`, `limit`, `offset` |
+| GET | `/api/dialysis/patients/lookup` | قائمة مختصرة للقوائم المنسدلة |
+| GET | `/api/dialysis/patients/face-stats` | `without_face_count`, `needs_reenroll_count` |
+| POST | `/api/dialysis/patients` | إنشاء (طارئ/دائم + `schedules[]`) |
+| PATCH | `/api/dialysis/patients/:id` | تعديل |
+| DELETE | `/api/dialysis/patients/:id` | يتطلب صلاحية حذف |
+| POST | `/api/dialysis/patients/identify-face` | `{ hospital_id, descriptors[] }` — rate limit |
+| POST | `/api/dialysis/patients/:id/face-enroll` | تسجيل بصمة |
+
+### جلسات وقاعة
+
+| Method | Path | ملاحظات |
+|--------|------|---------|
+| GET | `/api/dialysis/sessions` | فلاتر: `status`, `date`, `intake_kind`, `patient_match_method`, `dialysis_patient_id` |
+| GET | `/api/dialysis/sessions/active` | الجلسات الجارية (القاعة) |
+| GET | `/api/dialysis/sessions/kpis` | `date` — مؤشرات اليوم |
+| POST | `/api/dialysis/sessions` | إنشاء جلسة |
+| PATCH | `/api/dialysis/sessions/:id` | تحديث (حالة، vitals، …) |
+| DELETE | `/api/dialysis/sessions/:id` | حذف مع تأكيد في الواجهة |
+| GET | `/api/dialysis/live/stream` | SSE — `?token=` + `hospital_id` |
+
+### وزارة وتدقيق
+
+| Method | Path | ملاحظات |
+|--------|------|---------|
+| GET | `/api/dialysis/ministry/summary` | KPIs مجمّعة |
+| GET | `/api/dialysis/ministry/export.xlsx` | تصدير Excel |
+| GET | `/api/dialysis/audit-log` | `dialysis:access:manage` — عمليات حساسة |
+
+### صيدلية الغسل
+
+| Method | Path | ملاحظات |
+|--------|------|---------|
+| GET | `/api/dialysis/pharmacy/inventory/overview` | KPIs + أصناف |
+| GET | `/api/dialysis/pharmacy/dispense-queue` | طابور الصرف |
+
+> للمسارات الكاملة راجع `server/routes/dialysis.js` و `server/routes/dialysis-pharmacy.js`.

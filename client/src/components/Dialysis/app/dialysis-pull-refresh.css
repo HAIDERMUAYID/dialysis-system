@@ -15,7 +15,7 @@
   padding: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #6366f1;
+  color: var(--d-brand-teal, #157c67);
   pointer-events: none;
   opacity: 0;
   transition: opacity 180ms ease;

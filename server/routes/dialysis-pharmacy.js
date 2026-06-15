@@ -20,6 +20,7 @@ const {
 const { purgeInactiveDialysisItemsInventory } = require('../utils/purgeDialysisItemInventory');
 const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
 const { assertItemMatchesWarehouseType } = require('../utils/dialysisInventoryScope');
+const { logDialysisAudit } = require('../utils/dialysisAuditLog');
 
 const router = express.Router();
 
@@ -961,6 +962,7 @@ router.post(
 
       const session = await prisma.dialysisSession.findUnique({
         where: { id: sessionId },
+        include: { dialysisPatient: { select: { fullName: true } } },
       });
       if (!session) return res.status(404).json({ error: 'الجلسة غير موجودة' });
       if (session.status === 'CANCELLED') {
@@ -1050,6 +1052,18 @@ router.post(
             },
           },
           completedBy: { select: { id: true, name: true, username: true } },
+        },
+      });
+      await logDialysisAudit(prisma, req, {
+        action: 'dispense_complete',
+        entityType: 'dialysis_dispense',
+        entityId: full?.id ?? sessionId,
+        summary: `تأكيد صرف صيدلية لجلسة #${sessionId} — ${session.dialysisPatient?.fullName || 'مريض'}`,
+        meta: {
+          hospital_id: session.hospitalId,
+          patient_name: session.dialysisPatient?.fullName,
+          session_id: sessionId,
+          line_count: full?.lines?.length ?? 0,
         },
       });
       res.json({ ok: true, dispense: full });

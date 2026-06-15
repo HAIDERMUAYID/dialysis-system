@@ -98,7 +98,7 @@ export const PatientMatchBadge: React.FC<{ method?: PatientMatchMethod; compact?
   return (
     <Tag
       className="d-report-match-badge"
-      color={isFace ? 'purple' : 'default'}
+      color={isFace ? 'cyan' : 'default'}
       icon={isFace ? <ScanOutlined /> : <FormOutlined />}
     >
       {compact ? label : isFace ? 'تعرف بالوجه' : 'إدخال يدوي'}

@@ -41,7 +41,6 @@ import {
   FilterOutlined,
   UserOutlined,
   ScanOutlined,
-  CameraOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs, { Dayjs } from 'dayjs';
@@ -50,6 +49,13 @@ import {
   useDialysisContext,
   useEffectiveDialysisHospitalId,
 } from '../dialysisContext';
+import {
+  useDialysisPatientsLookup,
+  useDialysisSessions,
+  useInvalidateDialysisSessions,
+  type DialysisSessionRow,
+  type DialysisSessionKpis,
+} from '../hooks';
 import { useDialysisMobile } from '../useDialysisMobile';
 import { useDialysisOverlayLock } from '../useDialysisOverlayLock';
 import { usePermission } from '../../../../hooks/usePermission';
@@ -61,6 +67,16 @@ import SessionMobileCard from './SessionMobileCard';
 import './sessions-page.css';
 import { DIALYSIS_FACE_ENABLED } from '../../face/dialysisFaceConfig';
 import DialysisFaceMissingPrompt from '../../face/DialysisFaceMissingPrompt';
+import DialysisFaceStatusBanner from '../DialysisFaceStatusBanner';
+import DialysisMergedScopeBanner from '../DialysisMergedScopeBanner';
+import DialysisPageHeader from '../DialysisPageHeader';
+import {
+  getBaghdadTime,
+  isSessionDateFutureBaghdad,
+  isSessionStartFutureBaghdad,
+  mergeSessionDateWithStartTimeBaghdad,
+} from '../dialysisSessionTime';
+import { confirmEndDialysisSession } from '../dialysisConfirmEndSession';
 
 const DialysisFaceIdentifyModal = lazy(
   () => import('../../face/DialysisFaceIdentifyModal')
@@ -74,29 +90,14 @@ const MOBILE_PAGE_SIZE = 15;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
-interface SessionRow {
-  id: number;
-  hospitalId?: number;
-  hospital?: { id: number; name: string; code?: string | null };
-  sessionDate: string;
-  shift: string;
-  status: string;
-  intakeKind?: string | null;
-  patientMatchMethod?: 'MANUAL' | 'FACE' | null;
-  startedAt?: string | null;
-  endedAt?: string | null;
-  dialysisPatient?: { fullName: string; kind?: string };
-  location?: { hallName: string; bedCode: string } | null;
-  shiftSlot?: { name: string; startMinutes?: number } | null;
-  created_by_display?: string | null;
-  createdAt?: string;
-}
+interface SessionRow extends DialysisSessionRow {}
 
 interface PatientLite {
   id: number;
   fullName: string;
   kind?: string;
   hasFaceEnrolled?: boolean;
+  needsFaceReenroll?: boolean;
 }
 interface LocLite {
   id: number;
@@ -127,15 +128,7 @@ interface IntakeHints {
   existingSession?: { id: number; status: string; startedAt?: string | null } | null;
 }
 
-interface SessionKpis {
-  total: number;
-  active: number;
-  scheduled: number;
-  completed: number;
-  cancelled: number;
-  uniquePatients: number;
-  byIntakeKind: Record<string, number>;
-}
+interface SessionKpis extends DialysisSessionKpis {}
 
 type PeriodPreset = 'today' | 'week' | 'month' | 'all' | 'custom';
 
@@ -154,7 +147,7 @@ const INTAKE_KIND_LABEL: Record<string, { label: string; color: string }> = {
 
 const PATIENT_MATCH_LABEL: Record<string, { label: string; color: string }> = {
   MANUAL: { label: 'يدوي', color: 'default' },
-  FACE: { label: 'تعرف بالوجه', color: 'purple' },
+  FACE: { label: 'تعرف بالوجه', color: 'cyan' },
 };
 
 function patientMatchDisplay(method?: string | null): { label: string; color: string } {
@@ -163,28 +156,19 @@ function patientMatchDisplay(method?: string | null): { label: string; color: st
 }
 
 const KPI_ICON_BG: Record<string, string> = {
-  total: 'linear-gradient(135deg,#6366f1,#4f46e5)',
+  total: 'linear-gradient(135deg,#157c67,#0d9488)',
   active: 'linear-gradient(135deg,#ef4444,#b91c1c)',
   completed: 'linear-gradient(135deg,#22c55e,#15803d)',
   scheduled: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
   cancelled: 'linear-gradient(135deg,#94a3b8,#64748b)',
-  patients: 'linear-gradient(135deg,#a855f7,#7e22ce)',
+  patients: 'linear-gradient(135deg,#0d9488,#157c67)',
 };
-
-function mergeSessionDateWithStartTime(sessionDate: Dayjs, timeOnly: Dayjs): string {
-  return sessionDate
-    .hour(timeOnly.hour())
-    .minute(timeOnly.minute())
-    .second(timeOnly.second())
-    .millisecond(0)
-    .toISOString();
-}
 
 function dateRangeForPeriod(
   period: PeriodPreset,
   custom: [Dayjs, Dayjs] | null
 ): { date_from?: string; date_to?: string } {
-  const d0 = dayjs().startOf('day');
+  const d0 = getBaghdadTime().startOf('day');
   switch (period) {
     case 'today':
       return { date_from: d0.format('YYYY-MM-DD'), date_to: d0.format('YYYY-MM-DD') };
@@ -223,9 +207,7 @@ const SessionsPage: React.FC = () => {
   const canDelete = usePermission('dialysis:session:delete');
   const canEditPatient = usePermission('dialysis:patient:edit');
 
-  const [rows, setRows] = useState<SessionRow[]>([]);
-  const [kpis, setKpis] = useState<SessionKpis | null>(null);
-  const [loading, setLoading] = useState(false);
+  const invalidateSessions = useInvalidateDialysisSessions();
 
   const [period, setPeriod] = useState<PeriodPreset>('today');
   const [customRange, setCustomRange] = useState<[Dayjs, Dayjs]>(() => [
@@ -237,6 +219,59 @@ const SessionsPage: React.FC = () => {
   const [filterPatientMatch, setFilterPatientMatch] = useState<string | undefined>();
   const [filterPatientId, setFilterPatientId] = useState<number | undefined>();
   const [searchName, setSearchName] = useState('');
+
+  const SESSION_FILTERS_STORAGE = 'd-sessions-filters';
+
+  useEffect(() => {
+    if (hospitalId == null) return;
+    try {
+      const raw = localStorage.getItem(`${SESSION_FILTERS_STORAGE}:${hospitalId}`);
+      if (!raw) return;
+      const p = JSON.parse(raw) as {
+        period?: PeriodPreset;
+        filterStatus?: string;
+        filterIntakeKind?: string;
+        filterPatientMatch?: string;
+        filterPatientId?: number;
+        searchName?: string;
+      };
+      if (p.period) setPeriod(p.period);
+      setFilterStatus(p.filterStatus);
+      setFilterIntakeKind(p.filterIntakeKind);
+      setFilterPatientMatch(p.filterPatientMatch);
+      setFilterPatientId(p.filterPatientId);
+      setSearchName(p.searchName ?? '');
+    } catch {
+      /* ignore */
+    }
+  }, [hospitalId]);
+
+  useEffect(() => {
+    if (hospitalId == null) return;
+    try {
+      localStorage.setItem(
+        `${SESSION_FILTERS_STORAGE}:${hospitalId}`,
+        JSON.stringify({
+          period,
+          filterStatus,
+          filterIntakeKind,
+          filterPatientMatch,
+          filterPatientId,
+          searchName,
+        })
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [
+    hospitalId,
+    period,
+    filterStatus,
+    filterIntakeKind,
+    filterPatientMatch,
+    filterPatientId,
+    searchName,
+  ]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [faceIdentifyOpen, setFaceIdentifyOpen] = useState(false);
@@ -280,6 +315,16 @@ const SessionsPage: React.FC = () => {
       !selectedPatient.hasFaceEnrolled
   );
 
+  const patientsWithoutFaceCount = useMemo(
+    () => patients.filter((p) => !p.hasFaceEnrolled).length,
+    [patients]
+  );
+
+  const patientsNeedsReenrollCount = useMemo(
+    () => patients.filter((p) => p.needsFaceReenroll).length,
+    [patients]
+  );
+
   const isSessionToday = Boolean(
     watchedSessionDate && dayjs(watchedSessionDate).isSame(dayjs(), 'day')
   );
@@ -318,57 +363,53 @@ const SessionsPage: React.FC = () => {
     return params;
   }, [period, customRange, filterStatus, filterIntakeKind, filterPatientMatch, filterPatientId, searchName]);
 
+  const {
+    rows,
+    kpis,
+    loading,
+    refetch: loadSessions,
+    error: sessionsLoadError,
+  } = useDialysisSessions(hospitalId, filterParams);
+
+  const patientsQuery = useDialysisPatientsLookup(hospitalId);
+
   const load = useCallback(async () => {
-    if (hospitalId == null) return;
-    setLoading(true);
-    try {
-      const base = { hospital_id: hospitalId, ...filterParams, limit: 400 };
-      const [listRes, kpiRes] = await Promise.all([
-        axios.get<SessionRow[]>('/api/dialysis/sessions', { params: base }),
-        axios.get<SessionKpis>('/api/dialysis/sessions/kpis', { params: { hospital_id: hospitalId, ...filterParams } }),
-      ]);
-      setRows(listRes.data);
-      setKpis(kpiRes.data);
-    } catch {
-      message.error('فشل جلب الجلسات');
-      setKpis(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [hospitalId, filterParams]);
+    await invalidateSessions();
+    await loadSessions();
+  }, [invalidateSessions, loadSessions]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (sessionsLoadError) {
+      message.error('فشل جلب الجلسات');
+    }
+  }, [sessionsLoadError]);
 
   useEffect(() => {
     setMobilePage(1);
   }, [period, customRange, filterStatus, filterIntakeKind, filterPatientMatch, filterPatientId, searchName, hospitalId]);
 
   useEffect(() => {
-    if (hospitalId == null) return;
-    axios
-      .get<PatientLite[]>('/api/dialysis/patients', { params: { hospital_id: hospitalId } })
-      .then((r) => setPatients(r.data))
-      .catch(() => {});
-  }, [hospitalId]);
+    if (patientsQuery.data) {
+      setPatients(patientsQuery.data);
+    }
+  }, [patientsQuery.data]);
 
   const loadRefs = useCallback(async () => {
     if (hospitalId == null) return;
     try {
       const params = { hospital_id: hospitalId };
       const [p, l, m] = await Promise.all([
-        axios.get<PatientLite[]>('/api/dialysis/patients', { params }),
+        patientsQuery.refetch(),
         axios.get<LocLite[]>('/api/dialysis/locations', { params }),
         axios.get<MachineLite[]>('/api/dialysis/machines', { params }),
       ]);
-      setPatients(p.data);
+      if (p.data) setPatients(p.data);
       setLocations(l.data);
       setMachines(m.data);
     } catch {
       /* ignore */
     }
-  }, [hospitalId]);
+  }, [hospitalId, patientsQuery]);
 
   const fetchAndApplyHints = useCallback(
     async (patientId: number | undefined, sessionDate: Dayjs | null | undefined) => {
@@ -428,7 +469,9 @@ const SessionsPage: React.FC = () => {
     if (!faceEnrollTarget) return;
     const patientId = faceEnrollTarget.id;
     setPatients((prev) =>
-      prev.map((p) => (p.id === patientId ? { ...p, hasFaceEnrolled: true } : p))
+      prev.map((p) =>
+        p.id === patientId ? { ...p, hasFaceEnrolled: true, needsFaceReenroll: false } : p
+      )
     );
     setFaceEnrollTarget((prev) =>
       prev ? { ...prev, hasFaceEnrolled: true } : null
@@ -493,13 +536,12 @@ const SessionsPage: React.FC = () => {
         return;
       }
       const sessionD = v.session_date as Dayjs;
-      if (sessionD.startOf('day').isAfter(dayjs().startOf('day'))) {
+      if (isSessionDateFutureBaghdad(sessionD)) {
         message.error('لا يمكن تسجيل غسلة لتاريخ مستقبلي.');
         return;
       }
-      const timeOnly = (v.started_at as Dayjs | undefined) ?? dayjs();
-      const mergedStart = dayjs(mergeSessionDateWithStartTime(sessionD, timeOnly));
-      if (mergedStart.isAfter(dayjs())) {
+      const timeOnly = (v.started_at as Dayjs | undefined) ?? getBaghdadTime();
+      if (isSessionStartFutureBaghdad(sessionD, timeOnly)) {
         message.error('وقت بدء الغسلة لا يمكن أن يكون في المستقبل.');
         return;
       }
@@ -521,7 +563,7 @@ const SessionsPage: React.FC = () => {
         hospital_id: effectiveHospitalId,
         dialysis_patient_id: v.dialysis_patient_id,
         session_date: sessionD.format('YYYY-MM-DD'),
-        started_at: mergeSessionDateWithStartTime(sessionD, timeOnly),
+        started_at: mergeSessionDateWithStartTimeBaghdad(sessionD, timeOnly),
         location_id: v.location_id ?? null,
         shift_slot_id: v.shift_slot_id ?? null,
         machine_id: v.machine_id ?? null,
@@ -556,20 +598,18 @@ const SessionsPage: React.FC = () => {
     }
   };
 
-  const endSession = async (id: number, rowHospitalId?: number) => {
-    try {
+  const requestEndSession = useCallback(
+    (id: number, patientName?: string | null, rowHospitalId?: number) => {
       const hid = rowHospitalId ?? (typeof hospitalId === 'number' ? hospitalId : effectiveHospitalId);
-      await axios.patch(
-        `/api/dialysis/sessions/${id}`,
-        { status: 'COMPLETED', ended_at: new Date().toISOString() },
-        { params: hid ? { hospital_id: hid } : {} }
-      );
-      message.success('تم إنهاء الجلسة');
-      load();
-    } catch {
-      message.error('فشل إنهاء الجلسة');
-    }
-  };
+      confirmEndDialysisSession({
+        sessionId: id,
+        patientName,
+        hospitalId: hid,
+        onDone: load,
+      });
+    },
+    [hospitalId, effectiveHospitalId, load]
+  );
 
   const removeSession = (id: number, rowHospitalId?: number) => {
     Modal.confirm({
@@ -686,7 +726,7 @@ const SessionsPage: React.FC = () => {
                   size="small"
                   type="primary"
                   icon={<StopOutlined />}
-                  onClick={() => endSession(r.id, r.hospitalId)}
+                  onClick={() => requestEndSession(r.id, r.dialysisPatient?.fullName, r.hospitalId)}
                 />
               )}
               {canDelete && (
@@ -837,7 +877,7 @@ const SessionsPage: React.FC = () => {
                 size="small"
                 type="primary"
                 icon={<StopOutlined />}
-                onClick={() => endSession(r.id, r.hospitalId)}
+                onClick={() => requestEndSession(r.id, r.dialysisPatient?.fullName, r.hospitalId)}
               >
                 إنهاء
               </Button>
@@ -854,7 +894,7 @@ const SessionsPage: React.FC = () => {
         ),
       },
     ];
-  }, [isMobile, mergedScope, canEdit, canDelete, endSession, removeSession]);
+  }, [isMobile, mergedScope, canEdit, canDelete, requestEndSession, removeSession]);
 
   const openClinical = (r: SessionRow) => {
     setClinicalId(r.id);
@@ -899,14 +939,98 @@ const SessionsPage: React.FC = () => {
     </>
   );
 
+  const sessionAdvancedFilterCount = [
+    filterStatus,
+    filterIntakeKind,
+    filterPatientMatch,
+    filterPatientId,
+    searchName.trim(),
+  ].filter(Boolean).length;
+
+  const sessionAdvancedFilters = (
+    <>
+      <FilterOutlined style={{ marginTop: 8, color: '#94a3b8' }} />
+      <Select
+        allowClear
+        placeholder="الحالة"
+        style={{ minWidth: 130 }}
+        value={filterStatus}
+        onChange={setFilterStatus}
+        aria-label="تصفية حسب حالة الجلسة"
+        options={Object.entries(STATUS_LABEL).map(([k, v]) => ({ value: k, label: v.label }))}
+      />
+      <Select
+        allowClear
+        placeholder="نوع الغسلة"
+        style={{ minWidth: 150 }}
+        value={filterIntakeKind}
+        onChange={setFilterIntakeKind}
+        aria-label="تصفية حسب نوع الغسلة"
+        options={[
+          { value: 'SCHEDULED', label: 'مجدولة' },
+          { value: 'OFF_SCHEDULE', label: 'غير مجدولة' },
+          { value: 'EMERGENCY', label: 'طارئة' },
+          { value: '__NULL__', label: 'غير مصنّف' },
+        ]}
+      />
+      <Select
+        allowClear
+        placeholder="نوع الإضافة"
+        style={{ minWidth: 150 }}
+        value={filterPatientMatch}
+        onChange={setFilterPatientMatch}
+        aria-label="تصفية حسب طريقة إضافة المريض"
+        options={[
+          { value: 'MANUAL', label: 'يدوي' },
+          { value: 'FACE', label: 'تعرف بالوجه' },
+        ]}
+      />
+      <Select
+        allowClear
+        showSearch
+        placeholder="المريض"
+        style={{ minWidth: 200 }}
+        value={filterPatientId}
+        onChange={(v) => setFilterPatientId(v)}
+        optionFilterProp="label"
+        suffixIcon={<UserOutlined />}
+        aria-label="تصفية حسب المريض"
+        options={patients.map((p) => ({
+          value: p.id,
+          label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
+        }))}
+      />
+      <Input.Search
+        className="d-toolbar-input-grow"
+        placeholder="بحث سريع باسم المريض…"
+        allowClear
+        aria-label="بحث سريع باسم المريض"
+        value={searchName}
+        onChange={(e) => setSearchName(e.target.value)}
+        onSearch={() => load()}
+      />
+      <Button icon={<ClearOutlined />} onClick={resetFilters}>
+        مسح الفلاتر
+      </Button>
+      <Tag color="blue">{rows.length} جلسة</Tag>
+    </>
+  );
+
   const pageBody = (
     <div className={isMobile ? 'd-sessions-page' : undefined}>
-      <div className="d-page-header">
-        <h2>الجلسات</h2>
-        <Text className="sub">
-          متابعة جلسات الغسل مع مؤشرات وفلاتر، ومنع تسجيل أكثر من غسلة لنفس المريض في اليوم الواحد.
-        </Text>
-      </div>
+      <DialysisPageHeader
+        title="الجلسات"
+        subtitle="متابعة جلسات الغسل مع مؤشرات وفلاتر، ومنع تسجيل أكثر من غسلة لنفس المريض في اليوم الواحد."
+      />
+
+      <DialysisMergedScopeBanner className="d-sessions-merged-banner" />
+
+      <DialysisFaceStatusBanner
+        patientsWithoutFace={patientsWithoutFaceCount}
+        patientsNeedsReenroll={patientsNeedsReenrollCount}
+        totalPatients={patients.length}
+        className="d-sessions-face-banner"
+      />
 
       <div className="d-stat-grid" style={{ marginBottom: 16 }}>
         {loading && !kpis ? (
@@ -999,69 +1123,40 @@ const SessionsPage: React.FC = () => {
           </div>
         </div>
 
-        <div
-          className={`d-toolbar${isMobile ? ' d-sessions-filters' : ''}`}
-          style={{ alignItems: 'stretch' }}
-        >
-          <FilterOutlined style={{ marginTop: 8, color: '#94a3b8' }} />
-          <Select
-            allowClear
-            placeholder="الحالة"
-            style={{ minWidth: 130 }}
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={Object.entries(STATUS_LABEL).map(([k, v]) => ({ value: k, label: v.label }))}
-          />
-          <Select
-            allowClear
-            placeholder="نوع الغسلة"
-            style={{ minWidth: 150 }}
-            value={filterIntakeKind}
-            onChange={setFilterIntakeKind}
-            options={[
-              { value: 'SCHEDULED', label: 'مجدولة' },
-              { value: 'OFF_SCHEDULE', label: 'غير مجدولة' },
-              { value: 'EMERGENCY', label: 'طارئة' },
-              { value: '__NULL__', label: 'غير مصنّف' },
+        {isMobile ? (
+          <Collapse
+            ghost
+            className="d-sessions-filters-collapse"
+            aria-label="فلاتر متقدمة لقائمة الجلسات"
+            items={[
+              {
+                key: 'adv',
+                label: (
+                  <span>
+                    <FilterOutlined /> فلاتر متقدمة
+                    {sessionAdvancedFilterCount > 0 ? (
+                      <Tag color="processing" style={{ marginInlineStart: 8 }}>
+                        {sessionAdvancedFilterCount}
+                      </Tag>
+                    ) : null}
+                    <Tag className="d-tag-muted" style={{ marginInlineStart: 8 }}>
+                      {rows.length} جلسة
+                    </Tag>
+                  </span>
+                ),
+                children: (
+                  <div className="d-toolbar d-sessions-filters" style={{ alignItems: 'stretch' }}>
+                    {sessionAdvancedFilters}
+                  </div>
+                ),
+              },
             ]}
           />
-          <Select
-            allowClear
-            placeholder="نوع الإضافة"
-            style={{ minWidth: 150 }}
-            value={filterPatientMatch}
-            onChange={setFilterPatientMatch}
-            options={[
-              { value: 'MANUAL', label: 'يدوي' },
-              { value: 'FACE', label: 'تعرف بالوجه' },
-            ]}
-          />
-          <Select
-            allowClear
-            showSearch
-            placeholder="المريض"
-            style={{ minWidth: 200 }}
-            value={filterPatientId}
-            onChange={(v) => setFilterPatientId(v)}
-            optionFilterProp="label"
-            suffixIcon={<UserOutlined />}
-            options={patients.map((p) => ({
-              value: p.id,
-              label: `${p.fullName} (${p.kind === 'EMERGENCY' ? 'طارئ' : 'دائم'})`,
-            }))}
-          />
-          <Input.Search
-            className="d-toolbar-input-grow"
-            placeholder="بحث سريع باسم المريض…"
-            allowClear
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-            onSearch={() => load()}
-          />
-          <Button icon={<ClearOutlined />} onClick={resetFilters}>
-            مسح الفلاتر
-          </Button>
-        </div>
+        ) : (
+          <div className="d-toolbar" style={{ alignItems: 'stretch' }}>
+            {sessionAdvancedFilters}
+          </div>
+        )}
 
         <Spin spinning={loading}>
           {isMobile ? (
@@ -1092,7 +1187,7 @@ const SessionsPage: React.FC = () => {
                         canEdit={canEdit}
                         canDelete={canDelete}
                         onOpenRecord={() => openClinical(r)}
-                        onEnd={() => endSession(r.id, r.hospitalId)}
+                        onEnd={() => requestEndSession(r.id, r.dialysisPatient?.fullName, r.hospitalId)}
                         onDelete={() => removeSession(r.id, r.hospitalId)}
                       />
                     );
@@ -1250,7 +1345,7 @@ const SessionsPage: React.FC = () => {
             )}
             {DIALYSIS_FACE_ENABLED && faceHospitalId != null && (
               <Button
-                type={isMobile ? 'primary' : 'default'}
+                type="primary"
                 size="large"
                 block
                 className="d-face-quick-btn"

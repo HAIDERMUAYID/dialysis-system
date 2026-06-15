@@ -19,6 +19,7 @@ import {
 } from 'antd';
 import { PlusOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { confirmDialysisDelete } from './app/dialysisConfirmDelete';
 import dayjs from 'dayjs';
 import { WEEKDAY_OPTIONS_AR, minutesToLabel, weekdayLabelAr } from './dialysisConstants';
 import { useDialysisMobile } from './app/useDialysisMobile';
@@ -166,14 +167,17 @@ const DialysisShiftTemplatesPanel: React.FC<Props> = ({ hospitalId, canManage })
     }
   };
 
-  const softDelete = async (id: number) => {
-    try {
-      await axios.delete(`/api/dialysis/shift-slots/${id}`);
-      message.success('تم إيقاف هذا الشفت عن الظهور في القوائم.');
-      load();
-    } catch {
-      message.error('تعذر إيقاف الشفت. تحقق من الصلاحيات أو حاول لاحقاً.');
-    }
+  const confirmSoftDelete = (id: number, name: string) => {
+    confirmDialysisDelete({
+      title: 'إيقاف الشفت؟',
+      content: `سيتم إيقاف «${name}» عن الظهور في القوائم. يمكنك إضافة شفت جديد لاحقاً.`,
+      okText: 'إيقاف',
+      onOk: async () => {
+        await axios.delete(`/api/dialysis/shift-slots/${id}`);
+        message.success('تم إيقاف هذا الشفت عن الظهور في القوائم.');
+        load();
+      },
+    });
   };
 
   const tableColumns = [
@@ -214,7 +218,7 @@ const DialysisShiftTemplatesPanel: React.FC<Props> = ({ hospitalId, canManage })
             <Button size="small" onClick={() => openEdit(r)}>
               تعديل
             </Button>
-            <Button size="small" danger onClick={() => softDelete(r.id)}>
+            <Button size="small" danger onClick={() => confirmSoftDelete(r.id, r.name)}>
               إيقاف
             </Button>
           </Space>
@@ -289,7 +293,7 @@ const DialysisShiftTemplatesPanel: React.FC<Props> = ({ hospitalId, canManage })
                 {canManage ? (
                   <div className="d-shift-card__actions">
                     <Button onClick={() => openEdit(r)}>تعديل</Button>
-                    <Button danger onClick={() => softDelete(r.id)}>
+                    <Button danger onClick={() => confirmSoftDelete(r.id, r.name)}>
                       إيقاف الشفت
                     </Button>
                   </div>

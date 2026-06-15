@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Button, Tag, Empty, message, Typography, Spin } from 'antd';
 import {
   ReloadOutlined,
@@ -6,14 +6,21 @@ import {
   FileSearchOutlined,
   ClockCircleOutlined,
   ThunderboltOutlined,
+  DesktopOutlined,
 } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { ALL_MY_HOSPITALS, useDialysisContext, useEffectiveDialysisHospitalId } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
 import { usePermission } from '../../../../hooks/usePermission';
+import { useDialysisLiveSync, type DialysisLiveTransport } from '../hooks/useDialysisLiveSync';
 import DialysisPullRefresh from '../DialysisPullRefresh';
 import DialysisSessionClinicalDrawer from '../../DialysisSessionClinicalDrawer';
+import DialysisMergedScopeBanner from '../DialysisMergedScopeBanner';
+import DialysisPageHeader from '../DialysisPageHeader';
+import DialysisMobileFab from '../DialysisMobileFab';
+import { confirmEndDialysisSession } from '../dialysisConfirmEndSession';
 import './live-page.css';
 
 const { Text, Title } = Typography;
@@ -31,16 +38,18 @@ interface ActiveRow {
 }
 
 const LivePage: React.FC = () => {
-  const { hospitalId } = useDialysisContext();
+  const { hospitalId, hospitals } = useDialysisContext();
   const effectiveHospitalId = useEffectiveDialysisHospitalId();
   const mergedScope = hospitalId === ALL_MY_HOSPITALS;
   const isMobile = useDialysisMobile();
   const canEdit = usePermission('dialysis:session:edit');
   const [rows, setRows] = useState<ActiveRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [liveTransport, setLiveTransport] = useState<DialysisLiveTransport>('socket');
   const [openId, setOpenId] = useState<number | null>(null);
   const [openHospitalId, setOpenHospitalId] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
+  const loadErrorShownRef = useRef(false);
 
   const load = useCallback(async () => {
     if (hospitalId == null) return;
@@ -50,39 +59,56 @@ const LivePage: React.FC = () => {
         params: { hospital_id: hospitalId },
       });
       setRows(data);
+      loadErrorShownRef.current = false;
     } catch {
-      /* يحدث كل 15 ثانية */
+      if (!loadErrorShownRef.current) {
+        loadErrorShownRef.current = true;
+        message.error('تعذر تحديث القاعة — تحقق من الاتصال');
+      }
     } finally {
       setLoading(false);
     }
   }, [hospitalId]);
 
+  useDialysisLiveSync({
+    hospitalId,
+    hospitals,
+    onChange: load,
+    enabled: hospitalId != null,
+    onTransportChange: setLiveTransport,
+  });
+
   useEffect(() => {
     load();
-    const t = window.setInterval(load, 15_000);
-    return () => window.clearInterval(t);
   }, [load]);
 
-  const endSession = async (id: number, rowHospitalId?: number) => {
-    try {
-      const hid =
-        rowHospitalId ?? (typeof hospitalId === 'number' ? hospitalId : effectiveHospitalId);
-      await axios.patch(
-        `/api/dialysis/sessions/${id}`,
-        { status: 'COMPLETED', ended_at: new Date().toISOString() },
-        { params: hid ? { hospital_id: hid } : {} }
-      );
-      message.success('تم إنهاء الجلسة');
-      load();
-    } catch {
-      message.error('فشل الإنهاء');
-    }
+  const liveSubtitle =
+    liveTransport === 'poll'
+      ? 'جلسات قيد التشغيل — تحديث احتياطي كل دقيقة (اتصال مباشر غير متاح).'
+      : liveTransport === 'sse'
+        ? 'جلسات قيد التشغيل — تحديث فوري عبر البث المباشر.'
+        : 'جلسات قيد التشغيل — تحديث فوري عند أي تغيير في القاعة.';
+
+  const requestEndSession = (id: number, patientName?: string | null, rowHospitalId?: number) => {
+    const hid = rowHospitalId ?? (typeof hospitalId === 'number' ? hospitalId : effectiveHospitalId);
+    confirmEndDialysisSession({
+      sessionId: id,
+      patientName,
+      hospitalId: hid,
+      onDone: load,
+    });
   };
 
   const renderCard = (s: ActiveRow) => (
-    <article key={s.id} className={isMobile ? 'd-live-card' : 'd-card'} style={isMobile ? undefined : { display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div className={isMobile ? 'd-live-card__head' : undefined} style={isMobile ? undefined : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <Title level={5} className={isMobile ? 'd-live-card__name' : undefined} style={isMobile ? undefined : { margin: 0 }}>
+    <article
+      key={s.id}
+      className={isMobile ? 'd-live-card' : 'd-card d-live-desktop-card'}
+    >
+      <div className={isMobile ? 'd-live-card__head' : 'd-live-desktop-card__head'}>
+        <Title
+          level={5}
+          className={isMobile ? 'd-live-card__name' : 'd-live-desktop-card__title'}
+        >
           {s.dialysisPatient?.fullName || `#${s.id}`}
         </Title>
         <div className={isMobile ? 'd-live-card__tags' : undefined}>
@@ -104,7 +130,7 @@ const LivePage: React.FC = () => {
         )}
         {s.weightPreKg && <Tag color="cyan">وزن: {s.weightPreKg}كغ</Tag>}
       </div>
-      <div className={isMobile ? 'd-live-card__actions' : undefined} style={isMobile ? undefined : { width: '100%', marginTop: 8 }}>
+      <div className={isMobile ? 'd-live-card__actions' : 'd-live-desktop-card__actions'}>
         <Button
           block
           icon={<FileSearchOutlined />}
@@ -124,7 +150,7 @@ const LivePage: React.FC = () => {
             block
             size={isMobile ? 'large' : 'middle'}
             icon={<StopOutlined />}
-            onClick={() => endSession(s.id, s.hospitalId)}
+            onClick={() => requestEndSession(s.id, s.dialysisPatient?.fullName, s.hospitalId)}
           >
             إنهاء
           </Button>
@@ -135,20 +161,26 @@ const LivePage: React.FC = () => {
 
   const body = (
     <div className={isMobile ? 'd-live-page' : undefined}>
-      <div className="d-page-header">
-        <h2>القاعة الآن</h2>
-        <Text className="sub">جلسات قيد التشغيل. يتم تحديث البيانات كل 15 ثانية.</Text>
-      </div>
+      <DialysisPageHeader
+        title="القاعة الآن"
+        subtitle={liveSubtitle}
+      />
+
+      <DialysisMergedScopeBanner />
 
       <div className="d-toolbar">
         <Tag
           color="red"
-          className={isMobile ? 'd-live-page__badge' : undefined}
-          style={isMobile ? undefined : { fontSize: 13, padding: '4px 10px' }}
+          className={isMobile ? 'd-live-page__badge' : 'd-live-toolbar-badge'}
         >
           <ThunderboltOutlined /> {rows.length} جلسة نشطة
         </Tag>
         {!isMobile && <span className="grow" />}
+        <Link to="/dialysis/live/tv" target="_blank" rel="noopener noreferrer">
+          <Button icon={<DesktopOutlined />} size={isMobile ? 'large' : 'middle'}>
+            شاشة TV
+          </Button>
+        </Link>
         <Button icon={<ReloadOutlined />} onClick={load} loading={loading} size={isMobile ? 'large' : 'middle'}>
           تحديث
         </Button>
@@ -160,18 +192,7 @@ const LivePage: React.FC = () => {
             <Empty description="لا توجد جلسات نشطة" />
           </div>
         ) : (
-          <div
-            className={isMobile ? 'd-live-cards' : undefined}
-            style={
-              isMobile
-                ? undefined
-                : {
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: 12,
-                  }
-            }
-          >
+          <div className={isMobile ? 'd-live-cards' : 'd-live-cards--desktop'}>
             {rows.map(renderCard)}
           </div>
         )}
@@ -197,9 +218,17 @@ const LivePage: React.FC = () => {
 
   if (isMobile) {
     return (
-      <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
-        {body}
-      </DialysisPullRefresh>
+      <>
+        <DialysisPullRefresh onRefresh={load} disabled={hospitalId == null}>
+          {body}
+        </DialysisPullRefresh>
+        <DialysisMobileFab
+          icon={<ReloadOutlined />}
+          ariaLabel="تحديث القاعة النشطة"
+          onClick={() => void load()}
+          visible={!loading}
+        />
+      </>
     );
   }
 

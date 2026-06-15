@@ -7,8 +7,8 @@ export function readSavedFaceCameraFacing(): FaceCameraFacing {
   if (typeof window === 'undefined') return 'environment';
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === 'user' || saved === 'environment') return saved;
-  const mobile = window.matchMedia('(max-width: 991px)').matches;
-  return mobile ? 'user' : 'environment';
+  // افتراضي: خلفية (أفضل لتصوير المريض) — مع إمكانية التبديل للأمامية
+  return 'environment';
 }
 
 export function saveFaceCameraFacing(facing: FaceCameraFacing): void {

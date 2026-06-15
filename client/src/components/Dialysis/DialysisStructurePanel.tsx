@@ -14,6 +14,7 @@ import {
 } from 'antd';
 import { PlusOutlined, ApartmentOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { confirmDialysisDelete } from './app/dialysisConfirmDelete';
 import { useDialysisMobile } from './app/useDialysisMobile';
 import './dialysis-structure-panel.css';
 
@@ -104,7 +105,7 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
   };
 
   const confirmDeleteHall = (hallName: string, bedCount: number) => {
-    Modal.confirm({
+    confirmDialysisDelete({
       title: 'حذف القاعة؟',
       content: (
         <span>
@@ -112,25 +113,13 @@ const DialysisStructurePanel: React.FC<Props> = ({ hospitalId, canManage }) => {
           {bedCount === 1 ? 'سرير' : 'أسرة'}). لا يمكن التراجع بسهولة إن وُجدت جلسات أو جداول مرتبطة.
         </span>
       ),
-      okText: 'حذف',
-      okType: 'danger',
-      cancelText: 'إلغاء',
-      centered: true,
       onOk: async () => {
         if (!hospitalId) return;
-        try {
-          await axios.delete('/api/dialysis/locations/hall', {
-            data: { hospital_id: hospitalId, hall_name: hallName },
-          });
-          message.success('تم حذف القاعة');
-          load();
-        } catch (e: unknown) {
-          const msg =
-            (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-            'لم يتم حذف القاعة';
-          message.error(msg);
-          throw e;
-        }
+        await axios.delete('/api/dialysis/locations/hall', {
+          data: { hospital_id: hospitalId, hall_name: hallName },
+        });
+        message.success('تم حذف القاعة');
+        load();
       },
     });
   };

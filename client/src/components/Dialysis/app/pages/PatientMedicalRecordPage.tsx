@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import {
   Avatar,
+  Breadcrumb,
   Button,
   Card,
   Col,
@@ -572,6 +573,20 @@ const PatientMedicalRecordPage: React.FC = () => {
       <Spin spinning={loading} className="d-medical-spin-wrap">
         {patient && stats && (
           <>
+            <Breadcrumb
+              className="d-medical-breadcrumb no-print"
+              items={[
+                {
+                  title: (
+                    <button type="button" onClick={() => navigate('/dialysis/patients')}>
+                      المرضى
+                    </button>
+                  ),
+                },
+                { title: patient.fullName },
+                { title: 'السجل الطبي' },
+              ]}
+            />
             <header className="d-medical-print-banner d-print-only" dir="rtl">
               <div className="d-medical-print-banner-accent" aria-hidden />
               <div className="d-medical-print-banner-brand">

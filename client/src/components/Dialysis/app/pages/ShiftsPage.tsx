@@ -1,11 +1,9 @@
 import React from 'react';
-import { Typography } from 'antd';
 import { ALL_MY_HOSPITALS, useDialysisContext } from '../dialysisContext';
 import { usePermission } from '../../../../hooks/usePermission';
 import { DialysisPickHospitalScope } from '../DialysisPickHospitalScope';
 import DialysisShiftTemplatesPanel from '../../DialysisShiftTemplatesPanel';
-
-const { Text } = Typography;
+import DialysisPageHeader from '../DialysisPageHeader';
 
 const ShiftsPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
@@ -13,13 +11,10 @@ const ShiftsPage: React.FC = () => {
   if (hospitalId == null) return null;
   return (
     <>
-      <div className="d-page-header">
-        <h2>شفتات الغسل</h2>
-        <Text className="sub">
-          تعريف فترات العمل (مثل صباحي ومسائي) وربط كل منها بأيام الأسبوع؛ تُستخدم لاحقاً عند جدولة المرضى
-          وتسجيل الجلسات.
-        </Text>
-      </div>
+      <DialysisPageHeader
+        title="شفتات الغسل"
+        subtitle="تعريف فترات العمل (مثل صباحي ومسائي) وربط كل منها بأيام الأسبوع؛ تُستخدم لاحقاً عند جدولة المرضى وتسجيل الجلسات."
+      />
       {hospitalId === ALL_MY_HOSPITALS ? (
         <div className="d-card" style={{ padding: '16px 14px' }}>
           <DialysisPickHospitalScope

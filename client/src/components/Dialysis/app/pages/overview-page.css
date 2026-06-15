@@ -1,0 +1,49 @@
+/* نظرة عامة — بطاقات KPI وجلسات نشطة */
+
+a.d-stat {
+  text-decoration: none;
+  color: inherit;
+}
+
+.d-stat-icon--patients {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.d-stat-icon--locations {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+.d-stat-icon--slots {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.d-stat-icon--machines {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+.d-stat-icon--active {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+.d-stat-icon--today {
+  background: linear-gradient(135deg, #157c67, #0d9488);
+}
+
+.d-overview-active-section {
+  margin-top: 18px;
+}
+
+.d-overview-active-list {
+  display: grid;
+  gap: 10px;
+}
+
+.d-active-summary-row--boxed {
+  padding: 10px 12px;
+  border: 1px solid #eef0f4;
+  border-radius: 10px;
+  background: #fafbff;
+}
+
+.d-overview-scope-tag {
+  margin-inline-end: 6px;
+}
+
+.d-overview-active-more {
+  align-self: flex-end;
+}

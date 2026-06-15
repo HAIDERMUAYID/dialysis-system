@@ -1,0 +1,247 @@
+.d-live-tv {
+  --d-tv-bg: #0b1220;
+  --d-tv-surface: #111827;
+  --d-tv-border: #1e293b;
+  --d-tv-text: #f1f5f9;
+  --d-tv-muted: #94a3b8;
+  --d-tv-accent: #22d3ee;
+  --d-tv-danger: #f87171;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at top, #0f2744 0%, var(--d-tv-bg) 55%);
+  color: var(--d-tv-text);
+  padding: 20px 24px 16px;
+  box-sizing: border-box;
+}
+
+.d-live-tv--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.d-live-tv__empty-title {
+  color: var(--d-tv-text) !important;
+}
+
+.d-live-tv__header {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 20px;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--d-tv-border);
+}
+
+.d-live-tv__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.d-live-tv__logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.d-live-tv__title {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.d-live-tv__hospital {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--d-tv-accent);
+  margin-top: 4px;
+}
+
+.d-live-tv__ministry {
+  font-size: 0.875rem;
+  color: var(--d-tv-muted);
+  margin-top: 2px;
+}
+
+.d-live-tv__clock {
+  text-align: center;
+}
+
+.d-live-tv__time {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.d-live-tv__date {
+  font-size: 0.95rem;
+  color: var(--d-tv-muted);
+  margin-top: 6px;
+}
+
+.d-live-tv__stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.d-live-tv__count {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: var(--d-tv-danger);
+  line-height: 1;
+}
+
+.d-live-tv__count-label {
+  font-size: 0.875rem;
+  color: var(--d-tv-muted);
+  margin-top: 4px;
+}
+
+.d-live-tv__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-live-tv__btn {
+  color: var(--d-tv-muted) !important;
+  border-color: var(--d-tv-border) !important;
+}
+
+.d-live-tv__btn:hover {
+  color: var(--d-tv-text) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.d-live-tv__main {
+  flex: 1;
+  padding: 24px 0;
+  min-height: 0;
+}
+
+.d-live-tv__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  align-content: start;
+}
+
+.d-live-tv__card {
+  background: var(--d-tv-surface);
+  border: 1px solid var(--d-tv-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.d-live-tv__card-name {
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.d-live-tv__card-hospital {
+  font-size: 0.95rem;
+  color: #7dd3fc;
+  margin-bottom: 8px;
+}
+
+.d-live-tv__card-location {
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  color: var(--d-tv-muted);
+  margin-bottom: 16px;
+}
+
+.d-live-tv__card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  font-size: 1.05rem;
+}
+
+.d-live-tv__card-elapsed {
+  color: var(--d-tv-accent);
+  font-weight: 600;
+}
+
+.d-live-tv__card-vitals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--d-tv-border);
+  font-size: 1rem;
+  color: #c4b5fd;
+}
+
+.d-live-tv__empty .ant-empty-description {
+  color: var(--d-tv-muted);
+}
+
+.d-live-tv__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--d-tv-border);
+  font-size: 0.875rem;
+  color: var(--d-tv-muted);
+}
+
+.d-live-tv__footer-brand {
+  font-weight: 700;
+  color: #5eead4;
+}
+
+@media (max-width: 900px) {
+  .d-live-tv__header {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .d-live-tv__stats {
+    grid-column: 1;
+  }
+
+  .d-live-tv__toolbar {
+    grid-column: 2;
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .d-live-tv {
+    padding: 12px 12px 10px;
+  }
+
+  .d-live-tv__header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .d-live-tv__clock {
+    text-align: start;
+  }
+
+  .d-live-tv__toolbar {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,20 @@
+.d-merged-scope-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(59, 130, 246, 0.08));
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  color: var(--d-text, #1e293b);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.d-merged-scope-banner__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--d-brand, #0d9488);
+  font-size: 16px;
+}

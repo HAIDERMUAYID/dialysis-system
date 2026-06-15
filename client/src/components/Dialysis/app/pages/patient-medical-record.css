@@ -1,5 +1,18 @@
 /* السجل الطبي — وحدة الغسل D-IRS (تصميم محسّن) */
 
+.d-medical-breadcrumb {
+  margin-bottom: 12px;
+}
+
+.d-medical-breadcrumb button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--d-brand, #0d9488);
+  cursor: pointer;
+  font: inherit;
+}
+
 .d-medical-record {
   --med-accent: #4f46e5;
   --med-accent-soft: #e0e7ff;

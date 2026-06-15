@@ -46,7 +46,10 @@
 
 .d-face-enroll-flow__status {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
@@ -55,6 +58,10 @@
   padding: 6px 14px;
   font-size: 13px;
   border-radius: 999px;
+}
+
+.d-face-enroll-flow__status .d-face-voice-toggle {
+  margin-inline-end: auto;
 }
 
 .d-face-enroll-flow__progress {
@@ -134,6 +141,23 @@
   clip-path: ellipse(50% 50% at 50% 50%);
 }
 
+.d-face-oval-guide--staff {
+  background: radial-gradient(
+    ellipse 58% 62% at 50% 46%,
+    transparent 0%,
+    transparent 68%,
+    rgba(15, 23, 42, 0.5) 69%,
+    rgba(15, 23, 42, 0.68) 100%
+  );
+}
+
+.d-face-oval-guide--staff::after {
+  width: 58%;
+  height: 62%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-style: solid;
+}
+
 .d-face-enroll-video-overlay {
   position: absolute;
   inset: 0;
@@ -147,7 +171,7 @@
 }
 
 .d-face-enroll-video-overlay--scan {
-  background: rgba(79, 70, 229, 0.45);
+  background: rgba(21, 124, 103, 0.45);
   backdrop-filter: blur(2px);
 }
 
@@ -290,6 +314,11 @@ body.d-app-mobile .d-face-modal-wrap--mobile {
   margin-bottom: 10px;
 }
 
+.d-face-voice-toggle {
+  margin-inline-end: auto;
+  color: inherit;
+}
+
 .d-face-identify-auto__count {
   font-size: 12px;
 }
@@ -352,6 +381,18 @@ body.d-app-mobile .d-face-modal-wrap--mobile {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.d-face-identify-auto__results-panel {
+  display: flex;
+  justify-content: center;
+  padding: 12px 8px 4px;
+}
+
+.d-face-identify-auto__results-tag {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 .d-face-quality-meter--minimal {
@@ -441,18 +482,157 @@ body.d-app-mobile .d-face-modal-wrap--mobile {
   }
 }
 
-/* زر مسح الوجه في درج الجلسة */
-.d-face-quick-btn.ant-btn {
+/* زر مسح الوجه في درج الجلسة — لون صلب، بدون شفافية */
+.d-face-quick-btn.ant-btn-primary {
   height: auto;
   min-height: 48px;
   padding: 10px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(13, 148, 136, 0.1) 100%);
+  border: none;
   font-weight: 600;
+  color: #fff !important;
+  background: linear-gradient(135deg, #157c67 0%, #0d9488 100%) !important;
+  box-shadow: 0 6px 18px rgba(21, 124, 103, 0.24);
 }
 
-.d-face-quick-btn.ant-btn .anticon {
+.d-face-quick-btn.ant-btn-primary:not(:disabled):hover {
+  color: #fff !important;
+  background: linear-gradient(135deg, #0d9488 0%, #157c67 100%) !important;
+  box-shadow: 0 8px 22px rgba(21, 124, 103, 0.3);
+}
+
+.d-face-quick-btn.ant-btn-primary .anticon {
   font-size: 18px;
-  color: #4f46e5;
+  color: #fff;
+}
+
+/* ——— دليل الموظف ——— */
+.d-face-staff-guide {
+  margin: 10px 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(21, 124, 103, 0.22);
+  background: #f0fdf9;
+}
+
+.d-face-staff-guide--compact .d-face-staff-guide__detail {
+  display: none;
+}
+
+.d-face-staff-guide__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.d-face-staff-guide__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-face-staff-guide__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.d-face-staff-guide__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #157c67, #0d9488);
+  color: #fff;
+  font-size: 14px;
+}
+
+.d-face-staff-guide__detail {
+  font-weight: 400;
+  color: #64748b;
+}
+
+/* ——— اختيار المريض عند التشابه ——— */
+.d-face-match-picker {
+  margin-top: 12px;
+}
+
+.d-face-match-picker__title {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.d-face-match-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-face-match-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  text-align: start;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.d-face-match-picker__row:hover,
+.d-face-match-picker__row:focus-visible {
+  border-color: rgba(21, 124, 103, 0.4);
+  box-shadow: 0 4px 16px rgba(21, 124, 103, 0.12);
+  outline: none;
+}
+
+.d-face-match-picker__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 20px;
+}
+
+.d-face-match-picker__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.d-face-match-picker__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.d-face-match-picker__name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.d-face-match-picker__pick {
+  flex-shrink: 0;
 }

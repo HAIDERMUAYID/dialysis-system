@@ -6,7 +6,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#157c67",
   "background_color": "#f8fafc",
   "dir": "rtl",
@@ -14,16 +14,28 @@
   "categories": ["medical", "health", "productivity"],
   "icons": [
     {
-      "src": "images/ministry-logo.png",
+      "src": "images/pwa-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "images/ministry-logo.png",
+      "src": "images/pwa-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "images/pwa-icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/pwa-icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -32,14 +44,14 @@
       "short_name": "الجلسات",
       "description": "فتح صفحة جلسات الغسل مباشرة",
       "url": "/dialysis/sessions",
-      "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "images/pwa-icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "الملف الطبي",
       "short_name": "المرضى",
       "description": "فتح صفحة المرضى والسجل الطبي",
       "url": "/dialysis/patients",
-      "icons": [{ "src": "images/ministry-logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "images/pwa-icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

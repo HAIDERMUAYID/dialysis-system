@@ -4,6 +4,9 @@ import axios from 'axios';
 import './index.css';
 import './styles/theme.css';
 import App from './App';
+import { initClientMonitoring } from './monitoring/clientMonitoring';
+
+void initClientMonitoring();
 
 // النظام يعمل بالوضع الفاتح فقط — إزالة أي بقايا من الوضع الداكن
 document.documentElement.classList.remove('dark-mode', 'light-mode');

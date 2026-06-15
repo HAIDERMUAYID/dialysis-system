@@ -32,6 +32,15 @@ async function aggregateDialysisSessionKpis(prisma, where) {
     ])
   );
 
+  const shiftGroups = await prisma.dialysisSession.groupBy({
+    by: ['shift'],
+    where,
+    _count: { _all: true },
+  });
+  const shiftMap = Object.fromEntries(
+    shiftGroups.map((g) => [(g.shift || '').toUpperCase(), g._count._all])
+  );
+
   return {
     total,
     active: statusMap.ACTIVE ?? 0,
@@ -40,6 +49,12 @@ async function aggregateDialysisSessionKpis(prisma, where) {
     cancelled: statusMap.CANCELLED ?? 0,
     uniquePatients: distinctPatientRows.length,
     byIntakeKind,
+    intakeScheduled: byIntakeKind.SCHEDULED ?? 0,
+    intakeOffSchedule: byIntakeKind.OFF_SCHEDULE ?? 0,
+    intakeEmergency: byIntakeKind.EMERGENCY ?? 0,
+    shiftMorning: shiftMap.MORNING ?? 0,
+    shiftEvening: shiftMap.EVENING ?? 0,
+    shiftNight: shiftMap.NIGHT ?? 0,
   };
 }
 

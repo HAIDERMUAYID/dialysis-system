@@ -1,0 +1,8 @@
+.d-offline-banner {
+  margin-bottom: 12px;
+  border-radius: 12px !important;
+}
+
+.d-app-content .d-offline-banner {
+  margin-inline: 0;
+}

@@ -20,4 +20,13 @@ module.exports = function setupProxy(app) {
       changeOrigin: true,
     })
   );
+
+  app.use(
+    '/socket.io',
+    createProxyMiddleware({
+      target: 'http://localhost:5001',
+      changeOrigin: true,
+      ws: true,
+    })
+  );
 };

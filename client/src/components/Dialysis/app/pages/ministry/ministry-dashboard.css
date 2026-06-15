@@ -1,0 +1,55 @@
+.d-ministry-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.d-ministry-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.d-ministry-kpis--mobile {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.d-ministry-kpi-card {
+  background: var(--d-card-bg, #fff);
+  border: 1px solid var(--d-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(15, 81, 50, 0.06);
+}
+
+.d-ministry-kpi-card__label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.d-ministry-kpi-card__value .ant-tag {
+  font-size: 18px;
+  font-weight: 800;
+  padding: 4px 10px;
+  margin: 0;
+}
+
+.d-ministry-generated {
+  display: block;
+  margin-top: 12px;
+  text-align: end;
+}
+
+@media (max-width: 768px) {
+  .d-ministry-toolbar .grow {
+    display: none;
+  }
+
+  .d-ministry-toolbar .ant-btn {
+    flex: 1 1 calc(50% - 6px);
+  }
+}

@@ -1,5 +1,5 @@
 import type { FacePoseMetrics } from './dialysisFaceQuality';
-import { FACE_LIVENESS_YAW_MIN } from './dialysisFaceConfig';
+import { FACE_IS_STAFF_MODE, FACE_LIVENESS_YAW_MIN } from './dialysisFaceConfig';
 
 export function faceTurnDelta(
   current: FacePoseMetrics,
@@ -23,12 +23,17 @@ export function isLivenessTurnReady(
     : delta >= FACE_LIVENESS_YAW_MIN;
 }
 
+export function livenessCenterHint(): string {
+  return FACE_IS_STAFF_MODE
+    ? 'وجّه الكاميرا نحو وجه المريض'
+    : 'انظر للكامره مباشرة داخل الإطار';
+}
+
 export function livenessTurnHint(mirrored: boolean): string {
+  if (FACE_IS_STAFF_MODE) {
+    return 'اطلب من المريض أن يُدير رأسه قليلاً لليسار';
+  }
   return mirrored
     ? 'أدر رأسك قليلاً لليمين — كما في المرآة'
     : 'أدر رأسك قليلاً لليسار';
-}
-
-export function livenessCenterHint(): string {
-  return 'انظر للكامره مباشرة داخل الإطار';
 }

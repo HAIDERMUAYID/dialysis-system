@@ -1,0 +1,11 @@
+.d-op-alerts {
+  margin-bottom: 16px;
+}
+
+.d-op-alerts .ant-alert {
+  border-radius: 12px;
+}
+
+.d-op-alerts a {
+  font-weight: 600;
+}

@@ -11,8 +11,48 @@ const DEFAULT_MIN_MARGIN = 0.06;
 const DEFAULT_STRONG_MIN_MARGIN = 0.025;
 const DEFAULT_VERIFY_MIN_SCORE = 0.86;
 const DEFAULT_SUGGEST_MIN = 0.62;
-const ENROLL_MIN_SAMPLES = 3;
+const ENROLL_MIN_SAMPLES = 2;
 const ENROLL_MIN_PAIRWISE = 0.72;
+
+/** يجب أن يتطابق مع client dialysisFaceConfig FACE_PIPELINE_VERSION */
+const CURRENT_PIPELINE_VERSION = 'face-api-aligned-v3-staff';
+
+/** عتبات staff — تصوير المريض من مسافة (أمامية أو خلفية) */
+const STAFF_AUTO_THRESHOLD = 0.86;
+const STAFF_STRONG_THRESHOLD = 0.9;
+const STAFF_VERIFY_MIN_SCORE = 0.84;
+const STAFF_MIN_MARGIN = 0.05;
+const STAFF_STRONG_MIN_MARGIN = 0.022;
+
+function isCurrentStaffPipeline(meta) {
+  return (
+    meta &&
+    typeof meta === 'object' &&
+    meta.pipeline_version === CURRENT_PIPELINE_VERSION &&
+    Array.isArray(meta.probe_embeddings) &&
+    meta.probe_embeddings.length >= 2
+  );
+}
+
+function needsFaceReenrollment(meta) {
+  if (!meta || typeof meta !== 'object') return true;
+  return !isCurrentStaffPipeline(meta);
+}
+
+function embeddingsForGalleryRow(row) {
+  const out = [];
+  const primary = normalizeEmbedding(row.embedding);
+  if (primary) out.push(primary);
+  const meta = row.meta;
+  if (meta && typeof meta === 'object' && Array.isArray(meta.probe_embeddings)) {
+    for (const raw of meta.probe_embeddings) {
+      const n = normalizeEmbedding(raw);
+      if (n) out.push(n);
+    }
+  }
+  if (!out.length) return [];
+  return out;
+}
 
 function parseEmbedding(raw) {
   if (raw == null) return null;
@@ -133,10 +173,18 @@ function rankFaceMatches(probe, gallery, opts = {}) {
 
   const scored = gallery
     .map((row) => {
-      const emb = normalizeEmbedding(row.embedding);
-      if (!emb) return null;
-      const score = cosineSimilarity(p, emb);
-      return { patient_id: row.id, full_name: row.fullName, photo_url: row.photoUrl ?? null, confidence: score };
+      const candidates = embeddingsForGalleryRow(row);
+      if (!candidates.length) return null;
+      let best = -1;
+      for (const emb of candidates) {
+        best = Math.max(best, cosineSimilarity(p, emb));
+      }
+      return {
+        patient_id: row.id,
+        full_name: row.fullName,
+        photo_url: row.photoUrl ?? null,
+        confidence: best,
+      };
     })
     .filter(Boolean)
     .filter((r) => r.confidence >= minScore)
@@ -174,7 +222,7 @@ function evaluateStrictAutoMatch(avgMatches, perProbeMatches, opts = {}) {
         return {
           ok: false,
           reason: 'FRAME_DISAGREE',
-          message: 'الإطارات غير متطابقة — ثبّت وجهك وأعد المحاولة',
+          message: 'الإطارات غير متطابقة — ثبّت الكاميرا على المريض',
           top,
           frame_index: i,
         };
@@ -183,7 +231,7 @@ function evaluateStrictAutoMatch(avgMatches, perProbeMatches, opts = {}) {
         return {
           ok: false,
           reason: 'FRAME_LOW_SCORE',
-          message: `إطار ${i + 1}: ثقة منخفضة — حسّن الإضاءة`,
+          message: `إطار ${i + 1}: ثقة منخفضة — حسّن الإضاءة على المريض`,
           top,
           frame_index: i,
         };
@@ -285,14 +333,21 @@ function stripFaceEmbeddingFromPatient(patient) {
       meta && typeof meta.pipeline_version === 'string' ? meta.pipeline_version : null,
     faceCameraFacing:
       meta && typeof meta.camera_facing === 'string' ? meta.camera_facing : null,
+    needsFaceReenroll: patient.faceEnrolledAt ? needsFaceReenrollment(meta) : false,
   };
 }
 
 module.exports = {
   EMBEDDING_DIM,
+  CURRENT_PIPELINE_VERSION,
   DEFAULT_AUTO_THRESHOLD,
   DEFAULT_MIN_MARGIN,
   DEFAULT_VERIFY_MIN_SCORE,
+  STAFF_AUTO_THRESHOLD,
+  STAFF_STRONG_THRESHOLD,
+  STAFF_VERIFY_MIN_SCORE,
+  STAFF_MIN_MARGIN,
+  STAFF_STRONG_MIN_MARGIN,
   ENROLL_MIN_SAMPLES,
   ENROLL_MIN_PAIRWISE,
   parseEmbedding,
@@ -305,4 +360,6 @@ module.exports = {
   evaluateStrictAutoMatch,
   identifyFaceStrict,
   stripFaceEmbeddingFromPatient,
+  needsFaceReenrollment,
+  isCurrentStaffPipeline,
 };

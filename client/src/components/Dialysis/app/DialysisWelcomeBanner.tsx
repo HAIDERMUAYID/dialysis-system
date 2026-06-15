@@ -72,6 +72,7 @@ const DialysisWelcomeBanner: React.FC<Props> = ({ isMobile = false }) => {
       className={`d-welcome${isMobile ? ' d-welcome--mobile' : ''}`}
       role="region"
       aria-label="ترحيب بالموظف"
+      data-tour="dialysis-welcome"
     >
       <div className="d-welcome__mesh" aria-hidden />
       <div className="d-welcome__inner">

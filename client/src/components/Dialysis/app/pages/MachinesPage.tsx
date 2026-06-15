@@ -1,11 +1,9 @@
 import React from 'react';
-import { Typography } from 'antd';
 import { ALL_MY_HOSPITALS, useDialysisContext } from '../dialysisContext';
 import { usePermission } from '../../../../hooks/usePermission';
 import { DialysisPickHospitalScope } from '../DialysisPickHospitalScope';
 import DialysisMachinesPanel from '../../DialysisMachinesPanel';
-
-const { Text } = Typography;
+import DialysisPageHeader from '../DialysisPageHeader';
 
 const MachinesPage: React.FC = () => {
   const { hospitalId } = useDialysisContext();
@@ -13,12 +11,10 @@ const MachinesPage: React.FC = () => {
   if (hospitalId == null) return null;
   return (
     <>
-      <div className="d-page-header">
-        <h2>أجهزة الغسل</h2>
-        <Text className="sub">
-          سجل أجهزة الغسل وربطها بالأسرة عند الحاجة؛ يُستخدم ذلك عند تسجيل الجلسات ومتابعة ساعات التشغيل.
-        </Text>
-      </div>
+      <DialysisPageHeader
+        title="أجهزة الغسل"
+        subtitle="سجل أجهزة الغسل وربطها بالأسرة عند الحاجة؛ يُستخدم ذلك عند تسجيل الجلسات ومتابعة ساعات التشغيل."
+      />
       {hospitalId === ALL_MY_HOSPITALS ? (
         <div className="d-card" style={{ padding: '16px 14px' }}>
           <DialysisPickHospitalScope

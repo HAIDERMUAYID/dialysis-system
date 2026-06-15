@@ -73,6 +73,40 @@
   min-height: 44px;
 }
 
+/* سطح المكتب — شبكة بطاقات وجلسة نشطة */
+.d-live-cards--desktop {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.d-live-desktop-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-live-desktop-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-live-desktop-card__title {
+  margin: 0 !important;
+}
+
+.d-live-desktop-card__actions {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.d-live-toolbar-badge {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
 .d-app-mobile .d-live-page .d-toolbar {
   margin-bottom: 12px;
 }

@@ -7,7 +7,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const { Prisma } = require('@prisma/client');
-const { authenticateToken, requirePermission, requireAnyPermission } = require('../middleware/auth');
+const { authenticateToken, authenticateTokenOrQuery, requirePermission, requireAnyPermission } = require('../middleware/auth');
 const {
   requireDialysisHospital,
   loadDialysisScope,
@@ -25,6 +25,17 @@ const {
 const { purgeDialysisItemInventory } = require('../utils/purgeDialysisItemInventory');
 const { aggregateDialysisSessionKpis } = require('../utils/dialysisSessionKpis');
 const {
+  aggregateReportSessionCharts,
+  aggregateReportReconSummary,
+} = require('../utils/dialysisReportAggregates');
+const { buildMinistrySummary } = require('../utils/dialysisMinistrySummary');
+const { generateMinistryExcelBuffer } = require('../services/ministryReportScheduler');
+const { logDialysisAudit, DIALYSIS_AUDIT_PREFIX, parseAuditDetails, auditActionLabel } = require('../utils/dialysisAuditLog');
+const dialysisLiveHub = require('../services/dialysisLiveHub');
+const { notifyDialysisLiveChange, notifyDialysisLiveAfterAutoComplete } = require('../utils/dialysisLiveNotify');
+const logger = require('../utils/logger');
+const { faceIdentifyLimiter } = require('../utils/rateLimiter');
+const {
   parseWarehouseType,
   itemWhereForWarehouseType,
   assertItemMatchesWarehouseType,
@@ -33,6 +44,14 @@ const {
   validateEnrollmentSamples,
   identifyFaceStrict,
   stripFaceEmbeddingFromPatient,
+  needsFaceReenrollment,
+  isCurrentStaffPipeline,
+  STAFF_AUTO_THRESHOLD,
+  STAFF_STRONG_THRESHOLD,
+  STAFF_VERIFY_MIN_SCORE,
+  STAFF_MIN_MARGIN,
+  STAFF_STRONG_MIN_MARGIN,
+  CURRENT_PIPELINE_VERSION,
 } = require('../utils/dialysisFaceMatch');
 
 const router = express.Router();
@@ -77,6 +96,114 @@ async function attachPatientSessionStats(prisma, rows, hospitalClause) {
     lastSessionDate: map[r.id]?.lastSessionDate ?? null,
   }));
 }
+
+function intersectPatientIds(a, b) {
+  if (a == null) return b;
+  if (b == null) return a;
+  const setB = new Set(b);
+  return a.filter((id) => setB.has(id));
+}
+
+async function patientIdsForLastSessionFilter(prisma, hospitalClause, filter) {
+  if (filter === 'all' || filter === 'none') return null;
+  const agg = await prisma.dialysisSession.groupBy({
+    by: ['dialysisPatientId'],
+    where: { hospitalId: hospitalClause },
+    _max: { sessionDate: true },
+  });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return agg
+    .filter((row) => {
+      const maxDate = row._max.sessionDate;
+      if (!maxDate) return false;
+      const d = new Date(maxDate);
+      d.setHours(0, 0, 0, 0);
+      const daysAgo = Math.floor((today.getTime() - d.getTime()) / 86400000);
+      if (filter === '7d') return daysAgo <= 7;
+      if (filter === '30d') return daysAgo <= 30;
+      if (filter === '90d') return daysAgo <= 90;
+      if (filter === 'older30d') return daysAgo > 30;
+      return false;
+    })
+    .map((row) => row.dialysisPatientId);
+}
+
+async function buildPatientListWhere(prisma, req, hospitalClause) {
+  const search = (req.query.search || '').trim();
+  const faceFilter = String(req.query.face_filter || 'all');
+  const sessionsFilter = String(req.query.sessions_filter || 'all');
+  const lastSessionFilter = String(req.query.last_session_filter || 'all');
+
+  const where = {
+    hospitalId: hospitalClause,
+    ...(search
+      ? {
+          OR: [
+            { fullName: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search } },
+            { nationalId: { contains: search } },
+            { internalRecordNumber: { contains: search, mode: 'insensitive' } },
+            { biometricId: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
+
+  if (faceFilter === 'no') {
+    where.faceEnrolledAt = null;
+  }
+
+  if (sessionsFilter === 'none') {
+    where.dialysisSessions = { none: { hospitalId: hospitalClause } };
+  } else if (sessionsFilter === 'has') {
+    where.dialysisSessions = { some: { hospitalId: hospitalClause } };
+  }
+
+  if (lastSessionFilter === 'none') {
+    where.dialysisSessions = { none: { hospitalId: hospitalClause } };
+  }
+
+  let idFilter = null;
+
+  if (faceFilter === 'yes' || faceFilter === 'needs_reenroll') {
+    const enrolled = await prisma.dialysisPatient.findMany({
+      where: { hospitalId: hospitalClause, faceEnrolledAt: { not: null } },
+      select: { id: true, faceEnrollMetaJson: true },
+    });
+    const ids =
+      faceFilter === 'needs_reenroll'
+        ? enrolled.filter((r) => needsFaceReenrollment(r.faceEnrollMetaJson)).map((r) => r.id)
+        : enrolled.filter((r) => !needsFaceReenrollment(r.faceEnrollMetaJson)).map((r) => r.id);
+    idFilter = intersectPatientIds(idFilter, ids);
+  }
+
+  if (lastSessionFilter !== 'all' && lastSessionFilter !== 'none') {
+    const ids = await patientIdsForLastSessionFilter(prisma, hospitalClause, lastSessionFilter);
+    idFilter = intersectPatientIds(idFilter, ids);
+  }
+
+  if (idFilter != null) {
+    if (!idFilter.length) {
+      return { where: { id: -1 }, empty: true };
+    }
+    where.id = { in: idFilter };
+  }
+
+  return { where, empty: false };
+}
+
+const PATIENT_LIST_INCLUDE = {
+  hospital: { select: { id: true, name: true, code: true } },
+  schedules: {
+    where: { isActive: 1 },
+    orderBy: [{ dayOfWeek: 'asc' }, { shiftSlotId: 'asc' }],
+    include: {
+      shiftSlot: { select: { id: true, name: true } },
+      location: { select: { id: true, hallName: true, bedCode: true } },
+    },
+  },
+};
 
 /** علاقات خفيفة لقائمة الجلسات — بدون استهلاكات (تُجلب في GET /sessions/:id) */
 const SESSION_LIST_INCLUDE = {
@@ -336,12 +463,13 @@ async function autoCompleteExpiredDialysisSessions(prisma, hospitalIdsInput) {
     where: { hospitalId: hospitalClause, status: 'ACTIVE' },
     select: {
       id: true,
+      hospitalId: true,
       startedAt: true,
       sessionDate: true,
       shiftSlotId: true,
     },
   });
-  if (!activeRows.length) return 0;
+  if (!activeRows.length) return { closedCount: 0, hospitalIds: [] };
 
   const slotIds = [...new Set(activeRows.map((r) => r.shiftSlotId).filter(Boolean))];
   let slotsMap = new Map();
@@ -363,11 +491,11 @@ async function autoCompleteExpiredDialysisSessions(prisma, hospitalIdsInput) {
     const cap = computeDialysisSessionCapEndedAt(row.startedAt, sessionYmd, slot);
     if (!cap) continue;
     if (nowMs >= cap.getTime()) {
-      toClose.push({ id: row.id, endedAt: cap });
+      toClose.push({ id: row.id, hospitalId: row.hospitalId, endedAt: cap });
     }
   }
 
-  if (!toClose.length) return 0;
+  if (!toClose.length) return { closedCount: 0, hospitalIds: [] };
 
   await prisma.$transaction(
     toClose.map((s) =>
@@ -378,7 +506,8 @@ async function autoCompleteExpiredDialysisSessions(prisma, hospitalIdsInput) {
     )
   );
 
-  return toClose.length;
+  const hospitalIds = [...new Set(toClose.map((s) => s.hospitalId))];
+  return { closedCount: toClose.length, hospitalIds };
 }
 
 /** فلاتر قائمة الجلسات و KPI (استعلام GET) */
@@ -427,6 +556,16 @@ function buildDialysisSessionsWhere(hospitalClause, query) {
     patientMatchMethodFilter = 'MANUAL';
   }
 
+  const shiftRaw = query.shift;
+  const shiftFilter =
+    shiftRaw && String(shiftRaw).trim()
+      ? String(shiftRaw).trim().toUpperCase()
+      : undefined;
+
+  const hallNameRaw = query.hall_name;
+  const hallNameFilter =
+    hallNameRaw && String(hallNameRaw).trim() ? String(hallNameRaw).trim() : undefined;
+
   return {
     hospitalId: hospitalClause,
     ...(sessionDateWhere !== undefined
@@ -451,6 +590,8 @@ function buildDialysisSessionsWhere(hospitalClause, query) {
     ...(Number.isFinite(locationId) ? { locationId } : {}),
     ...(Number.isFinite(shiftSlotId) ? { shiftSlotId } : {}),
     ...(Number.isFinite(machineId) ? { machineId } : {}),
+    ...(shiftFilter ? { shift: shiftFilter } : {}),
+    ...(hallNameFilter ? { location: { hallName: hallNameFilter } } : {}),
     ...(search && String(search).trim()
       ? {
           dialysisPatient: {
@@ -688,39 +829,38 @@ router.get(
       if (!ds) return;
       const hospitalClause =
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
-      const search = (req.query.search || '').trim();
-      const where = {
-        hospitalId: hospitalClause,
-        ...(search
-          ? {
-              OR: [
-                { fullName: { contains: search, mode: 'insensitive' } },
-                { phone: { contains: search } },
-                { nationalId: { contains: search } },
-                { biometricId: { contains: search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      };
+
+      const limitRaw = parseInt(String(req.query.limit ?? ''), 10);
+      const usePagination = Number.isFinite(limitRaw) && limitRaw > 0;
+      const limit = usePagination ? Math.min(Math.max(limitRaw, 1), 100) : 500;
+      const offset = usePagination
+        ? Math.max(parseInt(String(req.query.offset ?? '0'), 10) || 0, 0)
+        : 0;
+
+      const { where, empty } = await buildPatientListWhere(prisma, req, hospitalClause);
+      if (empty) {
+        if (usePagination) {
+          return res.json({ items: [], total: 0, limit, offset });
+        }
+        return res.json([]);
+      }
+
+      const total = usePagination ? await prisma.dialysisPatient.count({ where }) : undefined;
+
       let rows = await prisma.dialysisPatient.findMany({
         where,
-        include: {
-          hospital: { select: { id: true, name: true, code: true } },
-          schedules: {
-            where: { isActive: 1 },
-            orderBy: [{ dayOfWeek: 'asc' }, { shiftSlotId: 'asc' }],
-            include: {
-              shiftSlot: { select: { id: true, name: true } },
-              location: { select: { id: true, hallName: true, bedCode: true } },
-            },
-          },
-        },
+        include: PATIENT_LIST_INCLUDE,
         orderBy: { updatedAt: 'desc' },
-        take: 500,
+        ...(usePagination ? { skip: offset, take: limit } : { take: 500 }),
       });
       rows = await attachUsernames(prisma, rows);
       rows = await attachPatientSessionStats(prisma, rows, hospitalClause);
-      res.json(rows.map(stripPatientListRow));
+      const items = rows.map(stripPatientListRow);
+
+      if (usePagination) {
+        return res.json({ items, total, limit, offset });
+      }
+      res.json(items);
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل جلب مرضى الغسل الكلوي' });
@@ -1217,6 +1357,13 @@ router.patch(
           ...audit(req),
         },
       });
+      await logDialysisAudit(prisma, req, {
+        action: 'patient_promote',
+        entityType: 'dialysis_patient',
+        entityId: id,
+        summary: `ترقية المريض «${existing.fullName}» إلى دائم`,
+        meta: { hospital_id: hospitalId, patient_name: existing.fullName },
+      });
       res.json(row);
     } catch (e) {
       console.error(e);
@@ -1574,13 +1721,16 @@ router.post(
       }
 
       const metaRaw = b.meta && typeof b.meta === 'object' ? b.meta : {};
+      const probeList = Array.isArray(list) && list.length ? list : embedding ? [embedding] : [];
       const faceMeta = {
-        pipeline_version: metaRaw.pipeline_version || 'face-api-aligned-v2',
-        camera_facing: metaRaw.camera_facing || null,
+        pipeline_version: metaRaw.pipeline_version || CURRENT_PIPELINE_VERSION,
+        camera_facing: metaRaw.camera_facing || 'environment',
         enroll_quality: metaRaw.enroll_quality ?? null,
         liveness_passed: Boolean(metaRaw.liveness_passed),
-        sample_count: metaRaw.sample_count ?? (Array.isArray(list) ? list.length : 1),
+        sample_count: metaRaw.sample_count ?? probeList.length,
         pairwise_similarity: metaRaw.pairwise_similarity ?? pairwise ?? null,
+        probe_embeddings: probeList,
+        operating_mode: metaRaw.operating_mode || 'staff',
         enrolled_at: new Date().toISOString(),
       };
 
@@ -1600,6 +1750,17 @@ router.post(
       const updated = await prisma.dialysisPatient.update({
         where: { id },
         data: updateData,
+      });
+      await logDialysisAudit(prisma, req, {
+        action: 'face_enroll',
+        entityType: 'dialysis_patient',
+        entityId: id,
+        summary: `تسجيل بصمة وجه للمريض «${patient.fullName}»`,
+        meta: {
+          hospital_id: hospitalId,
+          patient_name: patient.fullName,
+          sample_count: faceMeta.sample_count,
+        },
       });
       res.json({
         ok: true,
@@ -1637,6 +1798,13 @@ router.delete(
           ...audit(req),
         },
       });
+      await logDialysisAudit(prisma, req, {
+        action: 'face_enroll_clear',
+        entityType: 'dialysis_patient',
+        entityId: id,
+        summary: `إزالة بصمة وجه للمريض «${patient.fullName}»`,
+        meta: { hospital_id: hospitalId, patient_name: patient.fullName },
+      });
       res.json({ ok: true, patient: stripFaceEmbeddingFromPatient(updated) });
     } catch (e) {
       console.error(e);
@@ -1649,6 +1817,7 @@ router.delete(
 router.post(
   '/patients/identify-face',
   authenticateToken,
+  faceIdentifyLimiter,
   requireAnyPermission('dialysis:view', 'dialysis:session:create'),
   async (req, res) => {
     const prisma = prismaOr503(res);
@@ -1673,7 +1842,7 @@ router.post(
           faceEnrolledAt: { not: null },
           faceEmbeddingJson: { not: null },
         },
-        select: { id: true, fullName: true, faceEmbeddingJson: true, photoUrl: true },
+        select: { id: true, fullName: true, faceEmbeddingJson: true, photoUrl: true, faceEnrollMetaJson: true },
         take: 2000,
       });
 
@@ -1682,23 +1851,52 @@ router.post(
         fullName: r.fullName,
         photoUrl: r.photoUrl,
         embedding: r.faceEmbeddingJson,
+        meta: r.faceEnrollMetaJson,
       }));
 
       const topK = parseInt(String(req.body?.top_k ?? 5), 10) || 5;
-      const result = identifyFaceStrict(probeList, gallery, { topK });
+      const result = identifyFaceStrict(probeList, gallery, {
+        topK,
+        autoThreshold: STAFF_AUTO_THRESHOLD,
+        strongThreshold: STAFF_STRONG_THRESHOLD,
+        verifyMinScore: STAFF_VERIFY_MIN_SCORE,
+        minMargin: STAFF_MIN_MARGIN,
+        strongMinMargin: STAFF_STRONG_MIN_MARGIN,
+      });
 
       if (result.error) {
+        logger.warn('dialysis.identify_face.rejected', {
+          hospitalId,
+          userId: req.user?.id ?? null,
+          reason: result.error,
+          enrolled_count: gallery.length,
+        });
         return res.status(400).json({ error: result.error });
       }
+
+      logger.info('dialysis.identify_face', {
+        hospitalId,
+        userId: req.user?.id ?? null,
+        enrolled_count: gallery.length,
+        probe_count: result.probe_count,
+        match_count: result.matches?.length ?? 0,
+        auto_match_id: result.auto_match?.patient_id ?? null,
+        auto_match_reason: result.auto_match?.reason ?? null,
+        top_score: result.matches?.[0]?.score ?? null,
+      });
 
       res.json({
         matches: result.matches,
         enrolled_count: gallery.length,
         auto_match: result.auto_match,
         probe_count: result.probe_count,
-        pipeline_version: 'face-api-aligned-v2',
+        pipeline_version: CURRENT_PIPELINE_VERSION,
       });
     } catch (e) {
+      logger.error('dialysis.identify_face.error', {
+        userId: req.user?.id ?? null,
+        message: e?.message,
+      });
       console.error(e);
       res.status(500).json({ error: 'فشل مطابقة الوجه' });
     }
@@ -1726,16 +1924,25 @@ router.get(
         select: { id: true, faceEnrollMetaJson: true },
       });
 
-      const v2 = enrolled.filter((r) => {
-        const m = r.faceEnrollMetaJson;
-        return m && typeof m === 'object' && m.pipeline_version === 'face-api-aligned-v2';
-      }).length;
+      const currentStaff = enrolled.filter((r) => isCurrentStaffPipeline(r.faceEnrollMetaJson)).length;
+      const needsReenroll = enrolled.filter((r) => needsFaceReenrollment(r.faceEnrollMetaJson)).length;
+      const backCamera = enrolled.filter(
+        (r) => r.faceEnrollMetaJson && r.faceEnrollMetaJson.camera_facing === 'environment'
+      ).length;
+
+      const totalPatients = await prisma.dialysisPatient.count({ where: { hospitalId } });
+      const withoutFace = await prisma.dialysisPatient.count({
+        where: { hospitalId, faceEnrolledAt: null },
+      });
 
       res.json({
         enrolled_count: enrolled.length,
-        aligned_v2_count: v2,
-        needs_reenroll_count: enrolled.length - v2,
-        pipeline_current: 'face-api-aligned-v2',
+        current_staff_count: currentStaff,
+        needs_reenroll_count: needsReenroll,
+        back_camera_count: backCamera,
+        total_patients: totalPatients,
+        without_face_count: withoutFace,
+        pipeline_current: CURRENT_PIPELINE_VERSION,
       });
     } catch (e) {
       console.error(e);
@@ -2905,19 +3112,31 @@ router.get(
       const ds = await resolveDialysisDataScope(prisma, req, res);
       if (!ds) return;
       const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
-      await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
       const hospitalClause =
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const where = buildDialysisSessionsWhere(hospitalClause, req.query);
       const limitRaw = parseInt(String(req.query.limit ?? '300'), 10);
       const take = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 300;
+      const offsetRaw = parseInt(String(req.query.offset ?? ''), 10);
+      const usePagination =
+        req.query.paginated === '1' || req.query.paginated === 'true' || Number.isFinite(offsetRaw);
+      const offset = usePagination ? Math.max(offsetRaw || 0, 0) : 0;
+
+      const total = usePagination ? await prisma.dialysisSession.count({ where }) : undefined;
+
       let rows = await prisma.dialysisSession.findMany({
         where,
         include: SESSION_LIST_INCLUDE,
         orderBy: [{ sessionDate: 'desc' }, { startedAt: 'desc' }],
-        take,
+        ...(usePagination ? { skip: offset, take } : { take }),
       });
       rows = await attachUsernames(prisma, rows);
+
+      if (usePagination) {
+        return res.json({ items: rows, total, limit: take, offset });
+      }
       res.json(rows);
     } catch (e) {
       console.error(e);
@@ -2937,7 +3156,8 @@ router.get(
       const ds = await resolveDialysisDataScope(prisma, req, res);
       if (!ds) return;
       const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
-      await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
       const hospitalClause =
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const where = buildDialysisSessionsWhere(hospitalClause, req.query);
@@ -2947,6 +3167,188 @@ router.get(
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل إحصاء الجلسات' });
+    }
+  }
+);
+
+router.get(
+  '/sessions/report-aggregates',
+  authenticateToken,
+  requirePermission('dialysis:view'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const ds = await resolveDialysisDataScope(prisma, req, res);
+      if (!ds) return;
+      const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
+      const hospitalClause =
+        ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
+      const where = buildDialysisSessionsWhere(hospitalClause, req.query);
+
+      const rangeParams = {
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      const [kpis, charts, coverageRes] = await Promise.all([
+        aggregateDialysisSessionKpis(prisma, where),
+        aggregateReportSessionCharts(prisma, where),
+        prisma.dialysisStatisticalEntry.findMany({
+          where: {
+            hospitalId: hospitalClause,
+            ...(rangeParams.date_from && rangeParams.date_to
+              ? {
+                  sessionDate: {
+                    gte: parseCalendarDateForDb(String(rangeParams.date_from).split('T')[0]),
+                    lte: parseCalendarDateForDb(String(rangeParams.date_to).split('T')[0]),
+                  },
+                }
+              : {}),
+          },
+          select: { dialysisPatientId: true, sessionDate: true, shift: true },
+        }),
+      ]);
+
+      const coverageKeys = coverageRes.map(
+        (e) => `${e.dialysisPatientId}|${sessionDateRowToYmd(e.sessionDate)}|${e.shift}`
+      );
+
+      const recon = await aggregateReportReconSummary(prisma, where, coverageKeys, []);
+
+      res.json({
+        kpis: {
+          total: kpis.total,
+          uniquePatients: kpis.uniquePatients,
+          scheduled: kpis.intakeScheduled,
+          unscheduled: kpis.intakeOffSchedule,
+          emergency: kpis.intakeEmergency,
+          morning: kpis.shiftMorning,
+          evening: kpis.shiftEvening,
+          active: kpis.active,
+          completed: kpis.completed,
+          cancelled: kpis.cancelled,
+          ...recon,
+        },
+        byHall: charts.byHall,
+        byHospital: charts.byHospital,
+        halls: charts.halls,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل تجميع تقرير الجلسات' });
+    }
+  }
+);
+
+router.get(
+  '/ministry/summary',
+  authenticateToken,
+  requirePermission('dialysis:view'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const ds = await resolveDialysisDataScope(prisma, req, res);
+      if (!ds) return;
+      const fromRaw = (req.query.date_from || req.query.from || '').toString().split('T')[0];
+      const toRaw = (req.query.date_to || req.query.to || '').toString().split('T')[0];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fromRaw) || !/^\d{4}-\d{2}-\d{2}$/.test(toRaw)) {
+        return res.status(400).json({ error: 'أرسل date_from و date_to بصيغة YYYY-MM-DD' });
+      }
+      const fromD = parseCalendarDateForDb(fromRaw);
+      const toD = parseCalendarDateForDb(toRaw);
+      if (!fromD || !toD) return res.status(400).json({ error: 'تواريخ غير صالحة' });
+
+      const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
+
+      const summary = await buildMinistrySummary(prisma, hospIds, fromD, toD);
+      res.json(summary);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل تجميع لوحة الوزارة' });
+    }
+  }
+);
+
+router.get(
+  '/ministry/export.xlsx',
+  authenticateToken,
+  requirePermission('dialysis:view'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const ds = await resolveDialysisDataScope(prisma, req, res);
+      if (!ds) return;
+      const fromRaw = (req.query.date_from || req.query.from || '').toString().split('T')[0];
+      const toRaw = (req.query.date_to || req.query.to || '').toString().split('T')[0];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fromRaw) || !/^\d{4}-\d{2}-\d{2}$/.test(toRaw)) {
+        return res.status(400).json({ error: 'أرسل date_from و date_to بصيغة YYYY-MM-DD' });
+      }
+      const fromD = parseCalendarDateForDb(fromRaw);
+      const toD = parseCalendarDateForDb(toRaw);
+      if (!fromD || !toD) return res.status(400).json({ error: 'تواريخ غير صالحة' });
+
+      const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
+      const buffer = await generateMinistryExcelBuffer(prisma, hospIds, fromD, toD);
+      const filename = `ministry-dialysis-${fromRaw}_${toRaw}.xlsx`;
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(Buffer.from(buffer));
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل تصدير تقرير الوزارة' });
+    }
+  }
+);
+
+/** SSE fallback for live hall — EventSource cannot send Authorization header. */
+router.get(
+  '/live/stream',
+  authenticateTokenOrQuery,
+  requirePermission('dialysis:view'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const ds = await resolveDialysisDataScope(prisma, req, res);
+      if (!ds) return;
+      const hospitalIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
+
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+      dialysisLiveHub.subscribe(hospitalIds, res);
+      res.write(': connected\n\n');
+
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(': ping\n\n');
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 25000);
+
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        dialysisLiveHub.unsubscribe(res);
+      });
+    } catch (e) {
+      console.error(e);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'فشل بث القاعة المباشرة' });
+      }
     }
   }
 );
@@ -2962,7 +3364,8 @@ router.get(
       const ds = await resolveDialysisDataScope(prisma, req, res);
       if (!ds) return;
       const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
-      await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, hospIds);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
       const hospitalClause =
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const rows = await prisma.dialysisSession.findMany({
@@ -2999,7 +3402,8 @@ router.get(
         preview.hospitalId
       );
       if (allowed == null) return;
-      await autoCompleteExpiredDialysisSessions(prisma, [preview.hospitalId]);
+      const ac = await autoCompleteExpiredDialysisSessions(prisma, [preview.hospitalId]);
+      notifyDialysisLiveAfterAutoComplete(req, ac);
       const row = await prisma.dialysisSession.findFirst({
         where: { id: sid },
         include: {
@@ -3188,6 +3592,7 @@ router.post(
         where: { id: result.id },
         include: { consumptions: true },
       });
+      notifyDialysisLiveChange(req, hospitalId, 'session-created');
       res.status(201).json(full);
     } catch (e) {
       console.error(e);
@@ -3359,6 +3764,7 @@ router.patch(
           },
         },
       });
+      notifyDialysisLiveChange(req, hospitalId, 'session-updated');
       res.json(full);
     } catch (e) {
       console.error(e);
@@ -3388,13 +3794,115 @@ router.delete(
         preview.hospitalId
       );
       if (hospitalId == null) return;
-      const exists = await prisma.dialysisSession.findFirst({ where: { id, hospitalId } });
+      const exists = await prisma.dialysisSession.findFirst({
+        where: { id, hospitalId },
+        include: { dialysisPatient: { select: { fullName: true } } },
+      });
       if (!exists) return res.status(404).json({ error: 'الجلسة غير موجودة' });
       await prisma.dialysisSession.delete({ where: { id } });
+      await logDialysisAudit(prisma, req, {
+        action: 'session_delete',
+        entityType: 'dialysis_session',
+        entityId: id,
+        summary: `حذف جلسة #${id} — ${exists.dialysisPatient?.fullName || 'مريض'}`,
+        meta: {
+          hospital_id: hospitalId,
+          patient_name: exists.dialysisPatient?.fullName,
+          session_date: sessionDateRowToYmd(exists.sessionDate),
+          shift: exists.shift,
+        },
+      });
+      notifyDialysisLiveChange(req, hospitalId, 'session-deleted');
       res.json({ ok: true });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: 'فشل حذف الجلسة' });
+    }
+  }
+);
+
+router.get(
+  '/audit-log',
+  authenticateToken,
+  requirePermission('dialysis:access:manage'),
+  async (req, res) => {
+    const prisma = prismaOr503(res);
+    if (!prisma) return;
+    try {
+      const ds = await resolveDialysisDataScope(prisma, req, res);
+      if (!ds) return;
+      const hospIds = ds.mode === 'multi' ? ds.hospitalIds : [ds.hospitalId];
+
+      const limitRaw = parseInt(String(req.query.limit ?? '50'), 10);
+      const offsetRaw = parseInt(String(req.query.offset ?? '0'), 10);
+      const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
+      const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+      const actionFilter = (req.query.action || '').toString().replace(DIALYSIS_AUDIT_PREFIX, '');
+
+      const fromRaw = (req.query.date_from || '').toString().split('T')[0];
+      const toRaw = (req.query.date_to || '').toString().split('T')[0];
+      let createdAtWhere = undefined;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fromRaw) && /^\d{4}-\d{2}-\d{2}$/.test(toRaw)) {
+        const fromD = parseCalendarDateForDb(fromRaw);
+        const toD = parseCalendarDateForDb(toRaw);
+        if (fromD && toD) {
+          const toEnd = new Date(toD);
+          toEnd.setUTCHours(23, 59, 59, 999);
+          createdAtWhere = { gte: fromD, lte: toEnd };
+        }
+      }
+
+      const actionWhere = actionFilter
+        ? { action: `${DIALYSIS_AUDIT_PREFIX}${actionFilter}` }
+        : { action: { startsWith: DIALYSIS_AUDIT_PREFIX } };
+
+      const rawRows = await prisma.activityLog.findMany({
+        where: {
+          ...actionWhere,
+          ...(createdAtWhere ? { createdAt: createdAtWhere } : {}),
+        },
+        include: {
+          user: { select: { id: true, name: true, username: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: Math.min(limit + offset + 200, 1000),
+      });
+
+      const filtered = rawRows.filter((row) => {
+        const details = parseAuditDetails(row.details);
+        const hid = details.hospital_id;
+        if (hid == null) return true;
+        return hospIds.includes(Number(hid));
+      });
+
+      const page = filtered.slice(offset, offset + limit).map((row) => {
+        const details = parseAuditDetails(row.details);
+        return {
+          id: row.id,
+          action: row.action,
+          action_label: auditActionLabel(row.action),
+          entity_type: row.entityType,
+          entity_id: row.entityId,
+          summary: details.summary || auditActionLabel(row.action),
+          hospital_id: details.hospital_id ?? null,
+          patient_name: details.patient_name ?? null,
+          meta: details,
+          created_at: row.createdAt,
+          user: row.user
+            ? { id: row.user.id, name: row.user.name, username: row.user.username }
+            : null,
+        };
+      });
+
+      res.json({
+        items: page,
+        total: filtered.length,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'فشل جلب سجل التدقيق' });
     }
   }
 );
@@ -3415,6 +3923,8 @@ router.get(
       const hospitalClause =
         ds.mode === 'multi' ? { in: ds.hospitalIds } : ds.hospitalId;
       const search = (req.query.search || '').trim();
+      const limitRaw = parseInt(String(req.query.limit ?? '300'), 10);
+      const take = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 5000) : 300;
       const where = {
         hospitalId: hospitalClause,
         ...(search
@@ -3432,7 +3942,7 @@ router.get(
         where,
         select: { id: true, fullName: true, kind: true, faceEnrolledAt: true },
         orderBy: { fullName: 'asc' },
-        take: 300,
+        take,
       });
       res.json(rows.map((r) => stripFaceEmbeddingFromPatient(r)));
     } catch (e) {
@@ -3596,9 +4106,22 @@ router.delete(
       if (hospitalId == null) return;
       const row = await prisma.dialysisStatisticalEntry.findFirst({
         where: { id, hospitalId },
+        include: { dialysisPatient: { select: { fullName: true } } },
       });
       if (!row) return res.status(404).json({ error: 'السجل غير موجود' });
       await prisma.dialysisStatisticalEntry.delete({ where: { id } });
+      await logDialysisAudit(prisma, req, {
+        action: 'stat_entry_delete',
+        entityType: 'dialysis_stat_entry',
+        entityId: id,
+        summary: `حذف سطر إحصائي — ${row.dialysisPatient?.fullName || 'مريض'}`,
+        meta: {
+          hospital_id: hospitalId,
+          patient_name: row.dialysisPatient?.fullName,
+          session_date: sessionDateRowToYmd(row.sessionDate),
+          shift: row.shift,
+        },
+      });
       res.json({ ok: true });
     } catch (e) {
       console.error(e);

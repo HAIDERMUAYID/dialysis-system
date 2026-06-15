@@ -11,13 +11,17 @@ import {
 } from './dialysisFaceRuntime';
 import { blobToJpegDataUrl, uploadDialysisPatientPortraitBlob } from '../app/dialysisPatientPhoto';
 import { captureFacePortraitBlob, captureVideoCenterPortraitBlob } from './dialysisFaceRuntime';
+import DialysisFaceStaffGuide from './DialysisFaceStaffGuide';
 import {
   FACE_ENROLL_AUTO_STABLE_MS,
   FACE_ENROLL_MIN_PAIRWISE,
   FACE_ENROLL_MIN_SAMPLES,
   FACE_ENROLL_SAMPLES,
   FACE_ENROLL_TURN_STABLE_MS,
+  FACE_IS_STAFF_MODE,
   FACE_PIPELINE_VERSION,
+  FACE_SKIP_LIVENESS,
+  FACE_STAFF_INTRO,
 } from './dialysisFaceConfig';
 import {
   isLivenessTurnReady,
@@ -32,6 +36,10 @@ import { useDialysisFaceModalProps } from './useDialysisFaceModalProps';
 import { useDialysisFaceSession } from './useDialysisFaceSession';
 import { useDialysisMobile } from '../app/useDialysisMobile';
 import { dialysisHaptic } from '../app/useDialysisHaptic';
+import { isNetworkError } from '../app/offline/dialysisOfflineState';
+import { queueFaceEnroll } from '../app/offline/dialysisFaceEnrollQueue';
+import { useDialysisFaceVoiceHint } from './useDialysisFaceVoiceHint';
+import DialysisFaceVoiceToggle from './DialysisFaceVoiceToggle';
 import './dialysis-face-enroll.css';
 
 const { Text } = Typography;
@@ -68,7 +76,7 @@ function phaseLabel(phase: FlowPhase, mirrored: boolean): string {
     case 'turn':
       return livenessTurnHint(mirrored);
     case 'collect':
-      return 'ثبّت وجهك — جاري التقاط البصمة';
+      return FACE_IS_STAFF_MODE ? 'ثبّت الكاميرا — جاري التقاط البصمة' : 'ثبّت وجهك — جاري التقاط البصمة';
     case 'save':
       return 'جاري الحفظ…';
     case 'done':
@@ -108,13 +116,20 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
 
   const stableSinceRef = useRef<number | null>(null);
   const autoLockRef = useRef(false);
+  const collectStartedRef = useRef(false);
   const quickStartDoneRef = useRef(false);
+  const enrollRetryPhase: FlowPhase = FACE_SKIP_LIVENESS ? 'collect' : 'center';
 
   const displayError = error || cameraError;
   const cameraReady = cameraPhase === 'ready';
   const mirrored = facing === 'user';
   const progress = phaseProgress(phase, collectPct);
   const statusLabel = phaseLabel(phase, mirrored);
+
+  useDialysisFaceVoiceHint(
+    quality?.ok === false && quality?.message ? quality.message : statusLabel,
+    open && flowActive && phase !== 'save' && phase !== 'done' && !displayError
+  );
 
   const resetFlow = useCallback(() => {
     setPhase('intro');
@@ -126,6 +141,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
     setSubmitting(false);
     stableSinceRef.current = null;
     autoLockRef.current = false;
+    collectStartedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -141,7 +157,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
     quickStartDoneRef.current = true;
     resetFlow();
     setFlowActive(true);
-    setPhase('center');
+    setPhase(FACE_SKIP_LIVENESS ? 'collect' : 'center');
     setLocalError(null);
   }, [open, quickStart, hasFaceEnrolled, resetFlow]);
 
@@ -158,7 +174,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
       }
       try {
         const portraitBase64 = portraitBlob ? await blobToJpegDataUrl(portraitBlob) : undefined;
-        await axios.post(`/api/dialysis/patients/${patientId}/face-enroll`, {
+        const enrollPayload = {
           hospital_id: hospitalId,
           embeddings,
           consent: true,
@@ -166,12 +182,24 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
           meta: {
             pipeline_version: FACE_PIPELINE_VERSION,
             camera_facing: facing,
+            operating_mode: FACE_IS_STAFF_MODE ? 'staff' : 'selfie',
             enroll_quality: Math.round(avgQuality),
-            liveness_passed: true,
+            liveness_passed: !FACE_SKIP_LIVENESS,
             sample_count: embeddings.length,
             pairwise_similarity: pairwise,
+            probe_embeddings: embeddings,
           },
-        });
+        };
+        if (!navigator.onLine) {
+          await queueFaceEnroll({ patientId, hospitalId, payload: enrollPayload });
+          setPhase('done');
+          dialysisHaptic('success');
+          message.success('تم حفظ البصمة محلياً — ستُرفع عند عودة الاتصال');
+          onEnrolled?.();
+          window.setTimeout(() => onClose(), 600);
+          return;
+        }
+        await axios.post(`/api/dialysis/patients/${patientId}/face-enroll`, enrollPayload);
         if (portraitBlob) {
           await uploadDialysisPatientPortraitBlob(patientId, hospitalId, portraitBlob).catch(
             () => null
@@ -183,6 +211,39 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         onEnrolled?.();
         window.setTimeout(() => onClose(), 600);
       } catch (e: unknown) {
+        if (isNetworkError(e)) {
+          try {
+            const portraitBase64 = portraitBlob ? await blobToJpegDataUrl(portraitBlob) : undefined;
+            await queueFaceEnroll({
+              patientId,
+              hospitalId,
+              payload: {
+                hospital_id: hospitalId,
+                embeddings,
+                consent: true,
+                portrait_jpeg_base64: portraitBase64,
+                meta: {
+                  pipeline_version: FACE_PIPELINE_VERSION,
+                  camera_facing: facing,
+                  operating_mode: FACE_IS_STAFF_MODE ? 'staff' : 'selfie',
+                  enroll_quality: Math.round(avgQuality),
+                  liveness_passed: !FACE_SKIP_LIVENESS,
+                  sample_count: embeddings.length,
+                  pairwise_similarity: pairwise,
+                  probe_embeddings: embeddings,
+                },
+              },
+            });
+            setPhase('done');
+            dialysisHaptic('success');
+            message.success('تم حفظ البصمة محلياً — ستُرفع عند عودة الاتصال');
+            onEnrolled?.();
+            window.setTimeout(() => onClose(), 600);
+            return;
+          } catch {
+            /* fall through */
+          }
+        }
         const msg =
           (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
           'فشل حفظ بصمة الوجه';
@@ -219,27 +280,29 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
 
     if (collected.length < FACE_ENROLL_MIN_SAMPLES) {
       setLocalError(errors[errors.length - 1] || 'لم تكتمل اللقطات — حاول مجدداً');
-      setPhase('center');
+      setPhase(enrollRetryPhase);
       setCenterPose(null);
       setLivenessSamples([]);
       setBusy(false);
       autoLockRef.current = false;
+      collectStartedRef.current = false;
       return;
     }
 
     const pairwise = minPairwiseSimilarity(allSamples);
     if (pairwise < FACE_ENROLL_MIN_PAIRWISE) {
       setLocalError('اللقطات غير متسقة — أعد المحاولة بنفس الإضاءة');
-      setPhase('center');
+      setPhase(enrollRetryPhase);
       setCenterPose(null);
       setLivenessSamples([]);
       setBusy(false);
       autoLockRef.current = false;
+      collectStartedRef.current = false;
       return;
     }
 
     await saveEnrollment(allSamples, avgQuality, pairwise);
-  }, [cameraReady, livenessSamples, saveEnrollment, videoRef]);
+  }, [cameraReady, livenessSamples, saveEnrollment, videoRef, enrollRetryPhase]);
 
   const captureCenter = useCallback(async () => {
     const video = videoRef.current;
@@ -298,6 +361,18 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
       return undefined;
     }
 
+    if (FACE_SKIP_LIVENESS && phase === 'collect') {
+      if (!autoLockRef.current && !busy && !collectStartedRef.current) {
+        collectStartedRef.current = true;
+        void runCollectAndSave();
+      }
+      return undefined;
+    }
+
+    if (FACE_SKIP_LIVENESS) {
+      return undefined;
+    }
+
     const now = Date.now();
 
     if (phase === 'center') {
@@ -340,12 +415,13 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
     displayError,
     captureCenter,
     captureTurn,
+    runCollectAndSave,
   ]);
 
   const startFlow = () => {
     resetFlow();
     setFlowActive(true);
-    setPhase('center');
+    setPhase(FACE_SKIP_LIVENESS ? 'collect' : 'center');
     setLocalError(null);
   };
 
@@ -374,14 +450,21 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
         {hasFaceEnrolled ? 'تحديث بصمة الوجه' : 'تسجيل بصمة الوجه'}
       </Text>
       <Text type="secondary" style={{ display: 'block', marginBottom: 16, lineHeight: 1.6 }}>
-        {patientName} — اتبع التعليمات على الشاشة فقط.
-        <br />
-        انظر للأمام ← أدر رأسك قليلاً ← يُحفظ تلقائياً.
+        {patientName}
+        {FACE_IS_STAFF_MODE ? (
+          <>
+            <br />
+            {FACE_STAFF_INTRO}
+          </>
+        ) : (
+          <>
+            <br />
+            انظر للأمام ← أدر رأسك قليلاً ← يُحفظ تلقائياً.
+          </>
+        )}
       </Text>
-      <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 16 }}>
-        بالمتابعة أوافق على استخدام بصمة الوجه للتعرف داخل وحدة الغسل فقط.
-      </Text>
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      <DialysisFaceStaffGuide compact={isMobile} />
+      <Space direction="vertical" style={{ width: '100%', marginTop: 12 }} size="middle">
         <Button block type="primary" size="large" icon={<CameraOutlined />} onClick={startFlow}>
           {hasFaceEnrolled ? 'ابدأ التحديث' : 'ابدأ التسجيل'}
         </Button>
@@ -423,6 +506,7 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
             <Alert type="info" showIcon message={sessionHint} style={{ marginBottom: 10 }} />
           ) : null}
           <div className="d-face-enroll-flow__status">
+            <DialysisFaceVoiceToggle className="d-face-voice-toggle" />
             {phase === 'done' ? (
               <Tag icon={<CheckCircleOutlined />} color="success">
                 {statusLabel}
@@ -440,14 +524,16 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
             percent={progress}
             size="small"
             showInfo={false}
-            strokeColor={{ from: '#6366f1', to: '#0d9488' }}
+            strokeColor={{ from: '#157c67', to: '#0d9488' }}
             className="d-face-enroll-flow__progress"
           />
 
           <div
             className={`d-face-enroll-video-wrap d-face-enroll-video-wrap--guided d-face-enroll-flow__video${
-              phase === 'turn' ? ' d-face-enroll-video-wrap--turn' : ''
-            }${quality?.ok && phase !== 'save' ? ' d-face-enroll-video-wrap--ready' : ''}`}
+              FACE_IS_STAFF_MODE ? ' d-face-enroll-video-wrap--staff' : ''
+            }${phase === 'turn' ? ' d-face-enroll-video-wrap--turn' : ''}${
+              quality?.ok && phase !== 'save' ? ' d-face-enroll-video-wrap--ready' : ''
+            }`}
           >
             <video
               ref={videoRef}
@@ -456,7 +542,10 @@ const DialysisFaceEnrollModal: React.FC<Props> = ({
               muted
               autoPlay
             />
-            <div className="d-face-oval-guide" aria-hidden />
+            <div
+              className={`d-face-oval-guide${FACE_IS_STAFF_MODE ? ' d-face-oval-guide--staff' : ''}`}
+              aria-hidden
+            />
             {cameraPhase === 'loading' ? (
               <div className="d-face-enroll-video-overlay">
                 <Text>{loadHint || 'تحميل…'}</Text>

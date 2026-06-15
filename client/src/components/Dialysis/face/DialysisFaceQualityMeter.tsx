@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import type { FaceQualitySnapshot } from './dialysisFaceQuality';
 import { qualityLevelColor } from './dialysisFaceQuality';
+import { FACE_QUALITY_SIZE_LABEL } from './dialysisFaceConfig';
 
 const { Text } = Typography;
 
@@ -55,7 +56,7 @@ const DialysisFaceQualityMeter: React.FC<Props> = ({ quality, compact, minimal }
 
   const items = [
     { key: 'face', label: 'وجه واحد', ok: quality.checks.singleFace && quality.checks.faceDetected },
-    { key: 'size', label: 'القرب', ok: quality.checks.sizeOk },
+    { key: 'size', label: FACE_QUALITY_SIZE_LABEL, ok: quality.checks.sizeOk },
     { key: 'light', label: 'الوضوح', ok: quality.checks.clarityOk },
     { key: 'tilt', label: 'استواء', ok: quality.checks.tiltOk },
     { key: 'center', label: 'توسيط', ok: quality.checks.centeredOk },

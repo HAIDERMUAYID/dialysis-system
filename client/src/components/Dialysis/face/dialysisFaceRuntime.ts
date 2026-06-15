@@ -1,11 +1,14 @@
 import {
+  FACE_CENTER_YAW_MAX,
   FACE_ENROLL_MIN_PAIRWISE,
+  FACE_IS_STAFF_MODE,
   FACE_LIVENESS_MIN_PAIRWISE,
   FACE_LIVENESS_YAW_MIN,
   FACE_MAX_HEAD_TILT_DEG,
   FACE_MIN_DETECTION_SCORE,
   FACE_MIN_FACE_RATIO,
   FACE_MODEL_CDN,
+  faceModelLocalUri,
   FACE_REJECT_REASON_AR,
   FACE_VERIFY_FRAME_DELAY_MS,
 } from './dialysisFaceConfig';
@@ -20,6 +23,28 @@ type FaceApiModule = typeof import('@vladmandic/face-api');
 
 let faceApiModule: FaceApiModule | null = null;
 let modelsPromise: Promise<void> | null = null;
+let resolvedModelBaseUri: string | null = null;
+
+async function resolveFaceModelBaseUri(): Promise<string> {
+  if (resolvedModelBaseUri) return resolvedModelBaseUri;
+
+  const local = faceModelLocalUri();
+  try {
+    const probe = await fetch(`${local}/ssd_mobilenetv1_model-weights_manifest.json`, {
+      method: 'HEAD',
+      cache: 'no-cache',
+    });
+    if (probe.ok) {
+      resolvedModelBaseUri = local;
+      return local;
+    }
+  } catch {
+    /* local weights missing or offline — fall back to CDN */
+  }
+
+  resolvedModelBaseUri = FACE_MODEL_CDN;
+  return FACE_MODEL_CDN;
+}
 
 async function getFaceApi(): Promise<FaceApiModule> {
   if (!faceApiModule) {
@@ -34,10 +59,11 @@ export async function loadDialysisFaceModels(onProgress?: (msg: string) => void)
   modelsPromise = (async () => {
     onProgress?.('تحميل نماذج التعرف على الوجه…');
     const faceapi = await getFaceApi();
+    const modelUri = await resolveFaceModelBaseUri();
     await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri(FACE_MODEL_CDN),
-      faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_CDN),
-      faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_CDN),
+      faceapi.nets.ssdMobilenetv1.loadFromUri(modelUri),
+      faceapi.nets.faceLandmark68Net.loadFromUri(modelUri),
+      faceapi.nets.faceRecognitionNet.loadFromUri(modelUri),
     ]);
     onProgress?.('جاهز');
   })();
@@ -81,7 +107,7 @@ export interface FaceCaptureReject {
 }
 
 type FaceDetectionWithLandmarks = {
-  detection: { box: { width: number; height: number }; score: number };
+  detection: { box: { x: number; y: number; width: number; height: number }; score: number };
   landmarks: {
     getLeftEye(): { x: number; y: number }[];
     getRightEye(): { x: number; y: number }[];
@@ -89,6 +115,50 @@ type FaceDetectionWithLandmarks = {
   };
   descriptor?: Float32Array;
 };
+
+function faceQualityOpts(singleFace: boolean) {
+  return {
+    minScore: FACE_MIN_DETECTION_SCORE,
+    minFaceRatio: FACE_MIN_FACE_RATIO,
+    maxTiltDeg: FACE_MAX_HEAD_TILT_DEG,
+    maxYawRatio: FACE_CENTER_YAW_MAX,
+    staffMode: FACE_IS_STAFF_MODE,
+    singleFace,
+  };
+}
+
+async function refineDescriptorFromFaceCrop(
+  video: HTMLVideoElement,
+  box: { x: number; y: number; width: number; height: number },
+  vw: number,
+  vh: number,
+  fallback?: Float32Array
+): Promise<Float32Array | undefined> {
+  const pad = FACE_IS_STAFF_MODE ? 0.45 : 0.32;
+  const padX = box.width * pad;
+  const padY = box.height * pad;
+  const x = Math.max(0, Math.round(box.x - padX));
+  const y = Math.max(0, Math.round(box.y - padY));
+  const w = Math.min(vw - x, Math.round(box.width + padX * 2));
+  const h = Math.min(vh - y, Math.round(box.height + padY * 2));
+  if (w < 48 || h < 48) return fallback;
+
+  const outSize = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = outSize;
+  canvas.height = outSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return fallback;
+  ctx.drawImage(video, x, y, w, h, 0, 0, outSize, outSize);
+
+  const faceapi = await getFaceApi();
+  const refined = (await faceapi
+    .detectSingleFace(canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.42 }))
+    .withFaceLandmarks()
+    .withFaceDescriptor()) as FaceDetectionWithLandmarks | undefined;
+
+  return refined?.descriptor ?? fallback;
+}
 
 async function detectAlignedDescriptor(
   video: HTMLVideoElement
@@ -117,12 +187,7 @@ async function detectAlignedDescriptor(
   const score = detection.detection.score;
   const pose = computePoseFromLandmarks(detection.landmarks, box, vw, vh, score);
 
-  const quality = evaluateFaceQuality(pose, {
-    minScore: FACE_MIN_DETECTION_SCORE,
-    minFaceRatio: FACE_MIN_FACE_RATIO,
-    maxTiltDeg: FACE_MAX_HEAD_TILT_DEG,
-    singleFace: true,
-  });
+  const quality = evaluateFaceQuality(pose, faceQualityOpts(true));
 
   if (score < FACE_MIN_DETECTION_SCORE) {
     return { reject: { reason: 'LOW_SCORE', score, faceRatio: pose.faceRatio, pose } };
@@ -134,13 +199,21 @@ async function detectAlignedDescriptor(
     return { reject: { reason: 'HEAD_TILT', score, faceRatio: pose.faceRatio, pose } };
   }
 
-  if (!detection.descriptor) {
+  const refinedDescriptor = await refineDescriptorFromFaceCrop(
+    video,
+    box,
+    vw,
+    vh,
+    detection.descriptor
+  );
+
+  if (!refinedDescriptor) {
     return { reject: { reason: 'NO_FACE' } };
   }
 
   return {
     result: {
-      descriptor: normalizeDescriptor(descriptorToArray(detection.descriptor)),
+      descriptor: normalizeDescriptor(descriptorToArray(refinedDescriptor)),
       score,
       faceRatio: pose.faceRatio,
       pose,
@@ -217,12 +290,7 @@ export async function previewFaceQuality(
     detection.detection.score
   );
 
-  return evaluateFaceQuality(pose, {
-    minScore: FACE_MIN_DETECTION_SCORE,
-    minFaceRatio: FACE_MIN_FACE_RATIO,
-    maxTiltDeg: FACE_MAX_HEAD_TILT_DEG,
-    singleFace: detections.length === 1,
-  });
+  return evaluateFaceQuality(pose, faceQualityOpts(detections.length === 1));
 }
 
 export async function captureFaceDescriptorWithQuality(
@@ -288,8 +356,9 @@ export async function captureEnrollmentSamples(
 
   for (let attempt = 0; attempt < maxAttempts && samples.length < targetCount; attempt += 1) {
     if (attempt > 0) {
+      const delayMs = FACE_IS_STAFF_MODE ? (attempt === 1 ? 120 : 220) : attempt === 1 ? 200 : 400;
       // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, attempt === 1 ? 200 : 400));
+      await new Promise((r) => setTimeout(r, delayMs));
     }
 
     // eslint-disable-next-line no-await-in-loop
@@ -324,8 +393,8 @@ export async function captureLivenessCenterFrame(
   }
 
   const { pose, descriptor } = out.result;
-  if (Math.abs(pose.yawRatio) > 0.3) {
-    return { ok: false, error: 'وجّه وجهك للأمام قدر الإمكان داخل الإطار' };
+  if (Math.abs(pose.yawRatio) > FACE_CENTER_YAW_MAX) {
+    return { ok: false, error: FACE_IS_STAFF_MODE ? 'وجّه الكاميرا نحو وجه المريض' : 'وجّه وجهك للأمام قدر الإمكان داخل الإطار' };
   }
 
   return { ok: true, descriptor, pose };
@@ -431,6 +500,7 @@ export async function startFaceCamera(
 
 export function resetFaceModelsCache(): void {
   modelsPromise = null;
+  resolvedModelBaseUri = null;
 }
 
 export function minPairwiseSimilarity(descriptors: number[][]): number {

@@ -332,3 +332,41 @@
 .d-ph-stock-modal.ant-modal .ant-modal-content {
   border-radius: var(--ph-radius-lg);
 }
+
+.d-ph-stock-hero-title.ant-typography {
+  margin: 0 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+
+.d-ph-stock-hero-title .anticon {
+  margin-inline-end: 10px;
+}
+
+.d-ph-stock-banner--spaced {
+  margin-bottom: 14px;
+}
+
+.d-ph-stock-kpi-row {
+  margin-bottom: 16px;
+}
+
+.d-ph-stock-zero-select {
+  width: 100px;
+}
+
+.d-ph-stock-modal-alert {
+  margin-bottom: 12px;
+}
+
+.d-ph-stock-modal-alert--inner {
+  margin-top: 8px;
+}
+
+.d-ph-stock-form-full {
+  width: 100%;
+}
+
+.d-ph-stock-stat-expiring .ant-statistic-content-value {
+  color: #d48806;
+}

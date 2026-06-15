@@ -42,6 +42,8 @@ import {
   LockOutlined,
   CameraOutlined,
   RightOutlined,
+  QuestionCircleOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
@@ -55,11 +57,17 @@ import DialysisWelcomeBanner from './DialysisWelcomeBanner';
 import DialysisHospitalScopePicker from './DialysisHospitalScopePicker';
 import ChangePasswordModal from '../../Common/ChangePasswordModal';
 import ProfilePhotoModal from '../../Common/ProfilePhotoModal';
+import DialysisRouteGuard from './DialysisRouteGuard';
+import DialysisOfflineBanner from './offline/DialysisOfflineBanner';
+import DialysisOnboardingTour from './onboarding/DialysisOnboardingTour';
+import { useDialysisTheme } from './DialysisThemeProvider';
+import { useDialysisRouteCaps } from './dialysisRouteAccess';
 import { DIALYSIS_SYSTEM_TITLE, DIALYSIS_SYSTEM_TITLE_SHORT } from './dialysisBrand';
 import './dialysis-brand.css';
 import './dialysis-app.css';
 import './dialysis-mobile-polish.css';
 import './dialysis-mobile-pages.css';
+import './dialysis-a11y.css';
 import { usePreloadDialysisFaceModels } from '../face/usePreloadDialysisFaceModels';
 
 const { Sider, Header, Content } = Layout;
@@ -95,6 +103,14 @@ const ALL_ITEMS: NavItem[] = [
     group: 'main',
   },
   { key: 'reports', to: '/dialysis/reports', label: 'التقارير', icon: <BarChartOutlined />, permission: 'dialysis:view', group: 'main' },
+  {
+    key: 'ministry',
+    to: '/dialysis/ministry',
+    label: 'لوحة الوزارة',
+    icon: <BankOutlined />,
+    permission: 'dialysis:view',
+    group: 'admin',
+  },
   { key: 'live', to: '/dialysis/live', label: 'القاعة (نشط)', icon: <ThunderboltOutlined />, permission: 'dialysis:view', group: 'main' },
 
   { key: 'halls', to: '/dialysis/halls', label: 'القاعات والأسرة', icon: <ApartmentOutlined />, permission: 'dialysis:view', group: 'setup' },
@@ -123,6 +139,7 @@ const DialysisAppLayout: React.FC = () => {
   );
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [tourRestartNonce, setTourRestartNonce] = useState(0);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MQ);
@@ -165,6 +182,17 @@ const DialysisAppLayout: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, [isMobile]);
 
+  useEffect(() => {
+    const onEnrollSynced = (ev: Event) => {
+      const count = (ev as CustomEvent<{ count?: number }>).detail?.count ?? 0;
+      if (count > 0) {
+        message.success(`تم رفع ${count} بصمة وجه من الذاكرة المحلية`);
+      }
+    };
+    window.addEventListener('dialysis-offline-enroll-synced', onEnrollSynced);
+    return () => window.removeEventListener('dialysis-offline-enroll-synced', onEnrollSynced);
+  }, []);
+
   // فلترة العناصر حسب الصلاحية. ملاحظة: hooks لا تستدعى داخل map، لذلك نستدعيها هنا.
   const canView = usePermission('dialysis:view');
   const permPharmView = usePermission('dialysis:pharmacy:view');
@@ -173,9 +201,11 @@ const DialysisAppLayout: React.FC = () => {
   const canPharmacyNav = permPharmView || permPharmDisp || permPharmInv;
   const canRecon = usePermission('dialysis:reconciliation');
   const canAccess = usePermission('dialysis:access:manage');
+  const { cycleMode: cycleThemeMode, label: themeLabel } = useDialysisTheme();
   const canManageHospital = usePermission('dialysis:hospital:manage');
   const canStatsEntry = usePermission('dialysis:stats:entry');
   const canStatsBulk = usePermission('dialysis:stats:bulk');
+  const routeCaps = useDialysisRouteCaps();
 
   const [newHospitalOpen, setNewHospitalOpen] = useState(false);
   const [newHospitalSaving, setNewHospitalSaving] = useState(false);
@@ -231,11 +261,25 @@ const DialysisAppLayout: React.FC = () => {
     if (it.permission === 'dialysis:reconciliation') return canRecon;
     if (it.permission === 'dialysis:access:manage') return canAccess;
     return true;
-  }).filter((it) => {
-    if (canView) return true;
-    if (!canPharmacyNav) return false;
-    return it.key === 'pharmacy' || it.key === 'pharmacy-stock';
-  });
+  })
+    .filter((it) => {
+      if (routeCaps.reconciliationLanding) {
+        const hiddenForRecon = [
+          'overview',
+          'patients',
+          'sessions',
+          'live',
+          'halls',
+          'shifts',
+          'machines',
+          'inventory',
+        ];
+        if (hiddenForRecon.includes(it.key)) return false;
+      }
+      if (canView) return true;
+      if (!canPharmacyNav) return false;
+      return it.key === 'pharmacy' || it.key === 'pharmacy-stock';
+    });
 
   const groups: Array<{ key: string; title: string; items: NavItem[] }> = [
     { key: 'main', title: 'العمليات اليومية', items: items.filter((i) => i.group === 'main') },
@@ -260,11 +304,18 @@ const DialysisAppLayout: React.FC = () => {
       key: it.key,
       icon: it.icon,
       label: it.label,
+      className: `d-tour-nav-${it.key}`,
       onClick: () => navigateFromMenu(it.to),
     })),
   ]);
 
-  const mobileNavKeys = canView ? MOBILE_BOTTOM : canPharmacyNav ? ['pharmacy', 'pharmacy-stock'] : MOBILE_BOTTOM;
+  const mobileNavKeys = routeCaps.reconciliationLanding
+    ? ['statistics', 'reports']
+    : canView
+      ? MOBILE_BOTTOM
+      : canPharmacyNav
+        ? ['pharmacy', 'pharmacy-stock']
+        : MOBILE_BOTTOM;
 
   const mobileMoreMenuItems: MenuProps['items'] = useMemo(() => {
     const moreItems = items.filter((i) => !mobileNavKeys.includes(i.key));
@@ -361,6 +412,11 @@ const DialysisAppLayout: React.FC = () => {
     </>
   );
 
+  const restartOnboardingTour = () => {
+    dialysisHaptic('tap');
+    setTourRestartNonce((n) => n + 1);
+  };
+
   const userMenu: MenuProps['items'] = [
     {
       key: 'hospital-scope',
@@ -377,6 +433,25 @@ const DialysisAppLayout: React.FC = () => {
       },
     },
     { type: 'divider' },
+    ...(canView
+      ? [
+          {
+            key: 'onboarding-tour',
+            icon: <QuestionCircleOutlined />,
+            label: 'جولة تعريفية',
+            onClick: restartOnboardingTour,
+          },
+        ]
+      : []),
+    {
+      key: 'theme',
+      icon: <BulbOutlined />,
+      label: `المظهر: ${themeLabel}`,
+      onClick: () => {
+        dialysisHaptic('tap');
+        cycleThemeMode();
+      },
+    },
     {
       key: 'home',
       icon: <ArrowLeftOutlined />,
@@ -424,7 +499,7 @@ const DialysisAppLayout: React.FC = () => {
         )}
       </div>
       {!isMobile && !collapsed && (
-        <div className="d-app-sidebar-hospital">
+        <div className="d-app-sidebar-hospital" data-tour="dialysis-hospital-scope">
           <Text type="secondary" className="d-app-hospital-bar__label">
             نطاق العمل
           </Text>
@@ -465,6 +540,7 @@ const DialysisAppLayout: React.FC = () => {
             key={i.key}
             to={i.to}
             end={i.to === '/dialysis'}
+            data-tour={`dialysis-nav-${i.key}`}
             className={({ isActive }) => `d-bottom-item${isActive ? ' active' : ''}`}
             onClick={() => dialysisHaptic('nav')}
           >
@@ -513,6 +589,7 @@ const DialysisAppLayout: React.FC = () => {
             <button
               type="button"
               className="d-app-mobile-menu__scope"
+              data-tour="dialysis-hospital-scope"
               onClick={() => {
                 dialysisHaptic('tap');
                 setMobileNavOpen(false);
@@ -559,7 +636,10 @@ const DialysisAppLayout: React.FC = () => {
       )}
 
       <Layout className="d-app-body">
-        <Header className={`d-app-header${isMobile ? ' d-app-header--mobile' : ''}`}>
+        <Header
+          className={`d-app-header${isMobile ? ' d-app-header--mobile' : ''}`}
+          data-tour="dialysis-header"
+        >
           <div className="d-app-header-row d-app-header-row--main">
             <div className="d-app-header-left">
               {!isMobile && (
@@ -631,6 +711,7 @@ const DialysisAppLayout: React.FC = () => {
           ) : (
             <>
               {isOverviewPage && <DialysisWelcomeBanner isMobile={isMobile} />}
+              <DialysisOfflineBanner />
               <div
                 key={location.pathname}
                 className={
@@ -639,7 +720,9 @@ const DialysisAppLayout: React.FC = () => {
                     : 'd-page-transition'
                 }
               >
-                <Outlet />
+                <DialysisRouteGuard>
+                  <Outlet />
+                </DialysisRouteGuard>
               </div>
             </>
           )}
@@ -716,6 +799,24 @@ const DialysisAppLayout: React.FC = () => {
                   }
                 >
                   نطاق العمل — {currentHospitalShortLabel}
+                </Button>
+                {canView ? (
+                  <Button
+                    block
+                    size="large"
+                    icon={<QuestionCircleOutlined />}
+                    onClick={() => runUserMenuAction(restartOnboardingTour)}
+                  >
+                    جولة تعريفية
+                  </Button>
+                ) : null}
+                <Button
+                  block
+                  size="large"
+                  icon={<BulbOutlined />}
+                  onClick={() => runUserMenuAction(cycleThemeMode)}
+                >
+                  المظهر: {themeLabel}
                 </Button>
                 <Button
                   block
@@ -822,6 +923,12 @@ const DialysisAppLayout: React.FC = () => {
           updateUser({ photoUrl });
           setPhotoVersion(Date.now());
         }}
+      />
+
+      <DialysisOnboardingTour
+        enabled={Boolean(canView && hospitalId != null && !routeCaps.reconciliationLanding)}
+        isMobile={isMobile}
+        restartNonce={tourRestartNonce}
       />
     </>
   );

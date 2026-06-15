@@ -317,6 +317,15 @@ db.init()
       }
     }
 
+    if (db.prisma) {
+      try {
+        const { registerMinistryReportScheduler } = require('./services/ministryReportScheduler');
+        registerMinistryReportScheduler(db.prisma);
+      } catch (error) {
+        logger.error('Error initializing ministry report scheduler:', error);
+      }
+    }
+
     // Handle server errors (e.g., port already in use)
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {

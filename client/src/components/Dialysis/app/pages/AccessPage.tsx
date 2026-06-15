@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import {
   Table,
   Tag,
@@ -16,6 +16,7 @@ import {
   Form,
   Select,
   Alert,
+  Steps,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -32,6 +33,13 @@ import { useDialysisContext } from '../dialysisContext';
 import { useDialysisMobile } from '../useDialysisMobile';
 import { usePermission } from '../../../../hooks/usePermission';
 import { useAuth } from '../../../../context/AuthContext';
+import {
+  DIALYSIS_ACCESS_TEMPLATES,
+  permissionsForTemplateKey,
+} from '../dialysisAccessTemplates';
+import DialysisPageHeader from '../DialysisPageHeader';
+
+const DialysisAuditLogPanel = lazy(() => import('./access/DialysisAuditLogPanel'));
 
 const { Text, Title } = Typography;
 
@@ -160,6 +168,8 @@ const AccessPage: React.FC = () => {
   const [memberSaving, setMemberSaving] = useState(false);
 
   const [newUserOpen, setNewUserOpen] = useState(false);
+  const [newUserStep, setNewUserStep] = useState(0);
+  const [newUserTemplate, setNewUserTemplate] = useState('nurse');
   const [newUserSubmitting, setNewUserSubmitting] = useState(false);
   const [newUserForm] = Form.useForm<{
     username: string;
@@ -329,18 +339,19 @@ const AccessPage: React.FC = () => {
         return;
       }
       setNewUserSubmitting(true);
+      const templatePerms = permissionsForTemplateKey(newUserTemplate);
       await axios.post('/api/dialysis/access/users', {
         username: v.username.trim(),
         password: v.password,
         name: v.name.trim(),
         hospital_ids: hidList,
         primary_hospital_id: primary,
-        permissions: ['dialysis:view'],
+        permissions: templatePerms,
       });
-      message.success(
-        'تم إنشاء حساب «موظف وحدة الغسيل» وربطه بالمستشفى مع صلاحية العرض — من دون ربط بدور النظام الرئيسي'
-      );
+      message.success(`تم إنشاء حساب «${v.name.trim()}» بقالب ${DIALYSIS_ACCESS_TEMPLATES.find((t) => t.key === newUserTemplate)?.label ?? ''}`);
       setNewUserOpen(false);
+      setNewUserStep(0);
+      setNewUserTemplate('nurse');
       newUserForm.resetFields();
       await refreshAll();
     } catch (e: unknown) {
@@ -401,6 +412,31 @@ const AccessPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const nextNewUserStep = async () => {
+    try {
+      if (newUserStep === 0) {
+        await newUserForm.validateFields(['username', 'password', 'name']);
+        setNewUserStep(1);
+      } else if (newUserStep === 1) {
+        await newUserForm.validateFields(['hospital_ids']);
+        const ids = (newUserForm.getFieldValue('hospital_ids') || []) as number[];
+        if (ids.length > 1) {
+          await newUserForm.validateFields(['primary_hospital_id']);
+        }
+        setNewUserStep(2);
+      }
+    } catch {
+      /* validation shown by form */
+    }
+  };
+
+  const closeNewUserWizard = () => {
+    setNewUserOpen(false);
+    setNewUserStep(0);
+    setNewUserTemplate('nurse');
+    newUserForm.resetFields();
   };
 
   if (!canManage) {
@@ -581,13 +617,10 @@ const AccessPage: React.FC = () => {
 
   return (
     <>
-      <div className="d-page-header">
-        <h2>إدارة الوصول — وحدة الغسيل</h2>
-        <Text className="sub">
-          عرض المستشفيات والموظفين المرتبطين بكل مستشفى (مناسب لإشراف المديرية)، أو إدارة الصلاحيات
-          حسب المستخدم. إنشاء مستشفى جديد من شريط العنوان (زر «مستشفى جديد») إن وُجدت الصلاحية.
-        </Text>
-      </div>
+      <DialysisPageHeader
+        title="إدارة الوصول — وحدة الغسيل"
+        subtitle="عرض المستشفيات والموظفين المرتبطين بكل مستشفى (مناسب لإشراف المديرية)، أو إدارة الصلاحيات حسب المستخدم. إنشاء مستشفى جديد من شريط العنوان (زر «مستشفى جديد») إن وُجدت الصلاحية."
+      />
 
       <Tabs
         activeKey={accessTab}
@@ -785,6 +818,15 @@ const AccessPage: React.FC = () => {
               </div>
             ),
           },
+          {
+            key: 'audit-log',
+            label: 'سجل التدقيق',
+            children: (
+              <Suspense fallback={<Text type="secondary">جاري التحميل…</Text>}>
+                <DialysisAuditLogPanel />
+              </Suspense>
+            ),
+          },
         ]}
       />
 
@@ -829,85 +871,117 @@ const AccessPage: React.FC = () => {
       </Modal>
 
       <Modal
-        title="مستخدم جديد — وحدة الغسيل"
+        title="إضافة موظف — معالج سريع"
         open={newUserOpen}
-        onCancel={() => {
-          setNewUserOpen(false);
-          newUserForm.resetFields();
-        }}
-        onOk={submitNewUser}
-        confirmLoading={newUserSubmitting}
-        okText="إنشاء"
-        cancelText="إلغاء"
-        width={isMobile ? 'calc(100vw - 24px)' : 520}
+        onCancel={closeNewUserWizard}
+        footer={
+          <Space>
+            <Button onClick={closeNewUserWizard}>إلغاء</Button>
+            {newUserStep > 0 ? (
+              <Button onClick={() => setNewUserStep((s) => s - 1)}>السابق</Button>
+            ) : null}
+            {newUserStep < 2 ? (
+              <Button type="primary" onClick={() => void nextNewUserStep()}>
+                التالي
+              </Button>
+            ) : (
+              <Button type="primary" loading={newUserSubmitting} onClick={() => void submitNewUser()}>
+                إنشاء الحساب
+              </Button>
+            )}
+          </Space>
+        }
+        width={isMobile ? 'calc(100vw - 24px)' : 560}
         destroyOnClose
       >
+        <Steps
+          size="small"
+          current={newUserStep}
+          style={{ marginBottom: 20 }}
+          items={[{ title: 'البيانات' }, { title: 'المستشفى' }, { title: 'الصلاحيات' }]}
+        />
         <Form form={newUserForm} layout="vertical" requiredMark="optional">
-          <Form.Item
-            name="username"
-            label="اسم المستخدم"
-            rules={[{ required: true, message: 'مطلوب' }]}
-          >
-            <Input autoComplete="off" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label="كلمة المرور"
-            rules={[{ required: true, min: 6, message: '6 أحرف على الأقل' }]}
-          >
-            <Input.Password autoComplete="new-password" />
-          </Form.Item>
-          <Form.Item name="name" label="الاسم الكامل" rules={[{ required: true, message: 'مطلوب' }]}>
-            <Input />
-          </Form.Item>
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="نظام الدخول لهذا الحساب"
-            description={
-              <>
-                <strong>الغسل الكلوي (D-IRS) فقط</strong> — يفتح صفحة وحدة الغسل مباشرة بعد تسجيل
-                الدخول.
-                <br />
-                لإنشاء مستخدم للنظام الرئيسي (الكلية الصناعية — استعلامات، مختبر، صيدلية، طبيب)
-                استخدم لوحة المدير في النظام الرئيسي.
-              </>
-            }
-          />
-          <Form.Item
-            name="hospital_ids"
-            label="المستشفيات"
-            rules={[{ required: true, message: 'اختر مستشفى واحداً على الأقل' }]}
-          >
-            <Checkbox.Group options={hospitals.map((h) => ({ label: h.name, value: h.id }))} />
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(p, c) => p.hospital_ids !== c.hospital_ids}>
-            {({ getFieldValue }) => {
-              const ids = (getFieldValue('hospital_ids') || []) as number[];
-              if (ids.length <= 1) return null;
-              return (
-                <Form.Item
-                  name="primary_hospital_id"
-                  label="المستشفى الافتراضي"
-                  rules={[{ required: true, message: 'مطلوب عند اختيار أكثر من مستشفى' }]}
-                >
-                  <Radio.Group>
-                    {ids.map((id) => (
-                      <Radio key={id} value={id}>
-                        {hospitals.find((x) => x.id === id)?.name || id}
-                      </Radio>
-                    ))}
-                  </Radio.Group>
-                </Form.Item>
-              );
-            }}
-          </Form.Item>
+          {newUserStep === 0 ? (
+            <>
+              <Form.Item
+                name="username"
+                label="اسم المستخدم"
+                rules={[{ required: true, message: 'مطلوب' }]}
+              >
+                <Input autoComplete="off" />
+              </Form.Item>
+              <Form.Item
+                name="password"
+                label="كلمة المرور"
+                rules={[{ required: true, min: 6, message: '6 أحرف على الأقل' }]}
+              >
+                <Input.Password autoComplete="new-password" />
+              </Form.Item>
+              <Form.Item name="name" label="الاسم الكامل" rules={[{ required: true, message: 'مطلوب' }]}>
+                <Input />
+              </Form.Item>
+              <Alert type="info" showIcon message="حساب D-IRS — يفتح وحدة الغسل مباشرة بعد الدخول" />
+            </>
+          ) : null}
+          {newUserStep === 1 ? (
+            <>
+              <Form.Item
+                name="hospital_ids"
+                label="المستشفيات"
+                rules={[{ required: true, message: 'اختر مستشفى واحداً على الأقل' }]}
+              >
+                <Checkbox.Group options={hospitals.map((h) => ({ label: h.name, value: h.id }))} />
+              </Form.Item>
+              <Form.Item noStyle shouldUpdate={(p, c) => p.hospital_ids !== c.hospital_ids}>
+                {({ getFieldValue }) => {
+                  const ids = (getFieldValue('hospital_ids') || []) as number[];
+                  if (ids.length <= 1) return null;
+                  return (
+                    <Form.Item
+                      name="primary_hospital_id"
+                      label="المستشفى الافتراضي"
+                      rules={[{ required: true, message: 'مطلوب عند اختيار أكثر من مستشفى' }]}
+                    >
+                      <Radio.Group>
+                        {ids.map((id) => (
+                          <Radio key={id} value={id}>
+                            {hospitals.find((x) => x.id === id)?.name || id}
+                          </Radio>
+                        ))}
+                      </Radio.Group>
+                    </Form.Item>
+                  );
+                }}
+              </Form.Item>
+            </>
+          ) : null}
+          {newUserStep === 2 ? (
+            <>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+                اختر قالباً جاهزاً — يمكن تعديل الصلاحيات لاحقاً.
+              </Text>
+              <Radio.Group
+                value={newUserTemplate}
+                onChange={(e) => setNewUserTemplate(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  {DIALYSIS_ACCESS_TEMPLATES.map((t) => (
+                    <Radio key={t.key} value={t.key} style={{ alignItems: 'flex-start' }}>
+                      <span>
+                        <strong>{t.label}</strong>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {t.description}
+                        </Text>
+                      </span>
+                    </Radio>
+                  ))}
+                </Space>
+              </Radio.Group>
+            </>
+          ) : null}
         </Form>
-        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-          يُمنح تلقائياً عرض وحدة الغسيل (dialysis:view). الدخول للنظام الرئيسي غير مفعّل لهذا النوع من
-          الحسابات إلا إذا غيّر المدير دوره لاحقاً من إدارة المستخدمين.
-        </Text>
       </Modal>
 
       <Modal

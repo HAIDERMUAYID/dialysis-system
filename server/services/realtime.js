@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 const { getQuery, runQuery } = require('../database/db');
+const { JWT_SECRET } = require('../middleware/auth');
 
 /**
  * Enterprise Real-time Communication System
@@ -35,8 +36,8 @@ class RealtimeService {
           return next(new Error('Authentication error: No token provided'));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        socket.userId = decoded.userId;
+        const decoded = jwt.verify(token, JWT_SECRET);
+        socket.userId = decoded.id ?? decoded.userId;
         socket.userRole = decoded.role;
         next();
       } catch (error) {
@@ -125,6 +126,29 @@ class RealtimeService {
       socket.to(data.room).emit('typing:stop', { userId });
     });
 
+    socket.on('dialysis:live:subscribe', (payload) => {
+      const raw = payload && Array.isArray(payload.hospitalIds) ? payload.hospitalIds : [];
+      const hospitalIds = raw
+        .map((id) => parseInt(String(id), 10))
+        .filter((id) => Number.isFinite(id) && id > 0);
+
+      for (const room of socket.dialysisLiveRooms || []) {
+        socket.leave(room);
+      }
+      socket.dialysisLiveRooms = hospitalIds.map((id) => `dialysis:live:${id}`);
+      for (const room of socket.dialysisLiveRooms) {
+        socket.join(room);
+      }
+      logger.debug(`User ${userId} subscribed to dialysis live: ${hospitalIds.join(',')}`);
+    });
+
+    socket.on('dialysis:live:unsubscribe', () => {
+      for (const room of socket.dialysisLiveRooms || []) {
+        socket.leave(room);
+      }
+      socket.dialysisLiveRooms = [];
+    });
+
     // Handle disconnection
     socket.on('disconnect', async () => {
       await this.handleDisconnection(socket);
@@ -188,6 +212,15 @@ class RealtimeService {
   // Send notification to role
   sendNotificationToRole(role, notification) {
     this.io.to(`role:${role}`).emit('notification:new', notification);
+  }
+
+  broadcastDialysisLiveChange(hospitalId, meta = {}) {
+    if (!Number.isFinite(hospitalId)) return;
+    this.io.to(`dialysis:live:${hospitalId}`).emit('dialysis:live:changed', {
+      hospitalId,
+      ...meta,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   // Broadcast system message

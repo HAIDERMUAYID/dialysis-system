@@ -1,0 +1,39 @@
+/* D-IRS — accessibility: tag contrast + filter focus */
+
+/* وسوم رمادية/افتراضية — تباين AA على خلفيات فاتحة */
+.d-app-root .ant-tag.ant-tag-default,
+.d-app-root .ant-tag.d-tag-muted,
+.d-app-root .d-patients-filters-collapse__results.ant-tag {
+  color: #1e293b !important;
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+
+.d-app-root .d-patients-filters-collapse .ant-tag:not([class*='ant-tag-']),
+.d-app-root .d-sessions-filters-collapse .ant-tag:not([class*='ant-tag-']) {
+  color: #1e293b !important;
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+
+[data-theme='dark'] .d-app-root .ant-tag.ant-tag-default,
+[data-theme='dark'] .d-app-root .ant-tag.d-tag-muted,
+[data-theme='dark'] .d-app-root .d-patients-filters-collapse__results.ant-tag {
+  color: #e2e8f0 !important;
+  background: #334155 !important;
+  border-color: #64748b !important;
+}
+
+/* فلاتر موبايل — حلقة تركيز واضحة */
+.d-patients-filters-collapse .ant-select,
+.d-sessions-filters-collapse .ant-select {
+  width: 100%;
+}
+
+.d-patients-filters-collapse .ant-select-selector:focus-visible,
+.d-sessions-filters-collapse .ant-select-selector:focus-visible,
+.d-patients-filters .ant-select-selector:focus-visible,
+.d-sessions-filters .ant-select-selector:focus-visible {
+  outline: 2px solid #157c67;
+  outline-offset: 2px;
+}

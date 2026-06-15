@@ -5,13 +5,11 @@
 
 /* على body عند الموبايل (للشريط السفلي عبر portal) */
 body.d-app-mobile {
-  --d-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
   --d-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-tap-highlight-color: transparent;
 }
 
 .d-app-mobile {
-  --d-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
   --d-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --d-brand-teal: #157c67;
   --d-brand-teal-dark: #0d9488;
@@ -41,7 +39,7 @@ body.d-app-mobile {
   background:
     radial-gradient(ellipse 90% 50% at 100% -10%, rgba(21, 124, 103, 0.1), transparent 55%),
     radial-gradient(ellipse 70% 45% at 0% 20%, rgba(40, 178, 225, 0.1), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(99, 102, 241, 0.06), transparent 45%);
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(21, 124, 103, 0.05), transparent 45%);
 }
 
 .d-app-mobile .d-app-header,
@@ -93,10 +91,8 @@ body.d-dialysis-overlay-open {
 }
 
 .d-app-mobile .d-app-page-title {
-  background: linear-gradient(135deg, var(--d-brand-teal) 0%, var(--d-ink) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--d-brand-teal);
+  font-weight: 700;
 }
 
 .d-app-mobile .d-app-user-btn {
@@ -108,8 +104,8 @@ body.d-dialysis-overlay-open {
 }
 
 .d-app-mobile .d-app-user-btn .ant-avatar {
-  box-shadow: 0 0 0 2px #fff, 0 4px 12px var(--d-accent-glow);
-  transition: transform 200ms var(--d-ease-spring);
+  box-shadow: 0 0 0 2px #fff, 0 4px 12px var(--d-brand-glow);
+  transition: transform 200ms var(--d-ease-out);
   cursor: pointer;
 }
 
@@ -343,8 +339,8 @@ body.d-app-mobile .d-bottom-nav {
     0 12px 32px rgba(21, 124, 103, 0.38),
     0 4px 12px rgba(40, 178, 225, 0.2);
   cursor: pointer;
-  animation: dFabIn 500ms var(--d-ease-spring) both;
-  transition: transform 180ms var(--d-ease-spring), box-shadow 200ms ease;
+  animation: dFabIn 500ms var(--d-ease-out) both;
+  transition: transform 180ms var(--d-ease-out), box-shadow 200ms ease;
 }
 
 .d-mobile-fab:active {
@@ -417,14 +413,14 @@ body.d-app-mobile .d-bottom-nav {
   border-radius: 12px;
   font-weight: 600;
   transition:
-    transform 180ms var(--d-ease-spring),
+    transform 180ms var(--d-ease-out),
     box-shadow 220ms ease;
 }
 
 .d-app-mobile .ant-btn-primary:not(:disabled) {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, var(--d-brand-teal), var(--d-brand-teal-dark));
   border: none;
-  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 22px rgba(21, 124, 103, 0.32);
 }
 
 .d-app-mobile .ant-btn-primary:not(:disabled):active {
@@ -435,7 +431,6 @@ body.d-app-mobile .d-bottom-nav {
 .d-app-mobile .d-page-header h2,
 .d-app-mobile .d-patients-hero h2 {
   animation: dMobileTitleIn 400ms var(--d-ease-out) both;
-  letter-spacing: -0.02em;
 }
 
 .d-app-mobile .d-page-header .sub,
@@ -520,14 +515,14 @@ body.d-app-mobile .d-bottom-nav {
   min-height: 50px;
   border-radius: 14px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--d-brand-teal) 0%, var(--d-brand-teal-dark) 100%);
-  border-color: transparent;
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--d-brand-teal) 0%, var(--d-brand-teal-dark) 100%) !important;
+  border-color: transparent !important;
   box-shadow: 0 8px 24px rgba(21, 124, 103, 0.22);
 }
 
-.d-app-mobile .d-face-quick-btn.ant-btn {
-  border: 1px solid rgba(21, 124, 103, 0.28);
-  background: linear-gradient(135deg, rgba(21, 124, 103, 0.06) 0%, rgba(40, 178, 225, 0.08) 100%);
+.d-app-mobile .d-face-quick-btn.ant-btn-primary .anticon {
+  color: #fff;
 }
 
 .d-app-mobile .d-session-create-drawer--mobile .ant-drawer-footer {

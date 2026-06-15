@@ -305,6 +305,23 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
             note: row.note ?? null,
           })
         );
+      const scheduleRows =
+        v.kind === 'PERSISTENT'
+          ? dialysisDays.map((d) => ({
+              day_of_week: d,
+              location_id: dayLoc[d],
+              shift_slot_id: dayShift[d],
+            }))
+          : [];
+
+      // جدول الغسل يُحفظ أولاً — الخادم يتحقق من وجوده عند تحديث مريض دائم
+      if (v.kind === 'PERSISTENT') {
+        await axios.put(`/api/dialysis/patients/${patientId}/schedules`, {
+          hospital_id: hospitalId,
+          rows: scheduleRows,
+        });
+      }
+
       await axios.patch(`/api/dialysis/patients/${patientId}`, {
         hospital_id: hospitalId,
         full_name: v.full_name,
@@ -337,18 +354,13 @@ const DialysisPatientDetailModal: React.FC<Props> = ({
         anticoagulant_standard: v.anticoagulant_standard || null,
         labs_follow_up_json: labsPayload.length ? labsPayload : null,
       });
-      const rows =
-        v.kind === 'PERSISTENT'
-          ? dialysisDays.map((d) => ({
-              day_of_week: d,
-              location_id: dayLoc[d],
-              shift_slot_id: dayShift[d],
-            }))
-          : [];
-      await axios.put(`/api/dialysis/patients/${patientId}/schedules`, {
-        hospital_id: hospitalId,
-        rows,
-      });
+
+      if (v.kind !== 'PERSISTENT') {
+        await axios.put(`/api/dialysis/patients/${patientId}/schedules`, {
+          hospital_id: hospitalId,
+          rows: [],
+        });
+      }
       message.success('تم حفظ الملف والجدول');
       onSaved();
       onClose();

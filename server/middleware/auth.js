@@ -81,6 +81,15 @@ const requireAnyPermission = (...permissionNames) => {
   };
 };
 
+function verifyJwtToken(token) {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) reject(err);
+      else resolve(user);
+    });
+  });
+}
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -89,13 +98,32 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'يجب تسجيل الدخول أولاً' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(401).json({ error: 'رمز الوصول غير صالح أو منتهي' });
-    }
-    req.user = user;
-    next();
-  });
+  verifyJwtToken(token)
+    .then((user) => {
+      req.user = user;
+      next();
+    })
+    .catch(() => res.status(401).json({ error: 'رمز الوصول غير صالح أو منتهي' }));
+};
+
+/** Like authenticateToken but accepts ?token= for EventSource (SSE). */
+const authenticateTokenOrQuery = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  let token = authHeader && authHeader.split(' ')[1];
+  if (!token && req.query.token) {
+    token = String(req.query.token);
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'يجب تسجيل الدخول أولاً' });
+  }
+
+  verifyJwtToken(token)
+    .then((user) => {
+      req.user = user;
+      next();
+    })
+    .catch(() => res.status(401).json({ error: 'رمز الوصول غير صالح أو منتهي' }));
 };
 
 const requireRole = (...roles) => {
@@ -112,6 +140,7 @@ const requireRole = (...roles) => {
 
 module.exports = {
   authenticateToken,
+  authenticateTokenOrQuery,
   requireRole,
   requirePermission,
   requireAnyPermission,

@@ -72,6 +72,8 @@ export function evaluateFaceQuality(
     minFaceRatio: number;
     maxTiltDeg: number;
     singleFace: boolean;
+    maxYawRatio?: number;
+    staffMode?: boolean;
   }
 ): FaceQualitySnapshot {
   const checks = {
@@ -80,7 +82,7 @@ export function evaluateFaceQuality(
     sizeOk: pose.faceRatio >= opts.minFaceRatio,
     clarityOk: pose.detectionScore >= opts.minScore,
     tiltOk: Math.abs(pose.tiltDeg) <= opts.maxTiltDeg,
-    centeredOk: Math.abs(pose.yawRatio) <= 0.3,
+    centeredOk: Math.abs(pose.yawRatio) <= (opts.maxYawRatio ?? 0.3),
   };
 
   const passed = Object.values(checks).filter(Boolean).length;
@@ -92,11 +94,18 @@ export function evaluateFaceQuality(
   else if (score >= 50) level = 'fair';
 
   let message = 'جاهز للالتقاط';
-  if (!checks.singleFace) message = 'يجب وجود وجه واحد فقط';
-  else if (!checks.sizeOk) message = 'قرّب وجهك داخل الإطار';
-  else if (!checks.clarityOk) message = 'حسّن الإضاءة — الوجه غير واضح';
-  else if (!checks.tiltOk) message = 'أعد مستوى رأسك';
-  else if (!checks.centeredOk) message = 'وجّه وجهك نحو الكامره مباشرة';
+  if (!checks.singleFace) message = opts.staffMode ? 'يجب وجود وجه المريض فقط' : 'يجب وجود وجه واحد فقط';
+  else if (!checks.sizeOk)
+    message = opts.staffMode
+      ? 'الوجه بعيد — قرّب قليلاً أو كبّر داخل الإطار'
+      : 'قرّب وجهك داخل الإطار';
+  else if (!checks.clarityOk)
+    message = opts.staffMode
+      ? 'الوجه غير واضح — حسّن الإضاءة على المريض'
+      : 'حسّن الإضاءة — الوجه غير واضح';
+  else if (!checks.tiltOk) message = opts.staffMode ? 'ثبّت رأس المريض' : 'أعد مستوى رأسك';
+  else if (!checks.centeredOk)
+    message = opts.staffMode ? 'وجّه الكاميرا نحو وجه المريض' : 'وجّه وجهك نحو الكامره مباشرة';
 
   return {
     ok:

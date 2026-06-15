@@ -274,7 +274,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
             <Alert
               type="warning"
               showIcon
-              style={{ marginTop: 8 }}
+              className="d-ph-stock-modal-alert--inner"
               message={`يوجد رصيد متبقٍ: ${row.totalRemainingBase} ${row.baseUnitLabel}. سيُزال من المخزون مع الحذف.`}
             />
           ) : null}
@@ -407,7 +407,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
           <Text strong>{r.name}</Text>
           {r.sku ? (
             <div>
-              <Text type="secondary" style={{ fontSize: 12 }}>
+              <Text type="secondary" className="d-ph-stock-muted">
                 SKU: {r.sku}
               </Text>
             </div>
@@ -474,7 +474,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
       render: (_, r) => (
         <div>
           <div>{r.item?.name}</div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text type="secondary" className="d-ph-stock-muted">
             {r.item?.drugCatalog?.drugNameAr || r.item?.drugCatalog?.drugName || ''}
           </Text>
         </div>
@@ -564,8 +564,8 @@ const DialysisPharmacyStockPage: React.FC = () => {
       <div className={`d-ph-stock-page d-ph-stock-page--pick-hospital${isNarrow ? ' d-ph-stock-page--narrow' : ''}`}>
         <header className={`d-ph-stock-hero${isNarrow ? ' d-ph-stock-hero--compact' : ''}`}>
           <div className="d-ph-stock-hero-inner">
-            <Title level={isNarrow ? 4 : 3} style={{ margin: 0, color: '#fff', fontWeight: 800 }}>
-              <DatabaseOutlined style={{ marginInlineEnd: 10 }} aria-hidden />
+            <Title level={isNarrow ? 4 : 3} className="d-ph-stock-hero-title">
+              <DatabaseOutlined aria-hidden />
               مخزن صيدلية الغسل
             </Title>
             {!isNarrow ? (
@@ -594,8 +594,8 @@ const DialysisPharmacyStockPage: React.FC = () => {
     <div className={`d-ph-stock-page${isNarrow ? ' d-ph-stock-page--narrow' : ''}`}>
       <header className={`d-ph-stock-hero${isNarrow ? ' d-ph-stock-hero--compact' : ''}`}>
         <div className="d-ph-stock-hero-inner">
-          <Title level={isNarrow ? 4 : 3} style={{ margin: 0, color: '#fff', fontWeight: 800 }}>
-            <DatabaseOutlined style={{ marginInlineEnd: 10 }} aria-hidden />
+          <Title level={isNarrow ? 4 : 3} className="d-ph-stock-hero-title">
+            <DatabaseOutlined aria-hidden />
             مخزن صيدلية الغسل
           </Title>
           {!isNarrow ? (
@@ -619,20 +619,18 @@ const DialysisPharmacyStockPage: React.FC = () => {
 
       {!wh && !loading && (
         <Alert
-          className="d-ph-stock-banner"
+          className="d-ph-stock-banner d-ph-stock-banner--spaced"
           type="warning"
           showIcon
-          style={{ marginBottom: 14 }}
           message="لا يوجد مستودع صيدلية مهيأ لهذا المستشفى. أنشئ مستشفى من إدارة النظام أو أضف المستودعات الافتراضية."
         />
       )}
 
       {canInventory && (overview?.kpis?.orphaned_batch_records ?? 0) > 0 ? (
         <Alert
-          className="d-ph-stock-banner"
+          className="d-ph-stock-banner d-ph-stock-banner--spaced"
           type="info"
           showIcon
-          style={{ marginBottom: 14 }}
           message={`توجد ${overview!.kpis!.orphaned_batch_records} دفعة لأصناف محذوفة سابقاً — الإحصائيات لا تشملها.`}
           action={
             <Button size="small" danger onClick={() => purgeDeletedItems()}>
@@ -714,7 +712,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
                         <Statistic
                           title="تنتهي خلال 30 يوماً"
                           value={kp.expiring_batches_within_30_days}
-                          valueStyle={{ color: '#d48806' }}
+                          className="d-ph-stock-stat-expiring"
                         />
                       </Card>
                       <Card className="d-ph-stock-kpi-card d-ph-stock-kpi-card--slide" size="small" role="listitem">
@@ -729,7 +727,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
                       </Card>
                     </div>
                   ) : (
-                    <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                    <Row gutter={[16, 16]} className="d-ph-stock-kpi-row">
                       <Col xs={24} sm={12} md={8} lg={6}>
                         <Card className="d-ph-stock-kpi-card" size="small">
                           <Statistic title="عدد الأصناف المعرفة" value={kp.sku_count} />
@@ -750,7 +748,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
                           <Statistic
                             title="دفعات تنتهي خلال 30 يوماً"
                             value={kp.expiring_batches_within_30_days}
-                            valueStyle={{ color: '#d48806' }}
+                            className="d-ph-stock-stat-expiring"
                           />
                         </Card>
                       </Col>
@@ -798,7 +796,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
                   <Space>
                     <Text type="secondary">إظهار الرصيد صفر:</Text>
                     <Select
-                      style={{ width: 100 }}
+                      className="d-ph-stock-zero-select"
                       value={includeZero ? 'yes' : 'no'}
                       onChange={(v) => setIncludeZero(v === 'yes')}
                       options={[
@@ -885,7 +883,7 @@ const DialysisPharmacyStockPage: React.FC = () => {
         <Alert
           type="info"
           showIcon
-          style={{ marginBottom: 12 }}
+          className="d-ph-stock-modal-alert"
           message="يُسجّل في مستودع الصيدلية الخاص بوحدة الغسل فقط، مع تحديث الرصيد والقيمة التقديرية للمخزون."
         />
         <Form form={receiptForm} layout="vertical">
@@ -920,13 +918,13 @@ const DialysisPharmacyStockPage: React.FC = () => {
             <Input />
           </Form.Item>
           <Form.Item name="unit_cost_per_base" label="سعر شراء الوحدة الأساسية (د.ع.) — اختياري">
-            <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
+            <InputNumber min={0} step={0.01} className="d-ph-stock-form-full" />
           </Form.Item>
           <Form.Item name="lot_number" label="رقم الدفعة / اللوت">
             <Input />
           </Form.Item>
           <Form.Item name="expiry_date" label="تاريخ انتهاء الصلاحية">
-            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+            <DatePicker className="d-ph-stock-form-full" format="YYYY-MM-DD" />
           </Form.Item>
           <Form.Item name="supplier_name" label="المورد">
             <Input />

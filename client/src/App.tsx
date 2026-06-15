@@ -22,9 +22,6 @@ import MobileAppBootScreen from './components/Common/MobileAppBootScreen';
 import './App.css';
 import { resolveAppHomeRoute } from './utils/appHomeRoute';
 
-/** اسم مستعار: تحديثات ساخنة قديمة أو كود لم يُحفظ قد يشير إلى DialysisDashboard بدون استيراد */
-const DialysisDashboard = DialysisApp;
-
 const PrivateRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -278,7 +275,7 @@ const AppRoutes: React.FC = () => {
               'dialysis:pharmacy:inventory',
             ]}
           >
-            <DialysisDashboard />
+            <DialysisApp />
           </PrivateRoute>
         }
       />

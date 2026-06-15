@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
+    "@sentry/react": "^8.55.2",
     "@tanstack/react-table": "^8.10.7",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
@@ -42,6 +43,11 @@
     "zustand": "^4.4.7"
   },
   "scripts": {
+    "copy-face-models": "node scripts/copy-face-models.js",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
+    "prestart": "npm run copy-face-models && npm run generate-pwa-icons",
+    "prebuild": "npm run copy-face-models && npm run generate-pwa-icons",
+    "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -64,5 +70,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   }
 }
